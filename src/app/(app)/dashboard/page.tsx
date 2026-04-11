@@ -53,8 +53,8 @@ export default function DashboardPage() {
         Your mock dashboard — bookings and hosting update from browser state.
       </p>
       <p className="mt-2 text-sm">
-        <Link className="font-medium text-primary hover:underline" href="/history">
-          Open History
+        <Link className="font-medium text-primary hover:underline" href="/bookings">
+          Open Bookings
         </Link>{" "}
         for guest lists, share links, and check-in.
       </p>
@@ -101,7 +101,7 @@ export default function DashboardPage() {
               {hostingPreview.map((e) => (
                 <li key={e.id}>
                   <Link
-                    href="/history"
+                    href="/bookings"
                     className="font-medium text-primary hover:underline"
                   >
                     {e.title}

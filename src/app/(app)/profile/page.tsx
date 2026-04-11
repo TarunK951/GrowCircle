@@ -7,6 +7,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { ShieldCheck } from "lucide-react";
+import { ProfileAccountLinks } from "@/components/profile/ProfileAccountLinks";
 import { useSessionStore } from "@/stores/session-store";
 
 const schema = z.object({
@@ -40,7 +41,11 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      <div className="mt-8 flex flex-col gap-8 sm:flex-row sm:items-start">
+      <div className="mt-8">
+        <ProfileAccountLinks />
+      </div>
+
+      <div className="mt-10 flex flex-col gap-8 sm:flex-row sm:items-start">
         <div className="flex shrink-0 flex-col items-center gap-3 sm:w-40">
           <div className="relative h-28 w-28 overflow-hidden rounded-2xl border-2 border-neutral-200 bg-neutral-100 shadow-sm">
             {user?.avatar ? (
