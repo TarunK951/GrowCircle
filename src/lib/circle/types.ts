@@ -311,3 +311,110 @@ export type CircleReportRow = {
   status?: string;
   created_at?: string;
 };
+
+/** §13 — blacklists */
+export type CircleBlacklistRow = {
+  id: string;
+  user_id: string;
+  event_id?: string | null;
+  reason?: string | null;
+  created_at?: string;
+};
+
+export type CircleCreateBlacklistBody = {
+  user_id: string;
+  event_id: string;
+  reason: string;
+};
+
+/** §14 — media */
+export type CircleMediaUploadUrlBody = {
+  fileName: string;
+  fileType: string;
+  folder: string;
+};
+
+export type CircleMediaUploadUrlData = {
+  uploadUrl: string;
+  fileUrl: string;
+  key: string;
+};
+
+export type CircleMediaDeleteBody = {
+  key: string;
+};
+
+/** §15 — settlements */
+export type CircleSettlementRow = {
+  id: string;
+  event_id: string;
+  total_collected?: string;
+  total_refunded?: string;
+  platform_fee?: string;
+  net_amount?: string;
+  status?: string;
+  settled_at?: string | null;
+};
+
+/** §16 — admin */
+export type CircleAdminDashboardStats = {
+  totalUsers?: number;
+  totalEvents?: number;
+  totalApplications?: number;
+  totalRevenue?: number;
+  pendingSettlements?: number;
+  totalSettled?: number;
+  pendingReports?: number;
+};
+
+export type CircleAdminUserRow = {
+  id: string;
+  phone?: string;
+  username?: string | null;
+  email?: string | null;
+  verification_tier?: number;
+  is_globally_banned?: boolean;
+};
+
+export type CirclePresetQuestionAdmin = {
+  id: string;
+  question_text: string;
+  question_type: string;
+  options?: string[] | null;
+  is_base?: boolean;
+};
+
+export type CirclePresetQuestionCreateBody = {
+  question_text: string;
+  question_type: string;
+  options?: string[];
+  is_base?: boolean;
+};
+
+export type CircleAdminReportReviewBody = {
+  status: "reviewed" | "resolved" | "dismissed";
+  admin_notes?: string;
+};
+
+export type CircleAuditLogRow = {
+  id: string;
+  actor_id?: string;
+  action?: string;
+  target_type?: string;
+  target_id?: string;
+  metadata?: Record<string, unknown>;
+  ip_address?: string | null;
+  created_at?: string;
+};
+
+/** Admin audit logs — `data` contains logs + meta */
+export type CircleAdminAuditLogsData = {
+  logs: CircleAuditLogRow[];
+  meta: CircleListMeta;
+};
+
+/** Health (root `/health`, not under `/api`) */
+export type CircleHealthData = {
+  status: string;
+  timestamp?: string;
+};

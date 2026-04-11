@@ -56,12 +56,44 @@ export function loadRazorpayScript(): Promise<void> {
   return loadPromise;
 }
 
+function getPublicRazorpayKeyId(): string | undefined {
+  const raw = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID?.trim();
+  return raw || undefined;
+}
+
+/** Razorpay publishable key from payload or `NEXT_PUBLIC_RAZORPAY_KEY_ID`. */
+export function resolveRazorpayKey(
+  payload: CircleRazorpayOrderPayload,
+): string | undefined {
+  const fromPayload = payload.key?.trim();
+  return fromPayload || getPublicRazorpayKeyId();
+}
+
+/** Payment payload with required Razorpay order fields (key from payload or env). */
+export type RazorpayReadyPayload = CircleRazorpayOrderPayload & {
+  orderId: string;
+  amount: number;
+};
+
 export type OpenRazorpayFromPayloadParams = {
-  payload: CircleRazorpayOrderPayload;
+  payload: RazorpayReadyPayload;
   title?: string;
   onPaid?: (response: RazorpayPaymentResponse) => void;
   onDismiss?: () => void;
 };
+
+export function canOpenRazorpayCheckout(
+  payload: CircleRazorpayOrderPayload | undefined | null,
+): payload is RazorpayReadyPayload {
+  if (!payload) return false;
+  const key = resolveRazorpayKey(payload);
+  return Boolean(
+    key &&
+      typeof payload.orderId === "string" &&
+      payload.orderId.length > 0 &&
+      typeof payload.amount === "number",
+  );
+}
 
 /**
  * Opens Razorpay Checkout using order details returned by the Circle API.
@@ -72,7 +104,7 @@ export async function openRazorpayFromPayload({
   onPaid,
   onDismiss,
 }: OpenRazorpayFromPayloadParams): Promise<void> {
-  const key = payload.key;
+  const key = resolveRazorpayKey(payload);
   const orderId = payload.orderId;
   const amount = payload.amount;
   const currency = payload.currency ?? "INR";

@@ -22,7 +22,10 @@ import {
   getEventFromCatalog,
   mergeEventCatalog,
 } from "@/lib/eventsCatalog";
-import { openRazorpayFromPayload } from "@/lib/razorpay/loadCheckout";
+import {
+  canOpenRazorpayCheckout,
+  openRazorpayFromPayload,
+} from "@/lib/razorpay/loadCheckout";
 import { lookupUser } from "@/lib/userLookup";
 import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/session-store";
@@ -276,7 +279,7 @@ function CircleGuestApplicationCard({
     try {
       const data = await acceptWaitlistOffer(accessToken, app.id);
       const pay = data.payment;
-      if (pay?.key && pay.orderId != null && pay.amount != null) {
+      if (canOpenRazorpayCheckout(pay)) {
         await openRazorpayFromPayload({
           payload: pay,
           title: title,

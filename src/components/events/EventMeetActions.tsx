@@ -9,7 +9,10 @@ import { CircleApiError } from "@/lib/circle/client";
 import { isCircleApiConfigured } from "@/lib/circle/config";
 import type { CircleEventQuestion } from "@/lib/circle/types";
 import { getEventFromCatalog } from "@/lib/eventsCatalog";
-import { openRazorpayFromPayload } from "@/lib/razorpay/loadCheckout";
+import {
+  canOpenRazorpayCheckout,
+  openRazorpayFromPayload,
+} from "@/lib/razorpay/loadCheckout";
 import type { MeetEvent, PreJoinQuestion } from "@/lib/types";
 import { useSessionStore } from "@/stores/session-store";
 
@@ -231,8 +234,7 @@ export function JoinMeetButton({ event }: { event: MeetEvent }) {
         return;
       }
       const pay = data.payment;
-      const needsPay =
-        pay && pay.key && pay.orderId != null && pay.amount != null;
+      const needsPay = canOpenRazorpayCheckout(pay);
       if (needsPay) {
         await openRazorpayFromPayload({
           payload: pay,

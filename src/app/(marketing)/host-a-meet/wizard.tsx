@@ -11,6 +11,7 @@ import {
   publishEvent,
 } from "@/lib/circle/api";
 import { isCircleApiConfigured } from "@/lib/circle/config";
+import { getMediaUploadUrl, uploadToPresignedUrl } from "@/lib/circle/mediaApi";
 import { circleEventToMeetEvent } from "@/lib/circle/mappers";
 import { generateShareToken } from "@/lib/eventsCatalog";
 import type { City, MeetEvent, PreJoinQuestion } from "@/lib/types";
@@ -28,7 +29,17 @@ const DEFAULT_COVER =
   "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1200&auto=format&fit=crop&q=80";
 
 const MAX_IMAGE_BYTES = 750 * 1024;
+/** Larger cap when publishing via Circle + S3 presigned upload */
+const MAX_IMAGE_BYTES_CIRCLE = 5 * 1024 * 1024;
 const STEPS = 10;
+
+async function dataUrlToBlob(
+  dataUrl: string,
+): Promise<{ blob: Blob; mime: string }> {
+  const res = await fetch(dataUrl);
+  const blob = await res.blob();
+  return { blob, mime: blob.type || "image/jpeg" };
+}
 
 function trimLines(lines: string[]): string[] {
   return lines.map((s) => s.trim()).filter(Boolean);
@@ -78,8 +89,15 @@ export function HostWizard() {
       toast.error("Please choose an image file (PNG, JPG, WebP, …).");
       return;
     }
-    if (file.size > MAX_IMAGE_BYTES) {
-      toast.error("Image must be under 750KB for local demo storage.");
+    const circleUpload =
+      isCircleApiConfigured() && useSessionStore.getState().accessToken;
+    const maxBytes = circleUpload ? MAX_IMAGE_BYTES_CIRCLE : MAX_IMAGE_BYTES;
+    if (file.size > maxBytes) {
+      toast.error(
+        circleUpload
+          ? "Image must be under 5MB for upload."
+          : "Image must be under 750KB for local demo storage.",
+      );
       return;
     }
     const reader = new FileReader();
@@ -156,14 +174,41 @@ export function HostWizard() {
               .map((s) => s.trim())
               .filter(Boolean)
               .join(", ") || "TBD";
-          const coverUrl =
+
+          let coverUrl: string | undefined;
+          if (
+            draft.imageDataUrl &&
+            draft.imageDataUrl.startsWith("data:")
+          ) {
+            const { blob, mime } = await dataUrlToBlob(draft.imageDataUrl);
+            const ext = mime.includes("png")
+              ? "png"
+              : mime.includes("webp")
+                ? "webp"
+                : "jpg";
+            const { uploadUrl, fileUrl } = await getMediaUploadUrl(
+              accessToken,
+              {
+                fileName: `event-cover-${Date.now()}.${ext}`,
+                fileType: mime || "image/jpeg",
+                folder: "events",
+              },
+            );
+            await uploadToPresignedUrl(
+              uploadUrl,
+              blob,
+              mime || "image/jpeg",
+            );
+            coverUrl = fileUrl;
+          } else if (
             !draft.imageDataUrl &&
             draft.imageUrl.trim() &&
             isProbablyUrl(draft.imageUrl)
-              ? draft.imageUrl.trim()
-              : image.startsWith("http")
-                ? image
-                : undefined;
+          ) {
+            coverUrl = draft.imageUrl.trim();
+          } else if (!draft.imageDataUrl && image.startsWith("http")) {
+            coverUrl = image;
+          }
 
           const created = await createEvent(accessToken, {
             title: draft.title.trim() || "Untitled meet",
