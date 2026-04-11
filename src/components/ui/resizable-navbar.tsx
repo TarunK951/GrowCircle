@@ -108,10 +108,10 @@ export const NavBody = ({ children, className }: NavBodyProps) => {
     <div
       data-elevated={isFloating ? "true" : "false"}
       className={cn(
-        "nav-liquid-glass relative z-[60] mx-auto hidden min-h-14 w-full min-w-0 flex-row items-center justify-between gap-3 py-2 transition-[padding,box-shadow,border-radius] duration-300 ease-out motion-reduce:transition-none sm:gap-4 lg:flex",
+        "nav-liquid-glass relative z-[60] mx-auto hidden min-h-14 w-full min-w-0 flex-row items-center justify-between gap-3 py-2 transition-[padding,box-shadow,border-radius] duration-300 ease-out motion-reduce:transition-none sm:gap-4 md:flex",
         isFloating
-          ? "rounded-2xl px-4 sm:px-6 lg:px-8"
-          : "nav-liquid-glass-full rounded-none px-4 sm:px-6 lg:px-8",
+          ? "rounded-2xl px-4 sm:px-6 md:px-8"
+          : "nav-liquid-glass-full rounded-none px-4 sm:px-6 md:px-8",
         className,
       )}
     >
@@ -127,7 +127,9 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
     <div
       onMouseLeave={() => setHovered(null)}
       className={cn(
-        "hidden min-w-0 flex-1 items-center justify-center gap-1 text-sm font-medium text-zinc-600 transition-colors duration-200 hover:text-zinc-800 sm:gap-2 lg:flex",
+        // flex-1 centers the cluster; shrink-0 prevents the middle column from
+        // collapsing to 0 width when the logo + CTA are wide (links vanished).
+        "hidden flex-1 shrink-0 items-center justify-center gap-1 text-sm font-medium text-zinc-600 transition-colors duration-200 hover:text-zinc-800 sm:gap-2 md:flex",
         className,
       )}
     >
@@ -162,10 +164,10 @@ export const MobileNav = ({ children, className }: MobileNavProps) => {
     <div
       data-elevated={isFloating ? "true" : "false"}
       className={cn(
-        "nav-liquid-glass relative z-50 mx-auto flex w-full min-w-0 shrink-0 flex-col items-stretch justify-between gap-1 py-2 transition-[padding,box-shadow,border-radius] duration-300 ease-out motion-reduce:transition-none lg:hidden",
+        "nav-liquid-glass relative z-50 mx-auto flex w-full min-w-0 shrink-0 flex-col items-stretch justify-between gap-1 py-2 transition-[padding,box-shadow,border-radius] duration-300 ease-out motion-reduce:transition-none md:hidden",
         isFloating
           ? "rounded-2xl px-4 sm:px-6"
-          : "nav-liquid-glass-full rounded-none px-4 sm:px-6 lg:px-8",
+          : "nav-liquid-glass-full rounded-none px-4 sm:px-6 md:px-8",
         className,
       )}
     >
