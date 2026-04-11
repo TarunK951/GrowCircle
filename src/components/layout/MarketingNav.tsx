@@ -49,70 +49,21 @@ export function MarketingNav() {
   }));
 
   return (
-    <Navbar>
-      <NavBody>
-        <NavbarLogo />
-        <NavItems
-          items={navItems}
-          onItemClick={() => setIsMobileMenuOpen(false)}
-        />
-        <div className="relative z-[70] flex shrink-0 items-center gap-2 sm:gap-3">
-          {isAuthenticated ? (
-            <NavbarButton
-              as={Link}
-              href="/dashboard"
-              variant="primary"
-              className={cn(btnPrimary, "!px-4 !py-2 !text-sm")}
-            >
-              Dashboard
-            </NavbarButton>
-          ) : (
-            <NavbarButton
-              as={Link}
-              href="/signup"
-              variant="primary"
-              className={cn(btnPrimary, "!px-4 !py-2 !text-sm")}
-            >
-              Sign up
-            </NavbarButton>
-          )}
-        </div>
-      </NavBody>
-
-      <MobileNav>
-        <MobileNavHeader>
+    <div className="relative w-full">
+      <Navbar>
+        <NavBody>
           <NavbarLogo />
-          <MobileNavToggle
-            isOpen={isMobileMenuOpen}
-            onClick={() => setIsMobileMenuOpen((o) => !o)}
+          <NavItems
+            items={navItems}
+            onItemClick={() => setIsMobileMenuOpen(false)}
           />
-        </MobileNavHeader>
-
-        <MobileNavMenu
-          isOpen={isMobileMenuOpen}
-          onClose={() => setIsMobileMenuOpen(false)}
-        >
-          {navItems.map((item, idx) => (
-            <Link
-              key={`mobile-link-${idx}`}
-              href={item.link}
-              onClick={() => setIsMobileMenuOpen(false)}
-              className={cn(
-                "relative block w-full text-neutral-600 dark:text-neutral-300",
-                item.active && "font-medium text-primary",
-              )}
-            >
-              {item.name}
-            </Link>
-          ))}
-          <div className="flex w-full flex-col gap-3 pt-2">
+          <div className="relative z-[70] flex shrink-0 items-center gap-2 sm:gap-3">
             {isAuthenticated ? (
               <NavbarButton
                 as={Link}
                 href="/dashboard"
                 variant="primary"
-                className={cn(btnPrimary, "w-full !py-3")}
-                onClick={() => setIsMobileMenuOpen(false)}
+                className={cn(btnPrimary, "!px-4 !py-2 !text-sm")}
               >
                 Dashboard
               </NavbarButton>
@@ -121,15 +72,66 @@ export function MarketingNav() {
                 as={Link}
                 href="/signup"
                 variant="primary"
-                className={cn(btnPrimary, "w-full !py-3")}
-                onClick={() => setIsMobileMenuOpen(false)}
+                className={cn(btnPrimary, "!px-4 !py-2 !text-sm")}
               >
                 Sign up
               </NavbarButton>
             )}
           </div>
-        </MobileNavMenu>
-      </MobileNav>
-    </Navbar>
+        </NavBody>
+
+        <MobileNav>
+          <MobileNavHeader>
+            <NavbarLogo />
+            <MobileNavToggle
+              isOpen={isMobileMenuOpen}
+              onClick={() => setIsMobileMenuOpen((o) => !o)}
+            />
+          </MobileNavHeader>
+
+          <MobileNavMenu
+            isOpen={isMobileMenuOpen}
+            onClose={() => setIsMobileMenuOpen(false)}
+          >
+            {navItems.map((item, idx) => (
+              <Link
+                key={`mobile-link-${idx}`}
+                href={item.link}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={cn(
+                  "relative block w-full text-neutral-600 dark:text-neutral-300",
+                  item.active && "font-medium text-primary",
+                )}
+              >
+                {item.name}
+              </Link>
+            ))}
+            <div className="flex w-full flex-col gap-3 pt-2">
+              {isAuthenticated ? (
+                <NavbarButton
+                  as={Link}
+                  href="/dashboard"
+                  variant="primary"
+                  className={cn(btnPrimary, "w-full !py-3")}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Dashboard
+                </NavbarButton>
+              ) : (
+                <NavbarButton
+                  as={Link}
+                  href="/signup"
+                  variant="primary"
+                  className={cn(btnPrimary, "w-full !py-3")}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Sign up
+                </NavbarButton>
+              )}
+            </div>
+          </MobileNavMenu>
+        </MobileNav>
+      </Navbar>
+    </div>
   );
 }

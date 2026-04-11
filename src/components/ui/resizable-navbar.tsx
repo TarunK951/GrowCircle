@@ -71,7 +71,7 @@ export const Navbar = ({ children, className }: NavbarProps) => {
         className,
       )}
     >
-      <div className="pointer-events-auto w-full max-w-6xl">
+      <div className="pointer-events-auto relative mx-auto w-full min-w-0">
         {React.Children.map(children, (child) =>
           React.isValidElement(child)
             ? React.cloneElement(
@@ -98,7 +98,7 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
         damping: 50,
       }}
       className={cn(
-        "nav-liquid-glass relative z-[60] mx-auto hidden min-h-14 w-full min-w-0 flex-row items-center justify-between gap-3 self-stretch rounded-full px-3 py-2 sm:px-5 lg:flex",
+        "nav-liquid-glass relative z-[60] mx-auto hidden min-h-14 w-full min-w-0 flex-row items-center justify-between gap-3 rounded-full px-3 py-2 sm:gap-4 sm:px-5 lg:flex",
         className,
       )}
     >
@@ -114,7 +114,7 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
     <motion.div
       onMouseLeave={() => setHovered(null)}
       className={cn(
-        "pointer-events-none absolute left-1/2 top-1/2 z-30 hidden -translate-x-1/2 -translate-y-1/2 flex-row items-center justify-center gap-1 text-sm font-medium text-zinc-600 transition duration-200 hover:text-zinc-800 sm:gap-2 lg:flex",
+        "hidden min-w-0 flex-1 items-center justify-center gap-1 text-sm font-medium text-zinc-600 transition duration-200 hover:text-zinc-800 sm:gap-2 lg:flex",
         className,
       )}
     >
@@ -123,7 +123,7 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
           onMouseEnter={() => setHovered(idx)}
           onClick={onItemClick}
           className={cn(
-            "pointer-events-auto relative px-3 py-2 text-neutral-600 transition-colors dark:text-neutral-300 sm:px-4",
+            "relative px-3 py-2 text-neutral-600 transition-colors dark:text-neutral-300 sm:px-4",
             item.active && "text-primary dark:text-primary",
           )}
           key={`link-${idx}`}

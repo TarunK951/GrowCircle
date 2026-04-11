@@ -29,7 +29,7 @@ export function EventCard({
       href={`/event/${event.id}`}
       aria-label={event.title}
       className={cn(
-        "group overflow-hidden rounded-(--radius-section) liquid-glass liquid-glass-card border border-primary/12 shadow-sm shadow-primary/5",
+        "event-card-depth group overflow-hidden rounded-(--radius-section) liquid-glass liquid-glass-card ring-1 ring-black/[0.07]",
         className,
       )}
     >
