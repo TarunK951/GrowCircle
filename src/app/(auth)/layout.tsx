@@ -32,7 +32,7 @@ export default function AuthLayout({
         </header>
       )}
       {isSplitAuth ? (
-        <div className="flex min-h-0 w-full flex-1 flex-col">{children}</div>
+        <div className="flex min-h-dvh min-h-0 w-full flex-1 flex-col">{children}</div>
       ) : (
         <div className="flex w-full flex-1 flex-col items-center justify-center px-4 py-12 sm:px-6">
           <div className="w-full max-w-md">{children}</div>

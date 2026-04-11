@@ -40,13 +40,6 @@ export function LoginForm() {
       <p className="mt-2 text-sm text-neutral-500">
         Welcome back! Please enter your email and password.
       </p>
-      <p className="mt-1 text-xs text-neutral-400">
-        Demo: any email works with a password of 4+ characters (e.g.{" "}
-        <code className="rounded bg-neutral-200/60 px-1 py-0.5 text-[0.7rem] text-neutral-700">
-          alex@example.com
-        </code>
-        ).
-      </p>
 
       <form
         className="mt-8 space-y-5"

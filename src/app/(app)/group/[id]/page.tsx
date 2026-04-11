@@ -13,12 +13,12 @@ const icebreakers = [
   "What’s a hobby you’ve always wanted to try?",
 ];
 
-export default async function GroupPage({
-  params,
-}: {
+type GroupPageProps = Readonly<{
   params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+}>;
+
+export default async function GroupPage(props: GroupPageProps) {
+  const { id } = await props.params;
   const event = await getEvent(id);
   if (!event) notFound();
 
