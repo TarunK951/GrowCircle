@@ -18,14 +18,19 @@ export default function NotificationsPage() {
   }, [readMap]);
 
   return (
-    <div>
-      <h1 className="text-2xl font-semibold tracking-tight">Notifications</h1>
+    <div className="mx-auto max-w-2xl text-neutral-900">
+      <h1 className="font-onest text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl">
+        Notifications
+      </h1>
+      <p className="mt-2 text-sm font-medium text-neutral-900">
+        Updates about meets you follow — tap a row to mark read (demo).
+      </p>
       <ul className="mt-8 space-y-3">
         {items.map((n) => (
           <li
             key={n.id}
-            className={`rounded-xl border border-primary/10 px-4 py-3 ${
-              n.read ? "bg-white/40" : "bg-primary/5"
+            className={`rounded-xl border border-neutral-200 px-4 py-3 transition ${
+              n.read ? "bg-white" : "bg-neutral-50"
             }`}
           >
             <button
@@ -33,9 +38,11 @@ export default function NotificationsPage() {
               className="w-full text-left"
               onClick={() => markRead(n.id)}
             >
-              <p className="font-medium">{n.title}</p>
-              <p className="mt-1 text-sm text-muted">{n.body}</p>
-              <p className="mt-2 text-xs text-muted">
+              <p className="font-semibold text-neutral-900">{n.title}</p>
+              <p className="mt-1 text-sm font-medium leading-relaxed text-neutral-900">
+                {n.body}
+              </p>
+              <p className="mt-2 text-xs font-medium text-neutral-800">
                 {new Date(n.createdAt).toLocaleString()}
               </p>
             </button>

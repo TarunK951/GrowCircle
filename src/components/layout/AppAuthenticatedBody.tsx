@@ -10,10 +10,12 @@ export function AppAuthenticatedBody({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isBookings =
-    pathname === "/bookings" || pathname === "/my-events";
+  const isHistory =
+    pathname === "/history" ||
+    pathname === "/bookings" ||
+    pathname === "/my-events";
 
-  if (isBookings) {
+  if (isHistory) {
     return (
       <BookingsStandaloneLayout>{children}</BookingsStandaloneLayout>
     );

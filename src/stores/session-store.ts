@@ -3,6 +3,7 @@
 import type { Booking, ChatMessage, MeetEvent, User } from "@/lib/types";
 import {
   generateAttendanceCode,
+  generateShareToken,
   getEventFromCatalog,
 } from "@/lib/eventsCatalog";
 import { create } from "zustand";
@@ -51,6 +52,8 @@ type SessionState = {
   resetNotificationsRead: () => void;
   chatExtras: Record<string, ChatMessage[]>;
   appendChatMessage: (threadId: string, msg: ChatMessage) => void;
+  /** One-time demo rows for History / hosting UI testing (id prefix b_demo_). */
+  seedDemoBookingData: () => void;
 };
 
 const initialHostDraft = (): HostDraft => ({
@@ -269,6 +272,80 @@ export const useSessionStore = create<SessionState>()(
             ...get().chatExtras,
             [threadId]: [...prev, msg],
           },
+        });
+      },
+      seedDemoBookingData: () => {
+        const user = get().user;
+        if (!user) return;
+        if (get().bookings.some((b) => b.id === "b_demo_evt1")) return;
+
+        const demoEventId = "evt_demo_u_host";
+        const startsAt = new Date(Date.now() + 10 * 864e5).toISOString();
+        const demoHosted: MeetEvent = {
+          id: demoEventId,
+          title: "Coffee & sketch — demo hosting",
+          description:
+            "Sunday morning doodling. Sample row for testing host tools.",
+          cityId: "sf",
+          startsAt,
+          hostUserId: user.id,
+          capacity: 12,
+          category: "Culture",
+          image:
+            "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=1200&auto=format&fit=crop&q=80",
+          priceCents: 500,
+          venueName: "Demo Café",
+          joinMode: "invite",
+          listingVisibility: "public",
+          shareToken: generateShareToken(),
+          spotsTaken: 0,
+        };
+
+        const now = new Date().toISOString();
+        const extra: Booking[] = [];
+
+        if (
+          !get().bookings.some(
+            (b) => b.userId === user.id && b.eventId === "evt_1",
+          )
+        ) {
+          extra.push({
+            id: "b_demo_evt1",
+            userId: user.id,
+            eventId: "evt_1",
+            status: "confirmed",
+            createdAt: now,
+            attendanceCode: "482916",
+          });
+        }
+        if (
+          !get().bookings.some(
+            (b) => b.userId === user.id && b.eventId === "evt_2",
+          )
+        ) {
+          extra.push({
+            id: "b_demo_evt2",
+            userId: user.id,
+            eventId: "evt_2",
+            status: "pending",
+            createdAt: now,
+          });
+        }
+        extra.push({
+          id: "b_demo_host_pending",
+          userId: "u_host_2",
+          eventId: demoEventId,
+          status: "pending",
+          createdAt: now,
+        });
+
+        const hosted = get().hostedEvents.some((e) => e.id === demoEventId)
+          ? get().hostedEvents
+          : [...get().hostedEvents, demoHosted];
+
+        set({
+          hostedEvents: hosted,
+          bookings: [...get().bookings, ...extra],
         });
       },
     }),

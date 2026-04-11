@@ -59,7 +59,7 @@ export function JoinMeetButton({ event }: { event: MeetEvent }) {
         } else {
           toast.success("You’re in — mock booking confirmed.");
         }
-        router.push("/bookings");
+        router.push("/history");
       }}
       className="!min-w-[200px]"
     />

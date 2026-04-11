@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { GrowCircleWordmark } from "@/components/brand/GrowCircleWordmark";
 import { AppAuthenticatedBody } from "@/components/layout/AppAuthenticatedBody";
-import { AppHeaderNav } from "@/components/layout/AppHeaderNav";
+import { AppHeaderProfileMenu } from "@/components/layout/AppHeaderProfileMenu";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 
 export default function AppGroupLayout({
@@ -20,7 +20,7 @@ export default function AppGroupLayout({
           >
             <GrowCircleWordmark className="!h-10 !max-h-10 w-auto max-w-[min(200px,42vw)] sm:!h-11" />
           </Link>
-          <AppHeaderNav />
+          <AppHeaderProfileMenu />
         </div>
       </header>
       <RequireAuth>

@@ -4,12 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/session-store";
-import { GrowCircleWordmark } from "@/components/brand/GrowCircleWordmark";
 import {
   LayoutDashboard,
   User,
   ShieldCheck,
-  Calendar,
+  History,
   Bookmark,
   MessageCircle,
   Bell,
@@ -29,10 +28,10 @@ const nav: ShellNav[] = [
   { href: "/profile", label: "Profile", icon: User },
   { href: "/verify-profile", label: "Verify", icon: ShieldCheck },
   {
-    href: "/bookings",
-    label: "Bookings",
-    icon: Calendar,
-    aliases: ["/my-events"],
+    href: "/history",
+    label: "History",
+    icon: History,
+    aliases: ["/bookings", "/my-events"],
   },
   { href: "/saved", label: "Saved", icon: Bookmark },
   {
@@ -59,13 +58,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-[calc(100vh-4.25rem)]">
       <aside className="hidden w-60 shrink-0 border-r border-neutral-200 bg-white md:block lg:w-64">
         <div className="sticky top-[4.25rem] flex h-[calc(100vh-4.25rem)] flex-col p-4 lg:p-5">
-          <Link
-            href="/"
-            className="mb-6 flex items-center border-b border-neutral-100 pb-4"
-            aria-label="Home"
-          >
-            <GrowCircleWordmark className="!h-8 w-auto max-w-[180px] object-contain object-left sm:!h-9" />
-          </Link>
           <p className="px-1 text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-900">
             Menu
           </p>
@@ -94,15 +86,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
-          <div className="mt-auto rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+          <div className="mt-auto rounded-2xl border border-neutral-200 bg-neutral-50 p-4 text-neutral-900">
             <p className="text-sm font-semibold text-neutral-900">
               {user?.name ?? "Guest"}
             </p>
-            <p className="mt-1 truncate text-xs text-neutral-800">{user?.email}</p>
+            <p className="mt-1 truncate text-xs font-medium text-neutral-900">
+              {user?.email}
+            </p>
             <button
               type="button"
               onClick={() => logout()}
-              className="mt-3 text-sm font-medium text-neutral-900 underline-offset-4 hover:underline"
+              className="mt-3 text-sm font-semibold text-neutral-900 underline-offset-4 hover:underline"
             >
               Log out
             </button>

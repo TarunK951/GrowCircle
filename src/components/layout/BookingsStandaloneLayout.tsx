@@ -14,21 +14,21 @@ export function BookingsStandaloneLayout({
         <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-6 sm:flex-row sm:items-end sm:justify-between sm:px-8 lg:px-10">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-neutral-900">
-              Bookings
+              History
             </p>
             <h1 className="font-onest mt-1 text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl">
-              Your meets & guests
+              Bookings & hosting
             </h1>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-neutral-900">
-              Manage trips you&apos;ve booked and meets you host. Data stays in
-              this browser (demo).
+            <p className="mt-2 max-w-xl text-sm font-medium leading-relaxed text-neutral-900">
+              Trips you&apos;ve booked and meets you host — stored in this browser
+              for testing (demo).
             </p>
           </div>
           <Link
             href="/dashboard"
-            className="shrink-0 text-sm font-medium text-neutral-900 underline-offset-4 hover:underline"
+            className="shrink-0 text-sm font-semibold text-neutral-900 underline-offset-4 hover:underline"
           >
-            ← Back to dashboard
+            ← Back to home
           </Link>
         </div>
       </header>
