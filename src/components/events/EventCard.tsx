@@ -29,7 +29,7 @@ export function EventCard({
       href={`/event/${event.id}`}
       aria-label={event.title}
       className={cn(
-        "event-card-depth group overflow-hidden rounded-(--radius-section) liquid-glass liquid-glass-card ring-1 ring-black/[0.07]",
+        "event-card-depth group overflow-hidden rounded-(--radius-section) liquid-glass liquid-glass-card",
         className,
       )}
     >
@@ -53,7 +53,7 @@ export function EventCard({
           </div>
         </div>
       </div>
-      <div className="rounded-b-(--radius-section) bg-white/88 p-5 backdrop-blur-[2px]">
+      <div className="rounded-b-(--radius-section) border-t border-black/[0.08] bg-white/90 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] backdrop-blur-[2px]">
         <div className="flex items-start justify-between gap-3">
           <h3 className="font-onest line-clamp-2 text-lg font-bold leading-snug text-foreground">
             {event.title}
