@@ -39,7 +39,7 @@ export function SiteFooter() {
         <div className="grid gap-10 md:grid-cols-4">
           <div>
             <p className="text-lg font-semibold text-primary">ConnectSphere</p>
-            <p className="mt-2 max-w-xs text-sm text-muted">
+            <p className="mt-2 max-w-xs text-sm text-black">
               Curated social discovery: real meets, real people — clear, calm,
               and built for continuity.
             </p>
@@ -52,7 +52,7 @@ export function SiteFooter() {
                   <li key={l.href}>
                     <Link
                       href={l.href}
-                      className="text-sm text-muted transition hover:text-primary"
+                      className="text-sm text-black transition hover:text-primary"
                     >
                       {l.label}
                     </Link>
@@ -62,7 +62,7 @@ export function SiteFooter() {
             </div>
           ))}
         </div>
-        <p className="mt-12 text-center text-xs text-muted">
+        <p className="mt-12 text-center text-xs text-black">
           © {new Date().getFullYear()} ConnectSphere. Mock prototype — no real
           bookings or payments.
         </p>
