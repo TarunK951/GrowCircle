@@ -37,9 +37,6 @@ function navActive(pathname: string, href: string, aliases?: string[]) {
 const btnPrimary =
   "!border-0 !bg-primary !text-white !shadow-md !shadow-primary/25 hover:!-translate-y-0.5 hover:!bg-primary/92 active:!scale-[0.98]";
 
-const btnSecondary =
-  "!text-primary hover:!bg-primary/10 dark:!text-primary dark:hover:!bg-primary/15";
-
 export function MarketingNav() {
   const pathname = usePathname();
   const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
@@ -70,24 +67,14 @@ export function MarketingNav() {
               Dashboard
             </NavbarButton>
           ) : (
-            <>
-              <NavbarButton
-                as={Link}
-                href="/login"
-                variant="secondary"
-                className={cn(btnSecondary, "!px-3 !py-2 !text-sm sm:!px-4")}
-              >
-                Log in
-              </NavbarButton>
-              <NavbarButton
-                as={Link}
-                href="/signup"
-                variant="primary"
-                className={cn(btnPrimary, "!px-4 !py-2 !text-sm")}
-              >
-                Sign up
-              </NavbarButton>
-            </>
+            <NavbarButton
+              as={Link}
+              href="/signup"
+              variant="primary"
+              className={cn(btnPrimary, "!px-4 !py-2 !text-sm")}
+            >
+              Sign up
+            </NavbarButton>
           )}
         </div>
       </NavBody>
@@ -130,26 +117,15 @@ export function MarketingNav() {
                 Dashboard
               </NavbarButton>
             ) : (
-              <>
-                <NavbarButton
-                  as={Link}
-                  href="/login"
-                  variant="secondary"
-                  className={cn(btnSecondary, "w-full !py-3")}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Log in
-                </NavbarButton>
-                <NavbarButton
-                  as={Link}
-                  href="/signup"
-                  variant="primary"
-                  className={cn(btnPrimary, "w-full !py-3")}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Sign up
-                </NavbarButton>
-              </>
+              <NavbarButton
+                as={Link}
+                href="/signup"
+                variant="primary"
+                className={cn(btnPrimary, "w-full !py-3")}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Sign up
+              </NavbarButton>
             )}
           </div>
         </MobileNavMenu>
