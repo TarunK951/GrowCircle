@@ -57,7 +57,7 @@ export function MarketingNav() {
             items={navItems}
             onItemClick={() => setIsMobileMenuOpen(false)}
           />
-          <div className="relative z-[70] flex shrink-0 items-center gap-2 sm:gap-3">
+          <div className="relative z-[70] flex shrink-0 items-center gap-4">
             {isAuthenticated ? (
               <NavbarButton
                 as={Link}

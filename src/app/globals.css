@@ -237,7 +237,14 @@ html.cursor-none {
     box-shadow: var(--glass-shadow-hover), inset 0 1px 0 rgba(255, 255, 255, 0.92);
   }
 
-  /* Floating marketing nav — pill, 3D liquid glass (matches desktop + tablet) */
+  /* Full-bleed top bar (first ~20vh scroll) — square edges, spans viewport */
+  .nav-liquid-glass.nav-liquid-glass-full {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  /* Floating marketing nav — pill bar */
   .nav-liquid-glass {
     border-radius: 9999px;
     background: linear-gradient(

@@ -3,15 +3,25 @@ import { cn } from "@/lib/utils";
 import { IconMenu2, IconX } from "@tabler/icons-react";
 import Link from "next/link";
 import { GrowCircleWordmark } from "@/components/brand/GrowCircleWordmark";
-import {
-  motion,
-  AnimatePresence,
-  useScroll,
-  useMotionValueEvent,
-} from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
-import React, { useState } from "react";
+/** `true` after scrolling past 20vh — floating pill. `false` — full-width bar at top. */
+const NavBarFloatingContext = createContext(false);
 
+export function useNavBarFloating() {
+  return useContext(NavBarFloatingContext);
+}
+
+function scrollPast20vhThreshold(): number {
+  if (typeof window === "undefined") return 160;
+  return window.innerHeight * 0.2;
+}
 
 interface NavbarProps {
   children: React.ReactNode;
@@ -21,7 +31,6 @@ interface NavbarProps {
 interface NavBodyProps {
   children: React.ReactNode;
   className?: string;
-  visible?: boolean;
 }
 
 interface NavItemsProps {
@@ -37,7 +46,6 @@ interface NavItemsProps {
 interface MobileNavProps {
   children: React.ReactNode;
   className?: string;
-  visible?: boolean;
 }
 
 interface MobileNavHeaderProps {
@@ -53,57 +61,61 @@ interface MobileNavMenuProps {
 }
 
 export const Navbar = ({ children, className }: NavbarProps) => {
-  const { scrollY } = useScroll();
-  const [visible, setVisible] = useState<boolean>(false);
+  const [isFloating, setIsFloating] = useState(false);
 
-  useMotionValueEvent(scrollY, "change", (latest) => {
-    if (latest > 100) {
-      setVisible(true);
-    } else {
-      setVisible(false);
-    }
-  });
+  useEffect(() => {
+    const update = () => {
+      setIsFloating(window.scrollY > scrollPast20vhThreshold());
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
 
   return (
-    <motion.div
-      className={cn(
-        "pointer-events-none fixed inset-x-0 top-4 z-50 flex w-full justify-center px-4 sm:px-6 lg:px-8",
-        className,
-      )}
-    >
-      <div className="pointer-events-auto relative mx-auto w-full min-w-0">
-        {React.Children.map(children, (child) =>
-          React.isValidElement(child)
-            ? React.cloneElement(
-                child as React.ReactElement<{ visible?: boolean }>,
-                { visible },
-              )
-            : child,
+    <NavBarFloatingContext.Provider value={isFloating}>
+      <div
+        className={cn(
+          "pointer-events-none fixed inset-x-0 z-50 flex w-full justify-center transition-[padding-top,padding-left,padding-right,top] duration-300 ease-out motion-reduce:transition-none",
+          isFloating
+            ? "top-4 px-4 sm:px-6 lg:px-8"
+            : "top-0 px-0",
+          className,
         )}
+      >
+        <div
+          className={cn(
+            "pointer-events-auto relative isolate min-w-0 w-full max-w-none",
+            isFloating && "max-w-6xl",
+          )}
+        >
+          {children}
+        </div>
       </div>
-    </motion.div>
+    </NavBarFloatingContext.Provider>
   );
 };
 
-export const NavBody = ({ children, className, visible }: NavBodyProps) => {
+export const NavBody = ({ children, className }: NavBodyProps) => {
+  const isFloating = useNavBarFloating();
+
   return (
-    <motion.div
-      data-elevated={visible ? "true" : "false"}
-      animate={{
-        y: visible ? 20 : 0,
-      }}
-      transition={{
-        type: "spring",
-        stiffness: 200,
-        damping: 50,
-      }}
+    <div
+      data-elevated={isFloating ? "true" : "false"}
       className={cn(
-        "nav-liquid-glass relative z-[60] mx-auto hidden min-h-14 w-full min-w-0 flex-row items-center justify-between gap-3 rounded-full px-3 py-2 sm:gap-4 sm:px-5 lg:flex",
+        "nav-liquid-glass relative z-[60] mx-auto hidden min-h-14 w-full min-w-0 flex-row items-center justify-between gap-3 py-2 transition-[padding,box-shadow,border-radius] duration-300 ease-out motion-reduce:transition-none sm:gap-4 lg:flex",
+        isFloating
+          ? "rounded-2xl px-4 sm:px-6 lg:px-8"
+          : "nav-liquid-glass-full rounded-none px-4 sm:px-6 lg:px-8",
         className,
       )}
     >
       {children}
-    </motion.div>
+    </div>
   );
 };
 
@@ -111,10 +123,10 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
   const [hovered, setHovered] = useState<number | null>(null);
 
   return (
-    <motion.div
+    <div
       onMouseLeave={() => setHovered(null)}
       className={cn(
-        "hidden min-w-0 flex-1 items-center justify-center gap-1 text-sm font-medium text-zinc-600 transition duration-200 hover:text-zinc-800 sm:gap-2 lg:flex",
+        "hidden min-w-0 flex-1 items-center justify-center gap-1 text-sm font-medium text-zinc-600 transition-colors duration-200 hover:text-zinc-800 sm:gap-2 lg:flex",
         className,
       )}
     >
@@ -131,36 +143,33 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
         >
           {hovered === idx && (
             <motion.div
-              layoutId="hovered"
-              className="absolute inset-0 h-full w-full rounded-full bg-gray-100 dark:bg-neutral-800"
+              layoutId="nav-hover-pill"
+              className="absolute inset-0 h-full w-full rounded-md bg-gray-100 dark:bg-neutral-800"
             />
           )}
           <span className="relative z-20">{item.name}</span>
         </Link>
       ))}
-    </motion.div>
+    </div>
   );
 };
 
-export const MobileNav = ({ children, className, visible }: MobileNavProps) => {
+export const MobileNav = ({ children, className }: MobileNavProps) => {
+  const isFloating = useNavBarFloating();
+
   return (
-    <motion.div
-      data-elevated={visible ? "true" : "false"}
-      animate={{
-        y: visible ? 20 : 0,
-      }}
-      transition={{
-        type: "spring",
-        stiffness: 200,
-        damping: 50,
-      }}
+    <div
+      data-elevated={isFloating ? "true" : "false"}
       className={cn(
-        "nav-liquid-glass relative z-50 mx-auto flex w-full min-w-0 flex-col items-stretch justify-between gap-1 rounded-full px-3 py-2 sm:px-5 lg:hidden",
+        "nav-liquid-glass relative z-50 mx-auto flex w-full min-w-0 shrink-0 flex-col items-stretch justify-between gap-1 py-2 transition-[padding,box-shadow,border-radius] duration-300 ease-out motion-reduce:transition-none lg:hidden",
+        isFloating
+          ? "rounded-2xl px-4 sm:px-6"
+          : "nav-liquid-glass-full rounded-none px-4 sm:px-6 lg:px-8",
         className,
       )}
     >
       {children}
-    </motion.div>
+    </div>
   );
 };
 
@@ -184,7 +193,7 @@ export const MobileNavMenu = ({
   children,
   className,
   isOpen,
-  onClose,
+  onClose: _onClose,
 }: MobileNavMenuProps) => {
   return (
     <AnimatePresence>
@@ -235,7 +244,6 @@ export const NavbarLogo = ({
   className,
 }: {
   href?: string;
-  /** Accessible name (logo image contains wordmark) */
   alt?: string;
   className?: string;
 }) => {
