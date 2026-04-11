@@ -1,12 +1,12 @@
+import { Suspense } from "react";
 import { Container } from "@/components/layout/Container";
 import { MarketingPageIntro } from "@/components/layout/MarketingPageIntro";
 import { ExploreFilters } from "@/components/discover/ExploreFilters";
-import { EventCard } from "@/components/events/EventCard";
-import { listEvents } from "@/lib/mockApi";
+import { DiscoverEventGrid } from "@/components/discover/DiscoverEventGrid";
+import { getStaticEvents } from "@/lib/eventsCatalog";
 import citiesData from "@/data/cities.json";
 import type { City } from "@/lib/types";
 import { Reveal } from "@/components/providers/Reveal";
-import { hostNameForUserId } from "@/lib/hostName";
 
 type DiscoverPageProps = Readonly<{
   searchParams: Promise<{
@@ -19,16 +19,10 @@ type DiscoverPageProps = Readonly<{
 
 export default async function DiscoverPage(props: DiscoverPageProps) {
   const sp = await props.searchParams;
-  const allForMeta = await listEvents();
-  const events = await listEvents({
-    cityId: sp.city || undefined,
-    category: sp.category,
-    dateFrom: sp.dateFrom || undefined,
-    dateTo: sp.dateTo || undefined,
-  });
   const cities = citiesData as City[];
-  const categories = Array.from(new Set(allForMeta.map((e) => e.category)));
-  const cityById = Object.fromEntries(cities.map((c) => [c.id, c.name]));
+  const categories = Array.from(
+    new Set(getStaticEvents().map((e) => e.category)),
+  );
   const cityOptions = cities.map((c) => ({ id: c.id, name: c.name }));
 
   return (
@@ -57,18 +51,13 @@ export default async function DiscoverPage(props: DiscoverPageProps) {
         categories={categories}
       />
 
-      <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {events.map((e, index) => (
-          <Reveal key={e.id}>
-            <EventCard
-              event={e}
-              cityName={cityById[e.cityId] ?? ""}
-              hostName={hostNameForUserId(e.hostUserId)}
-              priority={index < 3}
-            />
-          </Reveal>
-        ))}
-      </div>
+      <Suspense
+        fallback={
+          <p className="mt-10 text-sm text-muted">Loading meets…</p>
+        }
+      >
+        <DiscoverEventGrid />
+      </Suspense>
     </Container>
   );
 }

@@ -10,11 +10,9 @@ import {
 } from "@/components/marketing/HomeLandingSections";
 import { Container } from "@/components/layout/Container";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/MarketingButton";
-import { EventCard } from "@/components/events/EventCard";
 import { Reveal } from "@/components/providers/Reveal";
+import { HomeFeaturedGrid } from "@/components/marketing/HomeFeaturedGrid";
 import { getHomeContent } from "@/lib/home";
-import { hostNameForUserId } from "@/lib/hostName";
-import { listEvents } from "@/lib/mockApi";
 import citiesData from "@/data/cities.json";
 import type { City } from "@/lib/types";
 
@@ -38,10 +36,7 @@ const valueCards = [
 
 export default async function HomePage() {
   const home = getHomeContent();
-  const events = await listEvents();
-  const featured = events.slice(0, 3);
   const cities = citiesData as City[];
-  const cityById = Object.fromEntries(cities.map((c) => [c.id, c.name]));
 
   return (
     <>
@@ -127,42 +122,7 @@ export default async function HomePage() {
 
       <HomeTestimonials data={home.testimonials} />
 
-      <section className="border-t border-primary/10 py-16 sm:py-20">
-        <Container>
-          <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-wider text-secondary">
-                Featured
-              </p>
-              <h2 className="font-onest mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-                Featured meets
-              </h2>
-              <p className="mt-3 max-w-2xl text-lg text-muted">
-                A snapshot of what&apos;s happening—open an event for full details and
-                to save your spot.
-              </p>
-            </div>
-            <Link
-              href="/explore"
-              className="text-sm font-semibold text-primary hover:underline"
-            >
-              View all
-            </Link>
-          </div>
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {featured.map((e, index) => (
-              <Reveal key={e.id}>
-                <EventCard
-                  event={e}
-                  cityName={cityById[e.cityId] ?? "City"}
-                  hostName={hostNameForUserId(e.hostUserId)}
-                  priority={index < 3}
-                />
-              </Reveal>
-            ))}
-          </div>
-        </Container>
-      </section>
+      <HomeFeaturedGrid />
 
       <HomeClosingCta data={home.closingCta} />
     </>

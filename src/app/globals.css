@@ -36,8 +36,8 @@
   --popover-foreground: oklch(0.145 0 0);
   --primary-foreground: oklch(0.985 0 0);
   --secondary-foreground: oklch(0.205 0 0);
-  /* Softer gray for secondary text (descriptions, captions) — lighter than body */
-  --muted-foreground: oklch(0.5 0.01 264);
+  /* Secondary text — dark gray (not light gray) for readability on light canvas */
+  --muted-foreground: oklch(0.22 0.01 264);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
@@ -535,7 +535,7 @@ html.cursor-none {
   }
 
   .glass-panel {
-    @apply relative overflow-hidden rounded-xl border border-white/50 bg-black/20 p-3 text-white shadow-[inset_0_1px_0px_rgba(255,255,255,0.75),0_0_9px_rgba(0,0,0,0.2),0_3px_8px_rgba(0,0,0,0.15)] backdrop-blur-sm;
+    @apply relative overflow-hidden rounded-xl border border-primary/12 bg-white/55 p-3 text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_2px_12px_rgba(15,23,42,0.08)] backdrop-blur-sm;
   }
   .glass-panel::before {
     content: "";
@@ -546,7 +546,7 @@ html.cursor-none {
     @apply pointer-events-none absolute inset-0 rounded-lg bg-gradient-to-tl from-white/30 via-transparent to-transparent opacity-50;
   }
   .glass-icon-btn {
-    @apply relative inline-flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-white/50 bg-white/[0.025] p-2 text-center text-sm font-medium text-white shadow-[inset_0_1px_0px_rgba(255,255,255,0.75),0_0_9px_rgba(0,0,0,0.2),0_3px_8px_rgba(0,0,0,0.15)] backdrop-blur-sm transition-all duration-300 antialiased select-none hover:bg-white/30;
+    @apply relative inline-flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-primary/15 bg-white/50 p-2 text-center text-sm font-medium text-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_2px_10px_rgba(15,23,42,0.08)] backdrop-blur-sm transition-all duration-300 antialiased select-none hover:bg-white/85;
   }
   .glass-icon-btn::before {
     content: "";

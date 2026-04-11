@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/session-store";
+import { GrowCircleWordmark } from "@/components/brand/GrowCircleWordmark";
 import {
   LayoutDashboard,
   User,
@@ -28,10 +29,10 @@ const nav: ShellNav[] = [
   { href: "/profile", label: "Profile", icon: User },
   { href: "/verify-profile", label: "Verify", icon: ShieldCheck },
   {
-    href: "/my-events",
-    label: "My meets",
+    href: "/bookings",
+    label: "Bookings",
     icon: Calendar,
-    aliases: ["/bookings"],
+    aliases: ["/my-events"],
   },
   { href: "/saved", label: "Saved", icon: Bookmark },
   {
@@ -55,49 +56,62 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const logout = useSessionStore((s) => s.logout);
 
   return (
-    <div className="flex min-h-[calc(100vh-0px)]">
-      <aside className="hidden w-56 shrink-0 border-r border-primary/10 bg-canvas/80 p-4 backdrop-blur-xl md:block">
-        <p className="px-2 text-xs font-semibold uppercase tracking-wider text-muted">
-          Account
-        </p>
-        <nav className="mt-4 space-y-1">
-          {nav.map((item) => {
-            const Icon = item.icon;
-            const active = shellNavActive(
-              pathname,
-              item.href,
-              item.aliases,
-            );
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition",
-                  active
-                    ? "bg-primary/10 text-primary"
-                    : "text-foreground/80 hover:bg-primary/5",
-                )}
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="mt-8 rounded-xl border border-primary/10 bg-white/40 p-3 text-xs text-muted">
-          <p className="font-medium text-foreground">{user?.name ?? "Guest"}</p>
-          <p className="truncate">{user?.email}</p>
-          <button
-            type="button"
-            onClick={() => logout()}
-            className="mt-2 text-primary underline-offset-4 hover:underline"
+    <div className="flex min-h-[calc(100vh-4.25rem)]">
+      <aside className="hidden w-60 shrink-0 border-r border-neutral-200 bg-white md:block lg:w-64">
+        <div className="sticky top-[4.25rem] flex h-[calc(100vh-4.25rem)] flex-col p-4 lg:p-5">
+          <Link
+            href="/"
+            className="mb-6 flex items-center border-b border-neutral-100 pb-4"
+            aria-label="Home"
           >
-            Log out
-          </button>
+            <GrowCircleWordmark className="!h-8 w-auto max-w-[180px] object-contain object-left sm:!h-9" />
+          </Link>
+          <p className="px-1 text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-900">
+            Menu
+          </p>
+          <nav className="mt-3 flex flex-1 flex-col gap-0.5 overflow-y-auto">
+            {nav.map((item) => {
+              const Icon = item.icon;
+              const active = shellNavActive(
+                pathname,
+                item.href,
+                item.aliases,
+              );
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={cn(
+                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition",
+                    active
+                      ? "bg-neutral-900 text-white shadow-sm"
+                      : "text-neutral-900 hover:bg-neutral-100",
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0 opacity-90" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="mt-auto rounded-2xl border border-neutral-200 bg-neutral-50 p-4">
+            <p className="text-sm font-semibold text-neutral-900">
+              {user?.name ?? "Guest"}
+            </p>
+            <p className="mt-1 truncate text-xs text-neutral-800">{user?.email}</p>
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="mt-3 text-sm font-medium text-neutral-900 underline-offset-4 hover:underline"
+            >
+              Log out
+            </button>
+          </div>
         </div>
       </aside>
-      <div className="min-w-0 flex-1 px-4 py-8 sm:px-6 lg:px-8">{children}</div>
+      <div className="min-w-0 flex-1 bg-white px-4 py-8 text-neutral-900 sm:px-6 lg:px-8">
+        {children}
+      </div>
     </div>
   );
 }

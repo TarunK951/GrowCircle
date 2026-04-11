@@ -13,7 +13,8 @@ export function GrowCircleWordmark({ className }: { className?: string }) {
       decoding="async"
       fetchPriority="high"
       className={cn(
-        "block h-8 w-auto max-w-[min(220px,46vw)] object-contain object-left sm:h-9 md:h-10",
+        "block h-8 w-auto max-w-[min(240px,52vw)] object-contain object-left sm:h-9 md:h-10",
+        "[image-rendering:auto]",
         className,
       )}
     />

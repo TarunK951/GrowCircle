@@ -1,19 +1,48 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
+import { mergeEventCatalog } from "@/lib/eventsCatalog";
 import { useSessionStore } from "@/stores/session-store";
-import eventsData from "@/data/events.json";
 import type { MeetEvent } from "@/lib/types";
 
 export default function DashboardPage() {
   const user = useSessionStore((s) => s.user);
   const bookings = useSessionStore((s) => s.bookings);
-  const hostDraft = useSessionStore((s) => s.hostDraft);
-  const events = eventsData as MeetEvent[];
+  const hostedEvents = useSessionStore((s) => s.hostedEvents);
 
-  const upcoming = bookings
-    .map((b) => events.find((e) => e.id === b.eventId))
-    .filter(Boolean) as MeetEvent[];
+  const catalog = useMemo(
+    () => mergeEventCatalog(hostedEvents),
+    [hostedEvents],
+  );
+
+  const upcoming = useMemo(() => {
+    if (!user) return [];
+    const seen = new Set<string>();
+    const out: MeetEvent[] = [];
+    for (const b of bookings) {
+      if (b.userId !== user.id) continue;
+      if (
+        b.status !== "confirmed" &&
+        b.status !== "pending" &&
+        b.status !== "attended"
+      ) {
+        continue;
+      }
+      if (seen.has(b.eventId)) continue;
+      const e = catalog.find((x) => x.id === b.eventId);
+      if (e) {
+        seen.add(e.id);
+        out.push(e);
+      }
+    }
+    return out;
+  }, [bookings, catalog, user]);
+
+  const hostingPreview = useMemo(() => {
+    if (!user) return [];
+    return catalog.filter((e) => e.hostUserId === user.id).slice(0, 3);
+  }, [catalog, user]);
 
   return (
     <div>
@@ -21,12 +50,18 @@ export default function DashboardPage() {
         Hello, {user?.name?.split(" ")[0] ?? "there"}
       </h1>
       <p className="mt-2 text-muted">
-        Your mock dashboard — bookings and host drafts update instantly.
+        Your mock dashboard — bookings and hosting update from browser state.
+      </p>
+      <p className="mt-2 text-sm">
+        <Link className="font-medium text-primary hover:underline" href="/bookings">
+          Open Bookings hub
+        </Link>{" "}
+        for guest lists, share links, and check-in.
       </p>
       <div className="mt-8 grid gap-6 md:grid-cols-2">
         <div className="liquid-glass-surface liquid-glass-interactive">
           <h2 className="text-base font-semibold text-foreground">
-            Upcoming meets
+            Upcoming bookings
           </h2>
           {upcoming.length === 0 ? (
             <p className="mt-3 text-sm text-muted">
@@ -52,20 +87,28 @@ export default function DashboardPage() {
           )}
         </div>
         <div className="liquid-glass-surface liquid-glass-interactive">
-          <h2 className="text-base font-semibold text-foreground">Host draft</h2>
-          {hostDraft?.title ? (
+          <h2 className="text-base font-semibold text-foreground">Hosting</h2>
+          {hostingPreview.length === 0 ? (
             <p className="mt-3 text-sm text-muted">
-              <span className="font-medium text-foreground">{hostDraft.title}</span>{" "}
-              — {hostDraft.cityId} · {hostDraft.category}
-            </p>
-          ) : (
-            <p className="mt-3 text-sm text-muted">
-              Nothing yet —{" "}
+              Nothing listed —{" "}
               <Link href="/host" className="font-medium text-primary hover:underline">
                 host a meet
               </Link>
               .
             </p>
+          ) : (
+            <ul className="mt-3 space-y-2 text-sm">
+              {hostingPreview.map((e) => (
+                <li key={e.id}>
+                  <Link
+                    href="/bookings"
+                    className="font-medium text-primary hover:underline"
+                  >
+                    {e.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </div>

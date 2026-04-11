@@ -15,14 +15,24 @@ function stableRatio(id: string): number {
   return 0.28 + (h % 45) / 100; /* ~0.28–0.72 of capacity “taken” */
 }
 
+type ResolveOpts = {
+  /** When set (e.g. user-hosted meets), replaces computed spots taken. */
+  overrideSpotsTaken?: number;
+};
+
 /** Fills optional detail fields so the event page always has copy to render. */
-export function resolveEventDetail(event: MeetEvent): ResolvedEventDetail {
+export function resolveEventDetail(
+  event: MeetEvent,
+  opts?: ResolveOpts,
+): ResolvedEventDetail {
   const spotsTaken =
-    event.spotsTaken ??
-    Math.min(
-      event.capacity,
-      Math.max(0, Math.floor(event.capacity * stableRatio(event.id))),
-    );
+    opts?.overrideSpotsTaken !== undefined
+      ? opts.overrideSpotsTaken
+      : event.spotsTaken ??
+        Math.min(
+          event.capacity,
+          Math.max(0, Math.floor(event.capacity * stableRatio(event.id))),
+        );
 
   const moreAbout =
     event.moreAbout?.trim() ||

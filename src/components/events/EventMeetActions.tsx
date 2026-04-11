@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/MarketingButton";
-import { makeBookingRecord } from "@/lib/mockApi";
+import type { MeetEvent } from "@/lib/types";
+import { getEventFromCatalog } from "@/lib/eventsCatalog";
 import { useSessionStore } from "@/stores/session-store";
 
 export function SaveEventButton({ eventId }: { eventId: string }) {
@@ -28,24 +29,37 @@ export function SaveEventButton({ eventId }: { eventId: string }) {
   );
 }
 
-export function JoinMeetButton({ eventId }: { eventId: string }) {
+export function JoinMeetButton({ event }: { event: MeetEvent }) {
   const router = useRouter();
   const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
   const user = useSessionStore((s) => s.user);
-  const addBooking = useSessionStore((s) => s.addBooking);
+  const hostedEvents = useSessionStore((s) => s.hostedEvents);
+  const tryJoinEvent = useSessionStore((s) => s.tryJoinEvent);
 
   return (
     <PrimaryButton
-      label="Join this meet"
+      label={
+        (event.joinMode ?? "open") === "invite"
+          ? "Request to join"
+          : "Join this meet"
+      }
       onClick={() => {
         if (!isAuthenticated || !user) {
-          router.push(`/login?returnUrl=/event/${eventId}`);
+          router.push(`/login?returnUrl=/event/${event.id}`);
           return;
         }
-        const b = makeBookingRecord(user.id, eventId);
-        addBooking(b);
-        toast.success("You’re in — mock booking confirmed.");
-        router.push("/my-events");
+        const latest = getEventFromCatalog(event.id, hostedEvents) ?? event;
+        const result = tryJoinEvent(latest);
+        if (!result.ok) {
+          toast.error(result.reason ?? "Could not join");
+          return;
+        }
+        if (result.booking?.status === "pending") {
+          toast.success("Request sent — the host will review (mock).");
+        } else {
+          toast.success("You’re in — mock booking confirmed.");
+        }
+        router.push("/bookings");
       }}
       className="!min-w-[200px]"
     />

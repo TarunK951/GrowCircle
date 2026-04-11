@@ -62,7 +62,7 @@ export function EventMeetDetail({
 
   const ctaGroup = (
     <div className="flex flex-wrap gap-3">
-      <JoinMeetButton eventId={event.id} />
+      <JoinMeetButton event={event} />
       <SaveEventButton eventId={event.id} />
     </div>
   );

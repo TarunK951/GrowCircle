@@ -1,3 +1,4 @@
+import { generateAttendanceCode } from "@/lib/eventsCatalog";
 import type { Booking, City, MeetEvent, User } from "@/lib/types";
 import citiesData from "@/data/cities.json";
 import eventsData from "@/data/events.json";
@@ -10,6 +11,7 @@ export async function listCities(): Promise<City[]> {
   return citiesData as City[];
 }
 
+/** Seed JSON only — explore UI merges hosted meets client-side via `listEventsMerged`. */
 export async function listEvents(filters?: {
   cityId?: string;
   category?: string;
@@ -36,6 +38,7 @@ export async function listEvents(filters?: {
   return list;
 }
 
+/** Seed JSON only — event detail page uses `getEventFromCatalog` on the client. */
 export async function getEvent(id: string): Promise<MeetEvent | null> {
   await delay(180);
   const e = (eventsData as MeetEvent[]).find((x) => x.id === id);
@@ -110,5 +113,6 @@ export function makeBookingRecord(
     eventId,
     status: "confirmed",
     createdAt: new Date().toISOString(),
+    attendanceCode: generateAttendanceCode(),
   };
 }

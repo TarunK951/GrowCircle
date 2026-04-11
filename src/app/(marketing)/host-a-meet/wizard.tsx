@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import citiesData from "@/data/cities.json";
-import type { City } from "@/lib/types";
+import { generateShareToken } from "@/lib/eventsCatalog";
+import type { City, MeetEvent } from "@/lib/types";
 import {
   initialHostDraft,
   useSessionStore,
@@ -14,7 +15,9 @@ const cities = citiesData as City[];
 
 export function HostWizard() {
   const router = useRouter();
-  const setHostDraft = useSessionStore((s) => s.setHostDraft);
+  const user = useSessionStore((s) => s.user);
+  const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
+  const publishHostedEvent = useSessionStore((s) => s.publishHostedEvent);
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState(initialHostDraft());
 
@@ -22,9 +25,36 @@ export function HostWizard() {
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
   const submit = () => {
-    setHostDraft(draft);
-    toast.success("Meet drafted — check your dashboard (mock).");
-    router.push("/dashboard");
+    if (!isAuthenticated || !user) {
+      toast.error("Sign in to publish a meet.");
+      router.push("/login?returnUrl=/host-a-meet");
+      return;
+    }
+    const startsAtIso = draft.startsAt
+      ? new Date(draft.startsAt).toISOString()
+      : new Date(Date.now() + 864e5).toISOString();
+
+    const ev: MeetEvent = {
+      id: `evt_u_${Math.random().toString(36).slice(2, 11)}`,
+      title: draft.title.trim() || "Untitled meet",
+      description: draft.description.trim() || "—",
+      cityId: draft.cityId,
+      startsAt: startsAtIso,
+      hostUserId: user.id,
+      capacity: Math.max(4, draft.capacity),
+      category: draft.category,
+      image:
+        "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1200&auto=format&fit=crop&q=80",
+      priceCents: Math.max(0, draft.priceCents),
+      venueName: draft.venueName.trim() || undefined,
+      joinMode: draft.joinMode,
+      listingVisibility: draft.listingVisibility,
+      shareToken: generateShareToken(),
+      spotsTaken: 0,
+    };
+    publishHostedEvent(ev);
+    toast.success("Meet published (mock) — manage it under Bookings.");
+    router.push("/bookings");
   };
 
   return (
@@ -92,12 +122,46 @@ export function HostWizard() {
               )}
             </select>
           </div>
+          <div>
+            <label className="text-sm font-medium">Join policy</label>
+            <select
+              className="liquid-glass-input mt-2"
+              value={draft.joinMode}
+              onChange={(e) =>
+                setDraft((d) => ({
+                  ...d,
+                  joinMode: e.target.value as "open" | "invite",
+                }))
+              }
+            >
+              <option value="open">Open — anyone can join instantly</option>
+              <option value="invite">
+                Invite — guests request; you approve
+              </option>
+            </select>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Listing</label>
+            <select
+              className="liquid-glass-input mt-2"
+              value={draft.listingVisibility}
+              onChange={(e) =>
+                setDraft((d) => ({
+                  ...d,
+                  listingVisibility: e.target.value as "public" | "private",
+                }))
+              }
+            >
+              <option value="public">Public — shown on Explore</option>
+              <option value="private">Private — link only</option>
+            </select>
+          </div>
         </div>
       )}
       {step === 2 && (
         <div className="mt-4 space-y-4">
           <div>
-            <label className="text-sm font-medium">Starts at (ISO-ish)</label>
+            <label className="text-sm font-medium">Starts at</label>
             <input
               type="datetime-local"
               className="liquid-glass-input mt-2"
@@ -131,6 +195,25 @@ export function HostWizard() {
                 }))
               }
             />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Price (cents)</label>
+            <input
+              type="number"
+              min={0}
+              step={100}
+              className="liquid-glass-input mt-2"
+              value={draft.priceCents}
+              onChange={(e) =>
+                setDraft((d) => ({
+                  ...d,
+                  priceCents: Math.max(0, Number(e.target.value) || 0),
+                }))
+              }
+            />
+            <p className="mt-1 text-xs text-muted">
+              e.g. 2500 = $25.00 (mock — no real charge).
+            </p>
           </div>
         </div>
       )}
