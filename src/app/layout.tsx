@@ -27,7 +27,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("h-full", "scroll-smooth", fraunces.variable, "font-sans", geist.variable)}>
+    <html
+      lang="en"
+      data-scroll-behavior="smooth"
+      className={cn("h-full", "scroll-smooth", fraunces.variable, "font-sans", geist.variable)}
+    >
       <body className="flex min-h-full flex-col bg-canvas font-sans text-foreground antialiased">
         <AppProviders>{children}</AppProviders>
       </body>

@@ -3,12 +3,25 @@
 import Image from "next/image";
 import Link from "next/link";
 import { X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
+
+const MD_UP = "(min-width: 768px)";
 
 /**
  * Reference-style split: hero left (50%), form right (50%), tall rounded image;
  * form vertically centered in the right column (scrolls if content is tall).
  */
 export function AuthSplitLayout({ children }: { children: React.ReactNode }) {
+  /** Mount hero + `fill` image only at `md+` so the image is never under `display:none` (height 0). First paint matches SSR. */
+  const [showDesktopHero, setShowDesktopHero] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(MD_UP);
+    const apply = () => setShowDesktopHero(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
   return (
     <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden">
       <Link
@@ -22,27 +35,34 @@ export function AuthSplitLayout({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden px-3 pb-4 pt-14 sm:px-5 sm:pb-6 md:px-8 md:pb-8 md:pt-16">
         <div className="flex h-full min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 overflow-hidden md:h-[calc(100svh-6rem)] md:max-h-[calc(100svh-6rem)] md:flex-row md:items-stretch md:gap-8 lg:max-w-7xl lg:gap-10">
           {/*
-            Hero: fixed row height on md+ so image matches form column height (reference: tall panel).
-            `absolute inset-0` + fill avoids min-h math fighting flex and keeps next/image happy.
+            Hero left column: only mount when `md` matches so `fill` is never under `display:none` (height 0).
+            Row height on md+ matches form column; `absolute inset-0` + fill for next/image.
           */}
-          <section
-            aria-hidden
-            className="relative hidden min-h-0 w-full overflow-hidden rounded-3xl bg-neutral-200/30 shadow-sm md:block md:h-full md:min-h-0 md:w-1/2 md:max-w-[50%]"
-          >
-            <div className="absolute inset-0">
-              <Image
-                src="/auth/login-hero.png"
-                alt=""
-                fill
-                className="object-cover object-center"
-                priority
-                sizes="(max-width: 767px) 0px, 50vw"
-              />
-            </div>
-          </section>
+          {showDesktopHero ? (
+            <section
+              aria-hidden
+              className="relative min-h-0 w-1/2 max-w-[50%] shrink-0 overflow-hidden rounded-3xl bg-neutral-200/30 shadow-sm md:min-h-[calc(100svh-6rem)] md:self-stretch"
+            >
+              <div className="absolute inset-0 size-full min-h-0">
+                <Image
+                  src="/auth/login-hero.png"
+                  alt=""
+                  fill
+                  className="object-cover object-center"
+                  priority
+                  sizes="50vw"
+                />
+              </div>
+            </section>
+          ) : null}
 
-          {/* Right 50%: form — centered in column */}
-          <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col justify-start overflow-y-auto overflow-x-hidden overscroll-contain px-2 pb-8 sm:px-4 md:h-full md:w-1/2 md:max-w-[50%] md:justify-center md:px-10 md:pb-10 md:pt-4 lg:px-14">
+          {/* Right column: half width when hero is shown; full width until hero mounts (avoids empty 50% gap). */}
+          <div
+            className={cn(
+              "flex min-h-0 w-full min-w-0 flex-1 flex-col justify-start overflow-y-auto overflow-x-hidden overscroll-contain px-2 pb-8 sm:px-4 md:h-full md:justify-center md:px-10 md:pb-10 md:pt-4 lg:px-14",
+              showDesktopHero ? "md:w-1/2 md:max-w-[50%]" : "md:w-full"
+            )}
+          >
             <div className="mx-auto w-full">{children}</div>
           </div>
         </div>
