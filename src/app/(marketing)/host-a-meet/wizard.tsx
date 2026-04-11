@@ -28,8 +28,8 @@ export function HostWizard() {
   };
 
   return (
-    <div className="mt-10 max-w-xl rounded-2xl border border-primary/10 bg-white/50 p-6">
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+    <div className="liquid-glass-surface mt-10 max-w-xl">
+      <p className="text-xs font-semibold uppercase tracking-wider text-secondary">
         Step {step + 1} / 3
       </p>
       {step === 0 && (
@@ -37,7 +37,7 @@ export function HostWizard() {
           <div>
             <label className="text-sm font-medium">Title</label>
             <input
-              className="mt-1 w-full rounded-xl border border-primary/15 px-3 py-2"
+              className="liquid-glass-input mt-2"
               value={draft.title}
               onChange={(e) =>
                 setDraft((d) => ({ ...d, title: e.target.value }))
@@ -47,7 +47,7 @@ export function HostWizard() {
           <div>
             <label className="text-sm font-medium">Description</label>
             <textarea
-              className="mt-1 min-h-[100px] w-full rounded-xl border border-primary/15 px-3 py-2"
+              className="liquid-glass-input mt-2 min-h-[100px] resize-y"
               value={draft.description}
               onChange={(e) =>
                 setDraft((d) => ({ ...d, description: e.target.value }))
@@ -61,7 +61,7 @@ export function HostWizard() {
           <div>
             <label className="text-sm font-medium">City</label>
             <select
-              className="mt-1 w-full rounded-xl border border-primary/15 px-3 py-2"
+              className="liquid-glass-input mt-2"
               value={draft.cityId}
               onChange={(e) =>
                 setDraft((d) => ({ ...d, cityId: e.target.value }))
@@ -77,7 +77,7 @@ export function HostWizard() {
           <div>
             <label className="text-sm font-medium">Category</label>
             <select
-              className="mt-1 w-full rounded-xl border border-primary/15 px-3 py-2"
+              className="liquid-glass-input mt-2"
               value={draft.category}
               onChange={(e) =>
                 setDraft((d) => ({ ...d, category: e.target.value }))
@@ -100,7 +100,7 @@ export function HostWizard() {
             <label className="text-sm font-medium">Starts at (ISO-ish)</label>
             <input
               type="datetime-local"
-              className="mt-1 w-full rounded-xl border border-primary/15 px-3 py-2"
+              className="liquid-glass-input mt-2"
               value={draft.startsAt}
               onChange={(e) =>
                 setDraft((d) => ({ ...d, startsAt: e.target.value }))
@@ -110,7 +110,7 @@ export function HostWizard() {
           <div>
             <label className="text-sm font-medium">Venue name</label>
             <input
-              className="mt-1 w-full rounded-xl border border-primary/15 px-3 py-2"
+              className="liquid-glass-input mt-2"
               value={draft.venueName}
               onChange={(e) =>
                 setDraft((d) => ({ ...d, venueName: e.target.value }))
@@ -122,7 +122,7 @@ export function HostWizard() {
             <input
               type="number"
               min={4}
-              className="mt-1 w-full rounded-xl border border-primary/15 px-3 py-2"
+              className="liquid-glass-input mt-2"
               value={draft.capacity}
               onChange={(e) =>
                 setDraft((d) => ({
@@ -139,7 +139,7 @@ export function HostWizard() {
           type="button"
           onClick={back}
           disabled={step === 0}
-          className="rounded-xl border border-primary/15 px-4 py-2 text-sm disabled:opacity-40"
+          className="rounded-full border border-primary/20 bg-white/40 px-5 py-2 text-sm font-medium transition hover:bg-primary/5 disabled:opacity-40"
         >
           Back
         </button>
@@ -147,7 +147,7 @@ export function HostWizard() {
           <button
             type="button"
             onClick={next}
-            className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white"
+            className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow-md shadow-primary/20 transition hover:bg-primary/92"
           >
             Continue
           </button>
@@ -155,7 +155,7 @@ export function HostWizard() {
           <button
             type="button"
             onClick={submit}
-            className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white"
+            className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow-md shadow-primary/20 transition hover:bg-primary/92"
           >
             Publish (mock)
           </button>

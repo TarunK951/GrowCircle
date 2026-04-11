@@ -1,4 +1,5 @@
 import { Container } from "@/components/layout/Container";
+import { MarketingPageIntro } from "@/components/layout/MarketingPageIntro";
 import { Reveal } from "@/components/providers/Reveal";
 
 const steps = [
@@ -18,24 +19,28 @@ const steps = [
 
 export default function HowItWorksPage() {
   return (
-    <Container className="py-16">
+    <Container className="page-shell">
       <Reveal>
-        <h1 className="text-3xl font-semibold tracking-tight">How it works</h1>
-        <p className="mt-3 max-w-2xl text-muted">
-          ConnectSphere is a frontend prototype: every step is wired to JSON and
-          browser state — swap in a real API when you are ready.
-        </p>
+        <MarketingPageIntro
+          eyebrow="Product"
+          title="How it works"
+          description="ConnectSphere is a frontend prototype: every step is wired to JSON and browser state — swap in a real API when you are ready."
+        />
       </Reveal>
-      <ol className="mt-12 space-y-8">
+      <ol className="mt-12 space-y-5">
         {steps.map((s, i) => (
           <Reveal key={s.title}>
-            <li className="flex gap-6 rounded-2xl border border-primary/10 bg-white/50 p-6">
+            <li className="liquid-glass-surface flex gap-5 sm:gap-6">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
                 {i + 1}
               </span>
-              <div>
-                <h2 className="text-lg font-semibold">{s.title}</h2>
-                <p className="mt-2 text-muted">{s.body}</p>
+              <div className="min-w-0">
+                <h2 className="text-lg font-semibold text-foreground">
+                  {s.title}
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-muted">
+                  {s.body}
+                </p>
               </div>
             </li>
           </Reveal>

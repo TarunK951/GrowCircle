@@ -5,6 +5,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Container } from "@/components/layout/Container";
+import { MarketingPageIntro } from "@/components/layout/MarketingPageIntro";
 import { sendContactForm } from "@/lib/mockApi";
 
 const schema = z.object({
@@ -24,13 +25,14 @@ export default function ContactPage() {
   } = useForm<Form>({ resolver: zodResolver(schema) });
 
   return (
-    <Container className="py-16">
-      <h1 className="text-3xl font-semibold tracking-tight">Contact</h1>
-      <p className="mt-3 text-muted">
-        Sends to the mock API — you will see a success toast.
-      </p>
+    <Container className="page-shell">
+      <MarketingPageIntro
+        eyebrow="Hello"
+        title="Contact"
+        description="Sends to the mock API — you will see a success toast."
+      />
       <form
-        className="mt-8 max-w-lg space-y-4"
+        className="liquid-glass-surface mt-10 max-w-lg space-y-5"
         onSubmit={handleSubmit(async (data) => {
           await sendContactForm(data);
           toast.success("Message sent (mock).");
@@ -38,19 +40,16 @@ export default function ContactPage() {
         })}
       >
         <div>
-          <label className="text-sm font-medium">Name</label>
-          <input
-            className="mt-1 w-full rounded-xl border border-primary/15 bg-white/70 px-3 py-2"
-            {...register("name")}
-          />
+          <label className="text-sm font-medium text-foreground">Name</label>
+          <input className="liquid-glass-input mt-2" {...register("name")} />
           {errors.name && (
             <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>
           )}
         </div>
         <div>
-          <label className="text-sm font-medium">Email</label>
+          <label className="text-sm font-medium text-foreground">Email</label>
           <input
-            className="mt-1 w-full rounded-xl border border-primary/15 bg-white/70 px-3 py-2"
+            className="liquid-glass-input mt-2"
             type="email"
             {...register("email")}
           />
@@ -59,9 +58,9 @@ export default function ContactPage() {
           )}
         </div>
         <div>
-          <label className="text-sm font-medium">Message</label>
+          <label className="text-sm font-medium text-foreground">Message</label>
           <textarea
-            className="mt-1 min-h-[120px] w-full rounded-xl border border-primary/15 bg-white/70 px-3 py-2"
+            className="liquid-glass-input mt-2 min-h-[120px] resize-y"
             {...register("message")}
           />
           {errors.message && (
@@ -71,7 +70,7 @@ export default function ContactPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/20 transition hover:bg-primary/92 disabled:opacity-60"
         >
           {isSubmitting ? "Sending…" : "Send"}
         </button>
