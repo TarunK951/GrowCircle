@@ -60,9 +60,9 @@ export function CustomCursor() {
       ref={ring}
       className="custom-cursor pointer-events-none fixed left-0 top-0 z-[9997] h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full"
       style={{
-        border: "2px solid var(--cursor-ring-border)",
+        border: "3px solid var(--cursor-ring-border)",
         backgroundColor: "transparent",
-        boxShadow: "0 0 0 1px rgba(30, 59, 189, 0.06)",
+        boxShadow: "0 0 0 2px rgba(30, 59, 189, 0.06)",
       }}
       aria-hidden
     />

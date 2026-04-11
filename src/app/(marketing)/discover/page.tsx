@@ -6,6 +6,7 @@ import { listEvents } from "@/lib/mockApi";
 import citiesData from "@/data/cities.json";
 import type { City } from "@/lib/types";
 import { Reveal } from "@/components/providers/Reveal";
+import { hostNameForUserId } from "@/lib/hostName";
 
 type DiscoverPageProps = Readonly<{
   searchParams: Promise<{
@@ -54,7 +55,11 @@ export default async function DiscoverPage(props: DiscoverPageProps) {
       <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {events.map((e) => (
           <Reveal key={e.id}>
-            <EventCard event={e} cityName={cityById[e.cityId] ?? ""} />
+            <EventCard
+              event={e}
+              cityName={cityById[e.cityId] ?? ""}
+              hostName={hostNameForUserId(e.hostUserId)}
+            />
           </Reveal>
         ))}
       </div>

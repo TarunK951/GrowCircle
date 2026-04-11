@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSessionStore } from "@/stores/session-store";
 import eventsData from "@/data/events.json";
+import { hostNameForUserId } from "@/lib/hostName";
 import { EventCard } from "@/components/events/EventCard";
 import citiesData from "@/data/cities.json";
 import type { City, MeetEvent } from "@/lib/types";
@@ -33,6 +34,7 @@ export default function SavedPage() {
               key={e.id}
               event={e}
               cityName={cityById[e.cityId] ?? ""}
+              hostName={hostNameForUserId(e.hostUserId)}
             />
           ))}
         </div>

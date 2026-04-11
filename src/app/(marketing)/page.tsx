@@ -13,6 +13,7 @@ import { PrimaryButton, SecondaryButton } from "@/components/ui/MarketingButton"
 import { EventCard } from "@/components/events/EventCard";
 import { Reveal } from "@/components/providers/Reveal";
 import { getHomeContent } from "@/lib/home";
+import { hostNameForUserId } from "@/lib/hostName";
 import { listEvents } from "@/lib/mockApi";
 import citiesData from "@/data/cities.json";
 import type { City } from "@/lib/types";
@@ -154,6 +155,7 @@ export default async function HomePage() {
                 <EventCard
                   event={e}
                   cityName={cityById[e.cityId] ?? "City"}
+                  hostName={hostNameForUserId(e.hostUserId)}
                 />
               </Reveal>
             ))}
