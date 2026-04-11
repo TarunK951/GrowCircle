@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { BookingsStandaloneLayout } from "@/components/layout/BookingsStandaloneLayout";
+import { CircleSessionBridge } from "@/components/providers/CircleSessionBridge";
 
 export function AppAuthenticatedBody({
   children,
@@ -15,13 +16,19 @@ export function AppAuthenticatedBody({
 
   if (isBookingsHub) {
     return (
-      <BookingsStandaloneLayout>{children}</BookingsStandaloneLayout>
+      <>
+        <CircleSessionBridge />
+        <BookingsStandaloneLayout>{children}</BookingsStandaloneLayout>
+      </>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl">
-      <AppShell>{children}</AppShell>
-    </div>
+    <>
+      <CircleSessionBridge />
+      <div className="mx-auto w-full max-w-6xl">
+        <AppShell>{children}</AppShell>
+      </div>
+    </>
   );
 }

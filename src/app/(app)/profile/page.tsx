@@ -2,11 +2,16 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { ShieldCheck } from "lucide-react";
+import { getMyProfile, updateMyProfile } from "@/lib/circle/api";
+import { CircleApiError } from "@/lib/circle/client";
+import { isCircleApiConfigured } from "@/lib/circle/config";
+import { circleProfileToUser } from "@/lib/circle/mappers";
 import { useSessionStore } from "@/stores/session-store";
 
 const schema = z.object({
@@ -18,15 +23,43 @@ type Form = z.infer<typeof schema>;
 export default function ProfilePage() {
   const user = useSessionStore((s) => s.user);
   const updateProfile = useSessionStore((s) => s.updateProfile);
+  const accessToken = useSessionStore((s) => s.accessToken);
+  const refreshToken = useSessionStore((s) => s.refreshToken);
+  const loginWithCircle = useSessionStore((s) => s.loginWithCircle);
 
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<Form>({
     resolver: zodResolver(schema),
     defaultValues: { name: user?.name ?? "" },
   });
+
+  useEffect(() => {
+    if (!isCircleApiConfigured() || !accessToken || !refreshToken) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const profile = await getMyProfile(accessToken);
+        if (cancelled) return;
+        const u = circleProfileToUser(profile);
+        loginWithCircle(u, { accessToken, refreshToken });
+        reset({ name: u.name });
+      } catch (e) {
+        if (!cancelled && e instanceof CircleApiError) {
+          toast.error(e.message);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, refreshToken, loginWithCircle, reset]);
+
+  const circleSync =
+    isCircleApiConfigured() && Boolean(accessToken && refreshToken);
 
   return (
     <div className="mx-auto max-w-2xl text-neutral-900">
@@ -35,8 +68,10 @@ export default function ProfilePage() {
           Profile
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-neutral-800">
-          Update how you appear to hosts and guests. Email is read-only in this
-          demo.
+          Update how you appear to hosts and guests.
+          {circleSync
+            ? " Display name is saved to your Circle account."
+            : " Email changes may require support when using a connected account."}
         </p>
       </div>
 
@@ -80,6 +115,28 @@ export default function ProfilePage() {
         <form
           className="min-w-0 flex-1 space-y-6 rounded-2xl border border-neutral-200 bg-neutral-50/80 p-6 sm:p-8"
           onSubmit={handleSubmit(async (data) => {
+            if (circleSync) {
+              try {
+                const profile = await updateMyProfile(accessToken!, {
+                  username: data.name.trim(),
+                });
+                const u = circleProfileToUser(profile);
+                loginWithCircle(u, {
+                  accessToken: accessToken!,
+                  refreshToken: refreshToken!,
+                });
+                toast.success("Profile updated");
+              } catch (e) {
+                toast.error(
+                  e instanceof CircleApiError
+                    ? e.message
+                    : e instanceof Error
+                      ? e.message
+                      : "Could not update profile",
+                );
+              }
+              return;
+            }
             updateProfile({ name: data.name });
             toast.success("Profile updated");
           })}
@@ -108,7 +165,9 @@ export default function ProfilePage() {
               {user?.email ?? "—"}
             </p>
             <p className="mt-2 text-xs text-neutral-700">
-              Contact support to change email (not available in the demo).
+              {circleSync
+                ? "Managed by your Circle account. Contact support to change it."
+                : "Contact support to change email when using a connected account."}
             </p>
           </div>
           <button

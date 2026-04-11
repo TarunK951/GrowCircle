@@ -1,5 +1,52 @@
 import type { CircleRazorpayOrderPayload } from "@/lib/circle/types";
 
+/**
+ * Merge camelCase and snake_case Razorpay order fields from the API into the shape
+ * the checkout helpers expect (`orderId`, `amount` as number, etc.).
+ */
+export function normalizeRazorpayOrderPayload(
+  raw: CircleRazorpayOrderPayload | Record<string, unknown> | null | undefined,
+): CircleRazorpayOrderPayload | undefined {
+  if (raw == null || typeof raw !== "object") return undefined;
+  const r = raw as Record<string, unknown>;
+  const orderIdRaw = r.orderId ?? r.order_id;
+  const orderId =
+    typeof orderIdRaw === "string" && orderIdRaw.length > 0
+      ? orderIdRaw
+      : undefined;
+
+  let amount: number | undefined;
+  if (typeof r.amount === "number" && Number.isFinite(r.amount)) {
+    amount = r.amount;
+  } else if (typeof r.amount === "string") {
+    const n = Number.parseFloat(r.amount);
+    if (Number.isFinite(n)) amount = n;
+  }
+
+  const currency =
+    typeof r.currency === "string" && r.currency.length > 0
+      ? r.currency
+      : "INR";
+  const key = typeof r.key === "string" ? r.key : undefined;
+
+  let payment: CircleRazorpayOrderPayload["payment"];
+  const pm = r.payment;
+  if (pm && typeof pm === "object") {
+    const id = (pm as { id?: unknown }).id;
+    if (typeof id === "string" && id.length > 0) payment = { id };
+  }
+
+  const out: CircleRazorpayOrderPayload = {
+    ...(raw as CircleRazorpayOrderPayload),
+    ...(orderId !== undefined ? { orderId } : {}),
+    ...(amount !== undefined ? { amount } : {}),
+    currency,
+    ...(key !== undefined ? { key } : {}),
+    ...(payment !== undefined ? { payment } : {}),
+  };
+  return out;
+}
+
 declare global {
   interface Window {
     Razorpay?: new (options: RazorpayConstructorOptions) => {
@@ -69,6 +116,12 @@ export function resolveRazorpayKey(
   return fromPayload || getPublicRazorpayKeyId();
 }
 
+function asNormalizedPayload(
+  payload: CircleRazorpayOrderPayload | Record<string, unknown> | null | undefined,
+): CircleRazorpayOrderPayload | undefined {
+  return normalizeRazorpayOrderPayload(payload);
+}
+
 /** Payment payload with required Razorpay order fields (key from payload or env). */
 export type RazorpayReadyPayload = CircleRazorpayOrderPayload & {
   orderId: string;
@@ -76,22 +129,24 @@ export type RazorpayReadyPayload = CircleRazorpayOrderPayload & {
 };
 
 export type OpenRazorpayFromPayloadParams = {
-  payload: RazorpayReadyPayload;
+  /** Raw order payload from the API (camelCase or snake_case). */
+  payload: CircleRazorpayOrderPayload | Record<string, unknown>;
   title?: string;
   onPaid?: (response: RazorpayPaymentResponse) => void;
   onDismiss?: () => void;
 };
 
 export function canOpenRazorpayCheckout(
-  payload: CircleRazorpayOrderPayload | undefined | null,
+  payload: CircleRazorpayOrderPayload | Record<string, unknown> | null | undefined,
 ): payload is RazorpayReadyPayload {
-  if (!payload) return false;
-  const key = resolveRazorpayKey(payload);
+  const n = asNormalizedPayload(payload);
+  if (!n) return false;
+  const key = resolveRazorpayKey(n);
   return Boolean(
     key &&
-      typeof payload.orderId === "string" &&
-      payload.orderId.length > 0 &&
-      typeof payload.amount === "number",
+      typeof n.orderId === "string" &&
+      n.orderId.length > 0 &&
+      typeof n.amount === "number",
   );
 }
 
@@ -99,16 +154,21 @@ export function canOpenRazorpayCheckout(
  * Opens Razorpay Checkout using order details returned by the Circle API.
  */
 export async function openRazorpayFromPayload({
-  payload,
+  payload: rawPayload,
   title = "GrowCircle",
   onPaid,
   onDismiss,
 }: OpenRazorpayFromPayloadParams): Promise<void> {
+  const normalized = asNormalizedPayload(rawPayload);
+  if (!canOpenRazorpayCheckout(normalized)) {
+    throw new Error("Incomplete payment details from server");
+  }
+  const payload = normalized;
   const key = resolveRazorpayKey(payload);
   const orderId = payload.orderId;
   const amount = payload.amount;
   const currency = payload.currency ?? "INR";
-  if (!key || !orderId || amount == null) {
+  if (!key || orderId == null || amount == null) {
     throw new Error("Incomplete payment details from server");
   }
   await loadRazorpayScript();
