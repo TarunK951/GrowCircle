@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   User,
   ShieldCheck,
-  Calendar,
   History,
   Bookmark,
   MessageCircle,
@@ -28,12 +27,6 @@ const nav: ShellNav[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/profile", label: "Profile", icon: User },
   { href: "/verify-profile", label: "Verify", icon: ShieldCheck },
-  {
-    href: "/bookings",
-    label: "Bookings",
-    icon: Calendar,
-    aliases: ["/my-events"],
-  },
   { href: "/history", label: "History", icon: History },
   { href: "/saved", label: "Saved", icon: Bookmark },
   {
