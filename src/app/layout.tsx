@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
-import { Fraunces } from "next/font/google";
+import { Fraunces, Geist } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "@/components/providers/AppProviders";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -24,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`h-full scroll-smooth ${fraunces.variable}`}>
+    <html lang="en" className={cn("h-full", "scroll-smooth", fraunces.variable, "font-sans", geist.variable)}>
       <body className="flex min-h-full flex-col bg-canvas font-sans text-foreground antialiased">
         <AppProviders>{children}</AppProviders>
       </body>
