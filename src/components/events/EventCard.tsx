@@ -10,6 +10,7 @@ export function EventCard({
   hostName,
   className,
   priority,
+  inactive,
 }: {
   event: MeetEvent;
   cityName: string;
@@ -17,6 +18,8 @@ export function EventCard({
   className?: string;
   /** When true, image loads eagerly (use for first cards in grid for LCP). */
   priority?: boolean;
+  /** Ended, cancelled, or otherwise dimmed (grayscale). */
+  inactive?: boolean;
 }) {
   const price =
     event.priceCents === 0
@@ -32,10 +35,16 @@ export function EventCard({
       aria-label={event.title}
       className={cn(
         "event-card-depth group overflow-hidden rounded-(--radius-section) liquid-glass liquid-glass-card",
+        inactive && "opacity-90",
         className,
       )}
     >
-      <div className="relative aspect-4/3 w-full overflow-hidden rounded-t-(--radius-section)">
+      <div
+        className={cn(
+          "relative aspect-4/3 w-full overflow-hidden rounded-t-(--radius-section)",
+          inactive && "grayscale",
+        )}
+      >
         {coverIsDataUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -93,9 +102,14 @@ export function EventCard({
         </div>
         <span
           aria-hidden
-          className="mt-4 flex w-full items-center justify-center rounded-full bg-foreground py-3 text-center text-sm font-medium text-background"
+          className={cn(
+            "mt-4 flex w-full items-center justify-center rounded-full py-3 text-center text-sm font-medium",
+            inactive
+              ? "border border-neutral-300 bg-neutral-100 text-neutral-700"
+              : "bg-foreground text-background",
+          )}
         >
-          View event
+          {inactive ? "Ended or unavailable" : "View event"}
         </span>
       </div>
     </Link>

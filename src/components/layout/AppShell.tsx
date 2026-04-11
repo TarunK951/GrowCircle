@@ -1,8 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { SOCIAL_LINKS } from "@/lib/socialLinks";
 import { useSessionStore } from "@/stores/session-store";
 import {
   LayoutDashboard,
@@ -81,17 +83,57 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
-          <div className="relative isolate mt-auto overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50 p-4 text-neutral-900">
-            <p className="text-sm font-semibold text-neutral-900">
-              {user?.name ?? "Guest"}
+
+          <div className="mt-6 shrink-0">
+            <p className="px-1 text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-900">
+              Social
             </p>
-            <p className="mt-1 truncate text-xs font-medium text-neutral-900">
-              {user?.email}
-            </p>
+            <ul className="mt-2 flex flex-col gap-0.5">
+              {SOCIAL_LINKS.map((s) => (
+                <li key={s.label}>
+                  <a
+                    href={s.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex rounded-xl px-3 py-2 text-sm font-medium text-neutral-800 transition hover:bg-neutral-100"
+                  >
+                    {s.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="relative isolate mt-auto shrink-0 overflow-hidden rounded-2xl border border-neutral-200 bg-linear-to-br from-neutral-50 to-white p-4 shadow-sm">
+            <div className="flex gap-3">
+              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-neutral-200 bg-neutral-100">
+                {user?.avatar ? (
+                  <Image
+                    src={user.avatar}
+                    alt=""
+                    fill
+                    className="object-cover"
+                    sizes="48px"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-neutral-500">
+                    {(user?.name ?? "G").slice(0, 1).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-neutral-900">
+                  {user?.name ?? "Guest"}
+                </p>
+                <p className="mt-0.5 truncate text-xs font-medium text-neutral-600">
+                  {user?.email ?? "—"}
+                </p>
+              </div>
+            </div>
             <button
               type="button"
               onClick={() => logout()}
-              className="mt-3 text-sm font-semibold text-neutral-900 underline-offset-4 hover:underline"
+              className="mt-3 w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm font-semibold text-neutral-900 shadow-sm transition hover:bg-neutral-50"
             >
               Log out
             </button>

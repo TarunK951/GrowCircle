@@ -1,31 +1,66 @@
 "use client";
 
-import { useState } from "react";
 import { toast } from "sonner";
+import { useSessionStore } from "@/stores/session-store";
 
 export default function SettingsPage() {
-  const [digest, setDigest] = useState(true);
+  const uiPrefs = useSessionStore((s) => s.uiPrefs);
+  const setUiPrefs = useSessionStore((s) => s.setUiPrefs);
+
+  const row = (
+    label: string,
+    checked: boolean,
+    onChange: (next: boolean) => void,
+  ) => (
+    <label className="flex cursor-pointer items-center justify-between gap-4 text-sm font-medium text-neutral-900">
+      <span>{label}</span>
+      <input
+        type="checkbox"
+        className="h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-2 focus:ring-neutral-900/15"
+        checked={checked}
+        onChange={(e) => {
+          onChange(e.target.checked);
+          toast.success("Preference saved locally");
+        }}
+      />
+    </label>
+  );
 
   return (
     <div className="max-w-lg">
       <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-      <p className="mt-2 text-muted">Local preferences — not synced to a server.</p>
-      <div className="mt-8 space-y-4 rounded-2xl border border-primary/10 bg-white/50 p-6">
-        <label className="flex items-center justify-between gap-4 text-sm">
-          <span>Weekly digest email (mock)</span>
-          <input
-            type="checkbox"
-            checked={digest}
-            onChange={(e) => {
-              setDigest(e.target.checked);
-              toast.success("Preference saved locally");
-            }}
-          />
-        </label>
-        <label className="flex items-center justify-between gap-4 text-sm">
-          <span>Show liquid glass hero on home</span>
-          <input type="checkbox" defaultChecked readOnly />
-        </label>
+      <p className="mt-2 text-muted">
+        Local preferences — not synced to a server.
+      </p>
+      <div className="mt-8 space-y-5 rounded-2xl border border-neutral-200 bg-white/80 p-6 shadow-sm">
+        <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+          Notifications (mock)
+        </p>
+        {row("Weekly digest email", uiPrefs.weeklyDigestEmail, (v) =>
+          setUiPrefs({ weeklyDigestEmail: v }),
+        )}
+        {row("Push-style reminders for upcoming meets", uiPrefs.pushRemindersMock, (v) =>
+          setUiPrefs({ pushRemindersMock: v }),
+        )}
+        {row("Event recommendations in Explore", uiPrefs.eventRecommendationsMock, (v) =>
+          setUiPrefs({ eventRecommendationsMock: v }),
+        )}
+        <div className="border-t border-neutral-200 pt-5">
+          <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+            Appearance
+          </p>
+          <div className="mt-3 space-y-5">
+            {row("Show liquid glass hero on home", uiPrefs.showLiquidGlassHero, (v) =>
+              setUiPrefs({ showLiquidGlassHero: v }),
+            )}
+            {row("Compact booking & hosting cards", uiPrefs.compactBookingCards, (v) =>
+              setUiPrefs({ compactBookingCards: v }),
+            )}
+            {row("Reduce motion (fewer animations)", uiPrefs.reduceMotionUi, (v) =>
+              setUiPrefs({ reduceMotionUi: v }),
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

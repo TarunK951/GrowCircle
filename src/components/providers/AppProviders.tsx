@@ -3,10 +3,12 @@
 import { Toaster } from "sonner";
 import { MotionProviders } from "@/components/providers/MotionProviders";
 import { CustomCursor } from "@/components/providers/CustomCursor";
+import { UiPrefsEffects } from "@/components/providers/UiPrefsEffects";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <MotionProviders>
+      <UiPrefsEffects />
       <CustomCursor />
       {children}
       <Toaster

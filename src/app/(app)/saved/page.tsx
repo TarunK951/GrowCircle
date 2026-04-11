@@ -3,11 +3,11 @@
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useSessionStore } from "@/stores/session-store";
-import { mergeEventCatalog } from "@/lib/eventsCatalog";
+import { isMeetInactive, mergeEventCatalog } from "@/lib/eventsCatalog";
 import { hostNameForUserId } from "@/lib/hostName";
 import { EventCard } from "@/components/events/EventCard";
 import citiesData from "@/data/cities.json";
-import type { City, MeetEvent } from "@/lib/types";
+import type { City } from "@/lib/types";
 
 export default function SavedPage() {
   const savedIds = useSessionStore((s) => s.savedEventIds);
@@ -27,15 +27,6 @@ export default function SavedPage() {
     [hostedEvents],
   );
 
-  const saved = useMemo(() => {
-    const list: MeetEvent[] = [];
-    for (const id of savedIds) {
-      const e = catalog.find((x) => x.id === id);
-      if (e) list.push(e);
-    }
-    return list;
-  }, [catalog, savedIds]);
-
   return (
     <div className="mx-auto max-w-5xl text-neutral-900">
       <div className="border-b border-neutral-200 pb-8">
@@ -48,7 +39,7 @@ export default function SavedPage() {
         </p>
       </div>
 
-      {saved.length === 0 ? (
+      {savedIds.length === 0 ? (
         <p className="mt-8 text-sm font-medium text-neutral-900">
           Nothing saved — browse{" "}
           <Link
@@ -61,19 +52,41 @@ export default function SavedPage() {
         </p>
       ) : (
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {saved.map((e, index) => (
-            <EventCard
-              key={e.id}
-              event={e}
-              cityName={cityById[e.cityId] ?? ""}
-              hostName={
-                sessionUser && e.hostUserId === sessionUser.id
-                  ? sessionUser.name
-                  : hostNameForUserId(e.hostUserId) ?? "Host"
-              }
-              priority={index < 3}
-            />
-          ))}
+          {savedIds.map((id, index) => {
+            const e = catalog.find((x) => x.id === id);
+            if (!e) {
+              return (
+                <div
+                  key={id}
+                  className="flex flex-col overflow-hidden rounded-(--radius-section) border border-neutral-200 bg-neutral-50 grayscale"
+                >
+                  <div className="aspect-4/3 w-full bg-neutral-200" />
+                  <div className="border-t border-neutral-200 p-5">
+                    <p className="font-onest text-lg font-semibold text-neutral-700">
+                      No longer available
+                    </p>
+                    <p className="mt-2 text-sm text-neutral-600">
+                      This meet was removed by the host or is no longer listed.
+                    </p>
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <EventCard
+                key={e.id}
+                event={e}
+                cityName={cityById[e.cityId] ?? ""}
+                hostName={
+                  sessionUser && e.hostUserId === sessionUser.id
+                    ? sessionUser.name
+                    : hostNameForUserId(e.hostUserId) ?? "Host"
+                }
+                priority={index < 3}
+                inactive={isMeetInactive(e)}
+              />
+            );
+          })}
         </div>
       )}
     </div>

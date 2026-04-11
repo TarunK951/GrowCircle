@@ -7,7 +7,6 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { ShieldCheck } from "lucide-react";
-import { ProfileAccountLinks } from "@/components/profile/ProfileAccountLinks";
 import { useSessionStore } from "@/stores/session-store";
 
 const schema = z.object({
@@ -39,10 +38,6 @@ export default function ProfilePage() {
           Update how you appear to hosts and guests. Email is read-only in this
           demo.
         </p>
-      </div>
-
-      <div className="mt-8">
-        <ProfileAccountLinks />
       </div>
 
       <div className="mt-10 flex flex-col gap-8 sm:flex-row sm:items-start">

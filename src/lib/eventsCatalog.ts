@@ -42,6 +42,7 @@ export function listEventsMerged(
   },
 ): MeetEvent[] {
   let list = mergeEventCatalog(hosted);
+  list = list.filter((e) => !e.cancelledAt);
   if (filters?.publicOnly) {
     list = list.filter((e) => (e.listingVisibility ?? "public") === "public");
   }
@@ -60,6 +61,12 @@ export function listEventsMerged(
     list = list.filter((e) => new Date(e.startsAt) <= to);
   }
   return list;
+}
+
+/** Past start time, or host-cancelled — for Saved / card styling. */
+export function isMeetInactive(event: MeetEvent, now = new Date()): boolean {
+  if (event.cancelledAt) return true;
+  return new Date(event.startsAt) < now;
 }
 
 export function generateAttendanceCode(): string {

@@ -4,6 +4,7 @@ type GroupPageProps = Readonly<{
   params: Promise<{ id: string }>;
 }>;
 
-export default function GroupPage(props: GroupPageProps) {
-  return <GroupPageView params={props.params} />;
+export default async function GroupPage(props: GroupPageProps) {
+  const { id } = await props.params;
+  return <GroupPageView id={id} />;
 }

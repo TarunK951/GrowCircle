@@ -5,10 +5,11 @@ type EventPageProps = Readonly<{
   params: Promise<{ id: string }>;
 }>;
 
-export default function EventDetailPage(props: EventPageProps) {
+export default async function EventDetailPage(props: EventPageProps) {
+  const { id } = await props.params;
   return (
     <Container className="page-shell">
-      <EventDetailView params={props.params} />
+      <EventDetailView id={id} />
     </Container>
   );
 }

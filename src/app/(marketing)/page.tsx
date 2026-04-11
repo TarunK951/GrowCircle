@@ -12,6 +12,7 @@ import { Container } from "@/components/layout/Container";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/MarketingButton";
 import { Reveal } from "@/components/providers/Reveal";
 import { HomeFeaturedGrid } from "@/components/marketing/HomeFeaturedGrid";
+import { HomeHeroBackdrop } from "@/components/marketing/HomeHeroBackdrop";
 import { getHomeContent } from "@/lib/home";
 import citiesData from "@/data/cities.json";
 import type { City } from "@/lib/types";
@@ -41,7 +42,7 @@ export default async function HomePage() {
   return (
     <>
       <section className="relative overflow-hidden border-b border-primary/10 py-16 sm:py-24">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(30,59,189,0.08),transparent_55%)]" />
+        <HomeHeroBackdrop />
         <Container>
           <div className="mx-auto max-w-3xl">
             <Reveal>

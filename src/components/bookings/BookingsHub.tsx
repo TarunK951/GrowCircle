@@ -55,6 +55,9 @@ export function BookingsHub() {
   const approveBooking = useSessionStore((s) => s.approveBooking);
   const removeGuestBooking = useSessionStore((s) => s.removeGuestBooking);
   const markAttendance = useSessionStore((s) => s.markAttendance);
+  const compactBookingCards = useSessionStore(
+    (s) => s.uiPrefs.compactBookingCards,
+  );
 
   const [tab, setTab] = useState<Tab>("guest");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -105,7 +108,12 @@ export function BookingsHub() {
       </div>
 
       {tab === "guest" && (
-        <ul className="mt-8 flex flex-col gap-4">
+        <ul
+          className={cn(
+            "mt-8 flex flex-col",
+            compactBookingCards ? "gap-2" : "gap-4",
+          )}
+        >
           {myBookings.length === 0 && (
             <li className="text-sm font-medium text-neutral-900">
               No bookings yet.
@@ -123,7 +131,7 @@ export function BookingsHub() {
                 className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm"
               >
                 <div className="flex flex-col sm:flex-row sm:items-stretch">
-                  <div className="relative h-48 w-full shrink-0 bg-neutral-100 sm:h-36 sm:w-40 md:w-44">
+                  <div className="relative h-36 w-full shrink-0 bg-neutral-100 sm:w-40 md:w-44">
                     <Image
                       src={ev.image}
                       alt=""
@@ -132,7 +140,12 @@ export function BookingsHub() {
                       className="object-cover"
                     />
                   </div>
-                  <div className="flex min-w-0 flex-1 flex-col justify-between gap-4 p-4 sm:p-5">
+                  <div
+                    className={cn(
+                      "flex min-w-0 flex-1 flex-col justify-between gap-4 p-4 sm:p-5",
+                      compactBookingCards && "gap-3 p-3 sm:p-4",
+                    )}
+                  >
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <BookingStatusBadge status={b.status} />
@@ -206,7 +219,12 @@ export function BookingsHub() {
       )}
 
       {tab === "host" && (
-        <div className="mt-8 flex flex-col gap-4">
+        <div
+          className={cn(
+            "mt-8 flex flex-col",
+            compactBookingCards ? "gap-2" : "gap-4",
+          )}
+        >
           {myHosting.length === 0 && (
             <p className="text-sm font-medium text-neutral-900">
               You’re not hosting any meets yet —{" "}
@@ -253,6 +271,11 @@ function HostListingBadges({ ev }: { ev: MeetEvent }) {
     (ev.joinMode ?? "open") === "invite" ? "Invite only" : "Open joins";
   return (
     <div className="flex flex-wrap gap-2">
+      {ev.cancelledAt ? (
+        <span className="inline-flex rounded-full border border-neutral-500 bg-neutral-200 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-neutral-800">
+          Cancelled
+        </span>
+      ) : null}
       <span className="inline-flex rounded-full border border-neutral-900 bg-white px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-neutral-900">
         Hosting
       </span>
@@ -295,6 +318,9 @@ function HostMeetCard({
   removeGuestBooking: (id: string) => void;
   markAttendance: (id: string, code: string) => boolean;
 }) {
+  const compactBookingCards = useSessionStore(
+    (s) => s.uiPrefs.compactBookingCards,
+  );
   const [hostFilter, setHostFilter] = useState<"all" | "pending" | "verified">(
     "all",
   );
@@ -318,7 +344,7 @@ function HostMeetCard({
   return (
     <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-stretch">
-        <div className="relative h-48 w-full shrink-0 bg-neutral-100 sm:h-36 sm:w-40 md:w-44">
+        <div className="relative h-36 w-full shrink-0 bg-neutral-100 sm:w-40 md:w-44">
           <Image
             src={ev.image}
             alt=""
@@ -327,7 +353,12 @@ function HostMeetCard({
             className="object-cover"
           />
         </div>
-        <div className="flex min-w-0 flex-1 flex-col justify-between gap-3 p-4 sm:p-5">
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 flex-col justify-between gap-3 p-4 sm:p-5",
+            compactBookingCards && "gap-2 p-3 sm:p-4",
+          )}
+        >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <HostListingBadges ev={ev} />
@@ -362,6 +393,27 @@ function HostMeetCard({
             >
               View event
             </Link>
+            {canEditMeet && !ev.cancelledAt && (
+              <button
+                type="button"
+                className="rounded-full border border-amber-200 bg-white px-4 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-50"
+                onClick={() => {
+                  if (
+                    typeof window !== "undefined" &&
+                    window.confirm(
+                      "Cancel this meet? It will be hidden from Explore; guests can still open the link (mock).",
+                    )
+                  ) {
+                    updateHostedEvent(ev.id, {
+                      cancelledAt: new Date().toISOString(),
+                    });
+                    toast.success("Meet cancelled (mock).");
+                  }
+                }}
+              >
+                Cancel meet
+              </button>
+            )}
             {canEditMeet && (
               <button
                 type="button"

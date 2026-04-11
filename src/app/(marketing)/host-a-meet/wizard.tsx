@@ -12,6 +12,7 @@ import {
   useSessionStore,
   type HostDraft,
 } from "@/stores/session-store";
+import { cn } from "@/lib/utils";
 
 const cities = citiesData as City[];
 
@@ -19,7 +20,7 @@ const DEFAULT_COVER =
   "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1200&auto=format&fit=crop&q=80";
 
 const MAX_IMAGE_BYTES = 750 * 1024;
-const STEPS = 7;
+const STEPS = 10;
 
 function trimLines(lines: string[]): string[] {
   return lines.map((s) => s.trim()).filter(Boolean);
@@ -156,6 +157,24 @@ export function HostWizard() {
       <p className="text-xs font-semibold uppercase tracking-wider text-secondary">
         Step {step + 1} / {STEPS}
       </p>
+      <div
+        className="mt-3 flex gap-1"
+        role="progressbar"
+        aria-valuenow={step + 1}
+        aria-valuemin={1}
+        aria-valuemax={STEPS}
+        aria-label="Wizard progress"
+      >
+        {Array.from({ length: STEPS }).map((_, i) => (
+          <div
+            key={i}
+            className={cn(
+              "h-1 flex-1 rounded-full transition-colors",
+              i <= step ? "bg-primary" : "bg-primary/15",
+            )}
+          />
+        ))}
+      </div>
 
       {step === 0 && (
         <div className="mt-4 space-y-4">
@@ -179,6 +198,11 @@ export function HostWizard() {
               }
             />
           </div>
+        </div>
+      )}
+
+      {step === 1 && (
+        <div className="mt-4 space-y-4">
           <div>
             <label className="text-sm font-medium">City</label>
             <select
@@ -216,6 +240,11 @@ export function HostWizard() {
               placeholder="Street, suite, access notes"
             />
           </div>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="mt-4 space-y-4">
           <div>
             <label className="text-sm font-medium">Starts at</label>
             <input
@@ -263,6 +292,11 @@ export function HostWizard() {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="mt-4 space-y-4">
           <div>
             <label className="text-sm font-medium">Join policy</label>
             <select
@@ -300,7 +334,7 @@ export function HostWizard() {
         </div>
       )}
 
-      {step === 1 && (
+      {step === 4 && (
         <div className="mt-4 space-y-4">
           <div>
             <label className="text-sm font-medium">Cover image</label>
@@ -360,7 +394,7 @@ export function HostWizard() {
         </div>
       )}
 
-      {step === 2 && (
+      {step === 5 && (
         <div className="mt-4 space-y-4">
           <div>
             <label className="text-sm font-medium">About this meet (longer)</label>
@@ -473,7 +507,7 @@ export function HostWizard() {
         </div>
       )}
 
-      {step === 3 && (
+      {step === 6 && (
         <div className="mt-4 space-y-4">
           <div>
             <label className="text-sm font-medium">
@@ -573,7 +607,7 @@ export function HostWizard() {
         </div>
       )}
 
-      {step === 4 && (
+      {step === 7 && (
         <div className="mt-4 space-y-3">
           <p className="text-sm text-muted-foreground">
             Pick up to three categories. These appear on Explore and on your event
@@ -604,7 +638,7 @@ export function HostWizard() {
         </div>
       )}
 
-      {step === 5 && (
+      {step === 8 && (
         <div className="mt-4 space-y-4">
           <p className="text-sm text-muted-foreground">
             Add question and answer pairs for the FAQ accordion on the event page.
@@ -661,7 +695,7 @@ export function HostWizard() {
         </div>
       )}
 
-      {step === 6 && (
+      {step === 9 && (
         <div className="mt-4 space-y-4">
           <p className="text-sm text-muted-foreground">
             Optional: up to 5 multiple-choice questions guests must answer before

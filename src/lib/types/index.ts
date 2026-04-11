@@ -54,6 +54,8 @@ export type MeetEvent = {
   guestSuggestions?: string[];
   /** Max 5; each needs ≥2 options for join-time radios. */
   preJoinQuestions?: PreJoinQuestion[];
+  /** Host soft-cancelled; meet stays in history but is hidden from Explore. */
+  cancelledAt?: string;
 };
 
 export type User = {

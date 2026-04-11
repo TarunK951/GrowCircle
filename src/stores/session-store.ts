@@ -35,12 +35,33 @@ export type HostDraft = {
   preJoinQuestions: { prompt: string; options: string[] }[];
 };
 
+export type UiPrefs = {
+  weeklyDigestEmail: boolean;
+  showLiquidGlassHero: boolean;
+  pushRemindersMock: boolean;
+  eventRecommendationsMock: boolean;
+  compactBookingCards: boolean;
+  reduceMotionUi: boolean;
+};
+
+const defaultUiPrefs: UiPrefs = {
+  weeklyDigestEmail: true,
+  showLiquidGlassHero: true,
+  pushRemindersMock: false,
+  eventRecommendationsMock: true,
+  compactBookingCards: false,
+  reduceMotionUi: false,
+};
+
 type SessionState = {
   user: User | null;
   isAuthenticated: boolean;
   bookings: Booking[];
   hostedEvents: MeetEvent[];
   savedEventIds: string[];
+  /** Local UI preferences (persisted). */
+  uiPrefs: UiPrefs;
+  setUiPrefs: (partial: Partial<UiPrefs>) => void;
   notificationsRead: Record<string, boolean>;
   hostDraft: HostDraft | null;
   login: (user: User) => void;
@@ -143,19 +164,25 @@ export const useSessionStore = create<SessionState>()(
       bookings: [],
       hostedEvents: [],
       savedEventIds: [],
+      uiPrefs: { ...defaultUiPrefs },
+      setUiPrefs: (partial) =>
+        set((s) => ({
+          uiPrefs: { ...s.uiPrefs, ...partial },
+        })),
       notificationsRead: {},
       hostDraft: null,
       chatExtras: {},
       login: (user) => set({ user, isAuthenticated: true }),
       logout: () =>
-        set({
+        set((s) => ({
           user: null,
           isAuthenticated: false,
           bookings: [],
           hostedEvents: [],
           savedEventIds: [],
           chatExtras: {},
-        }),
+          uiPrefs: s.uiPrefs,
+        })),
       updateProfile: (partial) => {
         const u = get().user;
         if (!u) return;
@@ -408,7 +435,17 @@ export const useSessionStore = create<SessionState>()(
         });
       },
     }),
-    { name: "connectsphere-session" },
+    {
+      name: "connectsphere-session",
+      merge: (persisted, current) => {
+        const p = persisted as Partial<SessionState> | undefined;
+        return {
+          ...current,
+          ...p,
+          uiPrefs: { ...defaultUiPrefs, ...p?.uiPrefs },
+        };
+      },
+    },
   ),
 );
 

@@ -1,6 +1,5 @@
 "use client";
 
-import { use } from "react";
 import { notFound } from "next/navigation";
 import { EventMeetDetail } from "@/components/events/EventMeetDetail";
 import { getEventFromCatalog } from "@/lib/eventsCatalog";
@@ -21,12 +20,7 @@ function seatCountForEvent(
   ).length;
 }
 
-export function EventDetailView({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
+export function EventDetailView({ id }: { id: string }) {
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const bookings = useSessionStore((s) => s.bookings);
   const user = useSessionStore((s) => s.user);

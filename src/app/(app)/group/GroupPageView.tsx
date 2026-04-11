@@ -1,6 +1,5 @@
 "use client";
 
-import { use } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -17,12 +16,7 @@ const icebreakers = [
   "What’s a hobby you’ve always wanted to try?",
 ];
 
-export function GroupPageView({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
+export function GroupPageView({ id }: { id: string }) {
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const event = getEventFromCatalog(id, hostedEvents);
   if (!event) notFound();

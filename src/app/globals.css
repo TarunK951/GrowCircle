@@ -602,4 +602,41 @@ html.cursor-none {
   html {
     @apply font-sans;
   }
+
+  /* Plain form controls (app pages); components using `.liquid-glass-input` keep their own look. */
+  input:where(
+      :not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+          [type="file"]
+        ):not([type="hidden"])
+    ),
+  textarea,
+  select {
+    @apply rounded-xl border-neutral-300 bg-white text-neutral-900;
+    border-width: 1px;
+    border-style: solid;
+  }
+
+  input:where(
+      :not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+          [type="file"]
+        ):not([type="hidden"])
+    ):focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    @apply border-neutral-900 outline-none ring-2 ring-neutral-900/10;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    @apply border-neutral-300 bg-white text-neutral-900 accent-neutral-900;
+  }
+
+  html.gc-reduce-motion *,
+  html.gc-reduce-motion *::before,
+  html.gc-reduce-motion *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
