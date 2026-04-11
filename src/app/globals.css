@@ -219,6 +219,83 @@ html.cursor-none {
     box-shadow: var(--glass-shadow-hover), inset 0 1px 0 rgba(255, 255, 255, 0.92);
   }
 
+  /* Floating marketing nav — pill, 3D liquid glass (matches desktop + tablet) */
+  .nav-liquid-glass {
+    border-radius: 9999px;
+    background: linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.78) 0%,
+      rgba(255, 255, 255, 0.42) 40%,
+      rgba(252, 253, 251, 0.3) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.58);
+    box-shadow:
+      0 2px 4px rgba(15, 23, 42, 0.04),
+      0 14px 48px rgba(15, 23, 42, 0.1),
+      0 1px 0 rgba(255, 255, 255, 0.85) inset,
+      0 -2px 14px rgba(255, 255, 255, 0.45) inset;
+    backdrop-filter: blur(22px) saturate(1.42);
+    -webkit-backdrop-filter: blur(22px) saturate(1.42);
+  }
+
+  .nav-liquid-glass[data-elevated="true"] {
+    box-shadow:
+      0 6px 14px rgba(15, 23, 42, 0.08),
+      0 22px 64px rgba(15, 23, 42, 0.14),
+      0 1px 0 rgba(255, 255, 255, 0.92) inset,
+      0 -3px 20px rgba(255, 255, 255, 0.5) inset;
+    border-color: rgba(255, 255, 255, 0.68);
+  }
+
+  .dark .nav-liquid-glass {
+    background: linear-gradient(
+      165deg,
+      rgba(30, 30, 30, 0.75) 0%,
+      rgba(20, 20, 20, 0.48) 45%,
+      rgba(12, 12, 12, 0.38) 100%
+    );
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.35),
+      0 14px 48px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      inset 0 -2px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .dark .nav-liquid-glass[data-elevated="true"] {
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow:
+      0 8px 18px rgba(0, 0, 0, 0.5),
+      0 24px 70px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      inset 0 -3px 18px rgba(0, 0, 0, 0.35);
+  }
+
+  /* Mobile nav dropdown — same glass language, rounded sheet */
+  .nav-liquid-glass-menu {
+    border-radius: 1.25rem;
+    background: linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.88) 0%,
+      rgba(255, 255, 255, 0.52) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow:
+      0 16px 48px rgba(15, 23, 42, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px) saturate(1.35);
+    -webkit-backdrop-filter: blur(20px) saturate(1.35);
+  }
+
+  .dark .nav-liquid-glass-menu {
+    background: linear-gradient(
+      165deg,
+      rgba(28, 28, 28, 0.92) 0%,
+      rgba(18, 18, 18, 0.78) 100%
+    );
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
   /* Cards: frosted panel + Apple Music–style lift on hover */
   .liquid-glass-card {
     transition: background-color 0.22s ease, border-color 0.22s ease,
