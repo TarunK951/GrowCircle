@@ -26,6 +26,7 @@ export function circleProfileToUser(profile: CircleProfile): User {
     cityId: "circle",
     interests: [],
     verified: (profile.verification_tier ?? 0) >= 1,
+    isProfileComplete: profile.is_profile_complete === true,
   };
 }
 

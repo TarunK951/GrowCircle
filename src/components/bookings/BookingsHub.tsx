@@ -1,15 +1,28 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import {
+  acceptWaitlistOffer,
+  cancelApplication,
+  generateCheckinOtp,
+  getMyApplications,
+  getPayment,
+  getWaitlistPosition,
+} from "@/lib/circle/api";
+import { CircleApiError } from "@/lib/circle/client";
+import { isCircleApiConfigured } from "@/lib/circle/config";
+import { CircleHostMeetSection } from "@/components/bookings/CircleHostMeetSection";
+import type { CircleMyApplication, CirclePaymentDetails } from "@/lib/circle/types";
 import {
   getEventFromCatalog,
   mergeEventCatalog,
 } from "@/lib/eventsCatalog";
+import { openRazorpayFromPayload } from "@/lib/razorpay/loadCheckout";
 import { lookupUser } from "@/lib/userLookup";
+import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/session-store";
 import type { Booking, MeetEvent } from "@/lib/types";
 
@@ -44,8 +57,396 @@ function BookingStatusBadge({ status }: { status: Booking["status"] }) {
   );
 }
 
+function humanizeCircleStatus(s: string) {
+  const x = s.replace(/_/g, " ");
+  return x.charAt(0).toUpperCase() + x.slice(1);
+}
+
+function CircleStatusBadge({ status }: { status: string }) {
+  return (
+    <span className="inline-flex shrink-0 rounded-full border border-violet-700 bg-violet-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-violet-900">
+      {humanizeCircleStatus(status)}
+    </span>
+  );
+}
+
+function PaymentDetailsModal({
+  paymentId,
+  accessToken,
+  open,
+  onClose,
+}: {
+  paymentId: string | null;
+  accessToken: string | null;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const [data, setData] = useState<CirclePaymentDetails | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open || !paymentId || !accessToken) return;
+    let cancelled = false;
+    void (async () => {
+      setLoading(true);
+      setData(null);
+      try {
+        const d = await getPayment(accessToken, paymentId);
+        if (!cancelled) setData(d);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Could not load payment");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, paymentId, accessToken]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/45"
+        aria-label="Close"
+        onClick={onClose}
+      />
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-6 shadow-xl">
+        <h3 className="font-onest text-lg font-semibold text-neutral-900">
+          Payment details
+        </h3>
+        {loading && (
+          <p className="mt-4 text-sm text-neutral-600">Loading…</p>
+        )}
+        {!loading && data && (
+          <dl className="mt-4 space-y-2 text-sm">
+            <div className="flex justify-between gap-4">
+              <dt className="text-neutral-600">Amount</dt>
+              <dd className="font-semibold text-neutral-900">{data.amount}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-neutral-600">Status</dt>
+              <dd className="font-semibold text-neutral-900">{data.status}</dd>
+            </div>
+            {data.razorpay_order_id && (
+              <div className="flex justify-between gap-4">
+                <dt className="text-neutral-600">Order</dt>
+                <dd className="break-all font-mono text-xs text-neutral-900">
+                  {data.razorpay_order_id}
+                </dd>
+              </div>
+            )}
+            {data.razorpay_payment_id && (
+              <div className="flex justify-between gap-4">
+                <dt className="text-neutral-600">Payment id</dt>
+                <dd className="break-all font-mono text-xs text-neutral-900">
+                  {data.razorpay_payment_id}
+                </dd>
+              </div>
+            )}
+            {data.paid_at && (
+              <div className="flex justify-between gap-4">
+                <dt className="text-neutral-600">Paid at</dt>
+                <dd className="text-neutral-900">
+                  {new Date(data.paid_at).toLocaleString()}
+                </dd>
+              </div>
+            )}
+          </dl>
+        )}
+        <button
+          type="button"
+          className="mt-6 rounded-full border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-900 hover:bg-neutral-50"
+          onClick={onClose}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CircleGuestApplicationCard({
+  app,
+  accessToken,
+  hostedEvents,
+  circleCatalogEvents,
+  onRefresh,
+  compactBookingCards,
+}: {
+  app: CircleMyApplication;
+  accessToken: string;
+  hostedEvents: MeetEvent[];
+  circleCatalogEvents: MeetEvent[];
+  onRefresh: () => void;
+  compactBookingCards: boolean;
+}) {
+  const eventId = app.event?.id ?? "";
+  const ev = eventId
+    ? getEventFromCatalog(eventId, hostedEvents, circleCatalogEvents)
+    : null;
+  const title = app.event?.title ?? "Event";
+  const hostName = app.event?.host?.username;
+  const image =
+    ev?.image ??
+    "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80";
+
+  const [waitInfo, setWaitInfo] = useState<string | null>(null);
+  const [otpState, setOtpState] = useState<{
+    otp: string;
+    expiresAt: number;
+    hint: string;
+  } | null>(null);
+  const [otpSecsLeft, setOtpSecsLeft] = useState(0);
+  const [paymentModal, setPaymentModal] = useState(false);
+
+  useEffect(() => {
+    if (!otpState) return;
+    const tick = () => {
+      setOtpSecsLeft(
+        Math.max(0, Math.floor((otpState.expiresAt - Date.now()) / 1000)),
+      );
+    };
+    tick();
+    const t = window.setInterval(tick, 1000);
+    return () => window.clearInterval(t);
+  }, [otpState]);
+
+  const secsLeft = otpState ? otpSecsLeft : 0;
+
+  const canCancel =
+    app.status !== "cancelled" &&
+    !["attended", "checked_in"].includes(app.status);
+
+  const showCheckinOtp = ["paid", "selected", "confirmed"].includes(
+    app.status,
+  );
+
+  const payId =
+    app.payment && "id" in app.payment && app.payment.id
+      ? String(app.payment.id)
+      : null;
+
+  const runAcceptOffer = async () => {
+    try {
+      const data = await acceptWaitlistOffer(accessToken, app.id);
+      const pay = data.payment;
+      if (pay?.key && pay.orderId != null && pay.amount != null) {
+        await openRazorpayFromPayload({
+          payload: pay,
+          title: title,
+          onPaid: () =>
+            toast.success("Payment submitted — refreshing your applications."),
+        });
+      } else {
+        toast.success("Offer accepted.");
+      }
+      onRefresh();
+    } catch (e) {
+      toast.error(
+        e instanceof CircleApiError
+          ? e.message
+          : e instanceof Error
+            ? e.message
+            : "Could not accept offer",
+      );
+    }
+  };
+
+  const runCancel = async () => {
+    try {
+      const data = await cancelApplication(accessToken, app.id);
+      const r = data.refund;
+      if (r?.eligible) {
+        toast.success(
+          r.reason ??
+            `Refund ${r.percentage ?? 0}% (${r.amount ?? ""})`,
+        );
+      } else {
+        toast.success("Application cancelled.");
+      }
+      onRefresh();
+    } catch (e) {
+      toast.error(
+        e instanceof CircleApiError
+          ? e.message
+          : e instanceof Error
+            ? e.message
+            : "Could not cancel",
+      );
+    }
+  };
+
+  const refreshWaitlist = async () => {
+    try {
+      const w = await getWaitlistPosition(accessToken, app.id);
+      setWaitInfo(
+        `Position ${w.position} of ${w.totalWaitlisted} (${humanizeCircleStatus(w.status)})`,
+      );
+    } catch (e) {
+      toast.error(
+        e instanceof CircleApiError
+          ? e.message
+          : "Could not load waitlist position",
+      );
+    }
+  };
+
+  const genOtp = async () => {
+    try {
+      const d = await generateCheckinOtp(accessToken, app.id);
+      setOtpState({
+        otp: d.otp,
+        expiresAt: Date.now() + d.expiresInSeconds * 1000,
+        hint: d.message,
+      });
+      toast.success("Check-in code ready.");
+    } catch (e) {
+      toast.error(
+        e instanceof CircleApiError
+          ? e.message
+          : "Could not generate code",
+      );
+    }
+  };
+
+  return (
+    <li
+      className={cn(
+        "overflow-hidden rounded-2xl border border-violet-200 bg-white shadow-sm",
+        compactBookingCards && "border-violet-100",
+      )}
+    >
+      <PaymentDetailsModal
+        paymentId={payId}
+        accessToken={accessToken}
+        open={paymentModal}
+        onClose={() => setPaymentModal(false)}
+      />
+      <div className="flex flex-col sm:flex-row sm:items-stretch">
+        <div className="relative h-36 w-full shrink-0 bg-neutral-100 sm:w-40 md:w-44">
+          <Image
+            src={image}
+            alt=""
+            fill
+            sizes="(max-width:640px) 100vw, 176px"
+            className="object-cover"
+          />
+        </div>
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 flex-col justify-between gap-4 p-4 sm:p-5",
+            compactBookingCards && "gap-3 p-3 sm:p-4",
+          )}
+        >
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <CircleStatusBadge status={app.status} />
+              {app.ticket_id && (
+                <span className="text-xs font-mono font-semibold text-neutral-800">
+                  Ticket {app.ticket_id}
+                </span>
+              )}
+            </div>
+            <Link
+              href={eventId ? `/event/${eventId}` : "#"}
+              className="mt-2 block font-onest text-lg font-semibold text-neutral-900 hover:text-primary hover:underline"
+            >
+              {title}
+            </Link>
+            {hostName && (
+              <p className="mt-1 text-sm text-neutral-700">Host · @{hostName}</p>
+            )}
+            {app.payment?.amount && (
+              <p className="mt-1 text-sm font-medium text-neutral-800">
+                Paid {app.payment.amount} · {app.payment.status ?? ""}
+              </p>
+            )}
+            {waitInfo && (
+              <p className="mt-2 text-sm text-violet-900">{waitInfo}</p>
+            )}
+            {otpState && secsLeft > 0 && (
+              <p className="mt-3 font-mono text-lg font-semibold tracking-widest text-neutral-900">
+                {otpState.otp}
+                <span className="ml-3 text-xs font-sans font-normal text-neutral-600">
+                  expires in {secsLeft}s
+                </span>
+              </p>
+            )}
+            {otpState && secsLeft <= 0 && (
+              <p className="mt-2 text-sm text-amber-800">Code expired.</p>
+            )}
+            {otpState?.hint && (
+              <p className="mt-1 text-xs text-neutral-600">{otpState.hint}</p>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {eventId && (
+              <Link
+                href={`/event/${eventId}`}
+                className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-xs font-semibold text-neutral-900 hover:bg-neutral-100"
+              >
+                View event
+              </Link>
+            )}
+            {payId && (
+              <button
+                type="button"
+                className="rounded-full border border-violet-300 bg-white px-4 py-2 text-xs font-semibold text-violet-900 hover:bg-violet-50"
+                onClick={() => setPaymentModal(true)}
+              >
+                View payment
+              </button>
+            )}
+            {app.status === "waitlisted" && (
+              <button
+                type="button"
+                className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-xs font-semibold text-neutral-900 hover:bg-neutral-100"
+                onClick={() => void refreshWaitlist()}
+              >
+                Waitlist position
+              </button>
+            )}
+            {app.status === "offer_pending" && (
+              <button
+                type="button"
+                className="rounded-full border border-violet-600 bg-violet-600 px-4 py-2 text-xs font-semibold text-white hover:bg-violet-700"
+                onClick={() => void runAcceptOffer()}
+              >
+                Complete payment
+              </button>
+            )}
+            {canCancel && (
+              <button
+                type="button"
+                className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-xs font-semibold text-neutral-900 hover:bg-neutral-100"
+                onClick={() => void runCancel()}
+              >
+                Cancel
+              </button>
+            )}
+            {showCheckinOtp && (
+              <button
+                type="button"
+                className="rounded-full border border-neutral-900 bg-neutral-900 px-4 py-2 text-xs font-semibold text-white hover:bg-neutral-800"
+                onClick={() => void genOtp()}
+              >
+                {otpState ? "New check-in code" : "Show check-in code"}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </li>
+  );
+}
+
 export function BookingsHub() {
   const user = useSessionStore((s) => s.user);
+  const accessToken = useSessionStore((s) => s.accessToken);
   const bookings = useSessionStore((s) => s.bookings);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
@@ -63,6 +464,29 @@ export function BookingsHub() {
   const [tab, setTab] = useState<Tab>("guest");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [codeInputs, setCodeInputs] = useState<Record<string, string>>({});
+  const [circleApps, setCircleApps] = useState<CircleMyApplication[]>([]);
+  const [circleLoading, setCircleLoading] = useState(false);
+
+  const loadCircleApps = useCallback(async () => {
+    if (!accessToken || !isCircleApiConfigured()) return;
+    setCircleLoading(true);
+    try {
+      const data = await getMyApplications(accessToken);
+      setCircleApps(Array.isArray(data) ? data : []);
+    } catch (e) {
+      toast.error(
+        e instanceof CircleApiError
+          ? e.message
+          : "Could not load Circle applications",
+      );
+    } finally {
+      setCircleLoading(false);
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
+    void loadCircleApps();
+  }, [loadCircleApps]);
 
   const catalog = useMemo(
     () => mergeEventCatalog(hostedEvents, circleCatalogEvents),
@@ -78,6 +502,21 @@ export function BookingsHub() {
     if (!user) return [];
     return bookings.filter((b) => b.userId === user.id);
   }, [bookings, user]);
+
+  const mockGuestBookings = useMemo(() => {
+    return myBookings.filter((b) => {
+      const ev = getEventFromCatalog(
+        b.eventId,
+        hostedEvents,
+        circleCatalogEvents,
+      );
+      if (ev?.cityId === "circle") return false;
+      return true;
+    });
+  }, [myBookings, hostedEvents, circleCatalogEvents]);
+
+  const showCircleGuest =
+    isCircleApiConfigured() && Boolean(accessToken) && user;
 
   return (
     <div className="text-neutral-900">
@@ -109,18 +548,75 @@ export function BookingsHub() {
       </div>
 
       {tab === "guest" && (
-        <ul
+        <div
           className={cn(
             "mt-8 flex flex-col",
             compactBookingCards ? "gap-2" : "gap-4",
           )}
         >
-          {myBookings.length === 0 && (
+          {showCircleGuest && (
+            <div className="space-y-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-violet-900">
+                Circle meets
+              </p>
+              {circleLoading && (
+                <p className="text-sm text-neutral-600">Loading…</p>
+              )}
+              {!circleLoading && circleApps.length === 0 && (
+                <p className="text-sm font-medium text-neutral-700">
+                  No Circle applications yet.
+                </p>
+              )}
+              <ul
+                className={cn(
+                  "flex flex-col",
+                  compactBookingCards ? "gap-2" : "gap-4",
+                )}
+              >
+                {circleApps.map((app) => (
+                  <CircleGuestApplicationCard
+                    key={app.id}
+                    app={app}
+                    accessToken={accessToken!}
+                    hostedEvents={hostedEvents}
+                    circleCatalogEvents={circleCatalogEvents}
+                    onRefresh={() => void loadCircleApps()}
+                    compactBookingCards={compactBookingCards}
+                  />
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {showCircleGuest && mockGuestBookings.length > 0 && (
+            <p className="text-xs font-bold uppercase tracking-wider text-neutral-900">
+              Demo and local bookings
+            </p>
+          )}
+
+          <ul
+            className={cn(
+              "flex flex-col",
+              compactBookingCards ? "gap-2" : "gap-4",
+            )}
+          >
+          {!circleLoading &&
+            circleApps.length === 0 &&
+            mockGuestBookings.length === 0 &&
+            !showCircleGuest && (
             <li className="text-sm font-medium text-neutral-900">
               No bookings yet.
             </li>
           )}
-          {myBookings.map((b) => {
+          {!circleLoading &&
+            showCircleGuest &&
+            circleApps.length === 0 &&
+            mockGuestBookings.length === 0 && (
+              <li className="text-sm font-medium text-neutral-700">
+                No demo bookings — explore meets to join one.
+              </li>
+            )}
+          {mockGuestBookings.map((b) => {
             const ev = getEventFromCatalog(
               b.eventId,
               hostedEvents,
@@ -221,6 +717,7 @@ export function BookingsHub() {
             );
           })}
         </ul>
+        </div>
       )}
 
       {tab === "host" && (
@@ -247,6 +744,7 @@ export function BookingsHub() {
               key={ev.id}
               event={ev}
               canEditMeet={hostedEvents.some((h) => h.id === ev.id)}
+              accessToken={accessToken}
               expanded={expandedId === ev.id}
               onToggle={() =>
                 setExpandedId((x) => (x === ev.id ? null : ev.id))
@@ -297,6 +795,7 @@ function HostListingBadges({ ev }: { ev: MeetEvent }) {
 function HostMeetCard({
   event: ev,
   canEditMeet,
+  accessToken,
   expanded,
   onToggle,
   codeInputs,
@@ -310,6 +809,7 @@ function HostMeetCard({
 }: {
   event: MeetEvent;
   canEditMeet: boolean;
+  accessToken: string | null;
   expanded: boolean;
   onToggle: () => void;
   codeInputs: Record<string, string>;
@@ -323,9 +823,16 @@ function HostMeetCard({
   removeGuestBooking: (id: string) => void;
   markAttendance: (id: string, code: string) => boolean;
 }) {
+  const user = useSessionStore((s) => s.user);
   const compactBookingCards = useSessionStore(
     (s) => s.uiPrefs.compactBookingCards,
   );
+  const showCircleHostPanel =
+    isCircleApiConfigured() &&
+    Boolean(accessToken) &&
+    ev.cityId === "circle" &&
+    user != null &&
+    ev.hostUserId === user.id;
   const [hostFilter, setHostFilter] = useState<"all" | "pending" | "verified">(
     "all",
   );
@@ -444,7 +951,7 @@ function HostMeetCard({
 
       {expanded && (
         <div className="space-y-4 border-t border-neutral-200 bg-neutral-50/50 px-4 py-5 sm:px-5">
-          {!canEditMeet && (
+          {!canEditMeet && !showCircleHostPanel && (
             <p className="text-xs font-medium text-neutral-800">
               Demo seed meet — publish your own from Host a meet for full edit
               and delete controls.
@@ -517,6 +1024,13 @@ function HostMeetCard({
             </>
           )}
 
+          {showCircleHostPanel && accessToken ? (
+            <CircleHostMeetSection
+              eventId={ev.id}
+              accessToken={accessToken}
+              active={expanded}
+            />
+          ) : (
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-neutral-900">
               Guests
@@ -643,6 +1157,7 @@ function HostMeetCard({
               })}
             </ul>
           </div>
+          )}
         </div>
       )}
     </div>

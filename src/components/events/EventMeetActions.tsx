@@ -4,8 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/MarketingButton";
-import type { MeetEvent } from "@/lib/types";
+import { applyToEvent, getEventQuestions } from "@/lib/circle/api";
+import { CircleApiError } from "@/lib/circle/client";
+import { isCircleApiConfigured } from "@/lib/circle/config";
+import type { CircleEventQuestion } from "@/lib/circle/types";
 import { getEventFromCatalog } from "@/lib/eventsCatalog";
+import { openRazorpayFromPayload } from "@/lib/razorpay/loadCheckout";
+import type { MeetEvent, PreJoinQuestion } from "@/lib/types";
 import { useSessionStore } from "@/stores/session-store";
 
 export function SaveEventButton({ eventId }: { eventId: string }) {
@@ -30,16 +35,37 @@ export function SaveEventButton({ eventId }: { eventId: string }) {
   );
 }
 
+function mapRemoteQuestionsToPreJoin(
+  questions: CircleEventQuestion[],
+): PreJoinQuestion[] {
+  return questions
+    .filter(
+      (q) =>
+        q.question_type === "single_select" ||
+        q.question_type === "multi_select",
+    )
+    .map((q, i) => ({
+      id: q.id || `q_${i}`,
+      prompt: q.question_text,
+      options:
+        q.options && q.options.length >= 2
+          ? q.options
+          : ["Option A", "Option B"],
+    }));
+}
+
 function PreJoinModal({
   event,
   open,
   onClose,
   onConfirm,
+  busy,
 }: {
   event: MeetEvent;
   open: boolean;
   onClose: () => void;
-  onConfirm: (answers: Record<string, string>) => void;
+  onConfirm: (answers: Record<string, string>) => void | Promise<void>;
+  busy?: boolean;
 }) {
   const questions = event.preJoinQuestions ?? [];
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -50,7 +76,7 @@ function PreJoinModal({
     setAnswers((prev) => ({ ...prev, [qid]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     for (const q of questions) {
       if (!answers[q.id]?.trim()) {
@@ -58,7 +84,7 @@ function PreJoinModal({
         return;
       }
     }
-    onConfirm(answers);
+    await Promise.resolve(onConfirm(answers));
   };
 
   return (
@@ -123,9 +149,10 @@ function PreJoinModal({
             </button>
             <button
               type="submit"
-              className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow-md shadow-primary/20 transition hover:bg-primary/92"
+              disabled={busy}
+              className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow-md shadow-primary/20 transition hover:bg-primary/92 disabled:opacity-60"
             >
-              Continue
+              {busy ? "Working…" : "Continue"}
             </button>
           </div>
         </form>
@@ -138,13 +165,27 @@ export function JoinMeetButton({ event }: { event: MeetEvent }) {
   const router = useRouter();
   const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
   const user = useSessionStore((s) => s.user);
+  const accessToken = useSessionStore((s) => s.accessToken);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
   const tryJoinEvent = useSessionStore((s) => s.tryJoinEvent);
   const [preJoinOpen, setPreJoinOpen] = useState(false);
   const [preJoinKey, setPreJoinKey] = useState(0);
+  const [modalEvent, setModalEvent] = useState<MeetEvent>(event);
+  const [joinBusy, setJoinBusy] = useState(false);
 
-  const runJoin = (latest: MeetEvent, preJoinAnswers?: Record<string, string>) => {
+  const resolveLatest = (): MeetEvent =>
+    getEventFromCatalog(event.id, hostedEvents, circleCatalogEvents) ?? event;
+
+  const useCircleApply =
+    resolveLatest().cityId === "circle" &&
+    isCircleApiConfigured() &&
+    Boolean(accessToken);
+
+  const runMockJoin = (
+    latest: MeetEvent,
+    preJoinAnswers?: Record<string, string>,
+  ) => {
     const result = tryJoinEvent(latest, preJoinAnswers);
     if (!result.ok) {
       toast.error(result.reason ?? "Could not join");
@@ -158,6 +199,71 @@ export function JoinMeetButton({ event }: { event: MeetEvent }) {
     router.push("/bookings");
   };
 
+  const runCircleJoin = async (
+    latest: MeetEvent,
+    preJoinAnswers: Record<string, string>,
+  ) => {
+    if (!accessToken) {
+      toast.error("Sign in again to continue.");
+      return;
+    }
+    if (user?.isProfileComplete === false) {
+      toast.error("Complete your profile before joining paid meets.");
+      router.push(
+        `/signup?returnUrl=${encodeURIComponent(`/event/${latest.id}`)}`,
+      );
+      return;
+    }
+    setJoinBusy(true);
+    try {
+      const answers = Object.entries(preJoinAnswers).map(
+        ([question_id, answer]) => ({
+          question_id,
+          answer,
+        }),
+      );
+      const data = await applyToEvent(accessToken, latest.id, { answers });
+      if (data.waitlisted) {
+        toast.success(
+          `You’re on the waitlist (position ${data.waitlist_position ?? "—"}).`,
+        );
+        router.push("/bookings");
+        return;
+      }
+      const pay = data.payment;
+      const needsPay =
+        pay && pay.key && pay.orderId != null && pay.amount != null;
+      if (needsPay) {
+        await openRazorpayFromPayload({
+          payload: pay,
+          title: latest.title,
+          onPaid: () => {
+            toast.success(
+              "Payment submitted — your booking will update shortly.",
+            );
+          },
+          onDismiss: () => {
+            toast.message("Checkout closed — you can complete payment from Bookings.");
+          },
+        });
+        router.push("/bookings");
+        return;
+      }
+      toast.success("Application submitted.");
+      router.push("/bookings");
+    } catch (e) {
+      const msg =
+        e instanceof CircleApiError
+          ? e.message
+          : e instanceof Error
+            ? e.message
+            : "Could not apply";
+      toast.error(msg);
+    } finally {
+      setJoinBusy(false);
+    }
+  };
+
   const label =
     (event.joinMode ?? "open") === "invite"
       ? "Request to join"
@@ -166,39 +272,74 @@ export function JoinMeetButton({ event }: { event: MeetEvent }) {
   return (
     <>
       <PrimaryButton
-        label={label}
-        onClick={() => {
+        label={joinBusy ? "Working…" : label}
+        onClick={async () => {
           if (!isAuthenticated || !user) {
             router.push(`/login?returnUrl=/event/${event.id}`);
             return;
           }
-          const latest =
-            getEventFromCatalog(event.id, hostedEvents, circleCatalogEvents) ??
-            event;
+          let latest = resolveLatest();
+          if (!useCircleApply) {
+            const qs = latest.preJoinQuestions ?? [];
+            if (qs.length > 0) {
+              setModalEvent(latest);
+              setPreJoinKey((k) => k + 1);
+              setPreJoinOpen(true);
+              return;
+            }
+            runMockJoin(latest);
+            return;
+          }
+          if (user.isProfileComplete === false) {
+            toast.error("Complete your profile before joining paid meets.");
+            router.push(
+              `/signup?returnUrl=${encodeURIComponent(`/event/${latest.id}`)}`,
+            );
+            return;
+          }
+          if (!(latest.preJoinQuestions?.length)) {
+            try {
+              const remote = await getEventQuestions(latest.id);
+              const mapped = mapRemoteQuestionsToPreJoin(remote);
+              if (mapped.length > 0) {
+                latest = { ...latest, preJoinQuestions: mapped };
+              }
+            } catch {
+              /* proceed with no questions */
+            }
+          }
           const qs = latest.preJoinQuestions ?? [];
           if (qs.length > 0) {
+            setModalEvent(latest);
             setPreJoinKey((k) => k + 1);
             setPreJoinOpen(true);
             return;
           }
-          runJoin(latest);
+          await runCircleJoin(latest, {});
         }}
         className="!min-w-[200px]"
       />
       <PreJoinModal
         key={preJoinKey}
-        event={
-          getEventFromCatalog(event.id, hostedEvents, circleCatalogEvents) ??
-          event
-        }
+        event={modalEvent}
         open={preJoinOpen}
-        onClose={() => setPreJoinOpen(false)}
-        onConfirm={(answers) => {
-          const latest =
-            getEventFromCatalog(event.id, hostedEvents, circleCatalogEvents) ??
-            event;
+        busy={joinBusy}
+        onClose={() => {
+          if (!joinBusy) setPreJoinOpen(false);
+        }}
+        onConfirm={async (answers) => {
+          const latest = resolveLatest();
+          const merged = {
+            ...latest,
+            preJoinQuestions:
+              modalEvent.preJoinQuestions ?? latest.preJoinQuestions,
+          };
           setPreJoinOpen(false);
-          runJoin(latest, answers);
+          if (!useCircleApply) {
+            runMockJoin(merged, answers);
+            return;
+          }
+          await runCircleJoin(merged, answers);
         }}
       />
     </>

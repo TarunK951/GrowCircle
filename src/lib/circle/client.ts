@@ -1,5 +1,5 @@
 import { getCircleApiBase } from "@/lib/circle/config";
-import type { CircleEnvelope } from "@/lib/circle/types";
+import type { CircleEnvelope, CircleListMeta } from "@/lib/circle/types";
 
 export class CircleApiError extends Error {
   constructor(
@@ -100,6 +100,78 @@ export async function circleRequest<T>(
   }
 
   return parsed as T;
+}
+
+type RequestOptsNoBody = Omit<RequestOpts, "body">;
+
+/**
+ * GET requests that return `{ success, data: T[], meta }` (e.g. §5.2 event applications).
+ */
+export async function circleRequestList<T>(
+  path: string,
+  opts: RequestOptsNoBody & { accessToken: string },
+): Promise<{ data: T[]; meta: CircleListMeta }> {
+  const base = getCircleApiBase();
+  if (!base) {
+    throw new CircleApiError("Circle API is not configured", 0);
+  }
+  const url = path.startsWith("http")
+    ? path
+    : `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+
+  const headers: Record<string, string> = {};
+  if (opts.accessToken) {
+    headers.Authorization = `Bearer ${opts.accessToken}`;
+  }
+
+  const res = await fetch(url, {
+    method: opts.method ?? "GET",
+    headers,
+  });
+
+  const ct = res.headers.get("content-type") ?? "";
+  const isJson = ct.includes("application/json");
+
+  if (!res.ok) {
+    let errBody: unknown;
+    try {
+      errBody = isJson ? await res.json() : await res.text();
+    } catch {
+      errBody = undefined;
+    }
+    const msg =
+      typeof errBody === "object" &&
+      errBody !== null &&
+      "message" in errBody &&
+      typeof (errBody as { message: unknown }).message === "string"
+        ? (errBody as { message: string }).message
+        : res.statusText || "Request failed";
+    throw new CircleApiError(msg, res.status, errBody);
+  }
+
+  if (!isJson) {
+    return { data: [], meta: { total: 0, page: 1, limit: 20, totalPages: 0 } };
+  }
+
+  const parsed = (await res.json()) as {
+    success?: boolean;
+    message?: string;
+    data?: T[];
+    meta?: CircleListMeta;
+  };
+
+  if (parsed.success === false) {
+    throw new CircleApiError(parsed.message ?? "Request failed", res.status, parsed);
+  }
+
+  const data = Array.isArray(parsed.data) ? parsed.data : [];
+  const meta = parsed.meta ?? {
+    total: data.length,
+    page: 1,
+    limit: data.length || 20,
+    totalPages: 1,
+  };
+  return { data, meta };
 }
 
 /** For CSV / binary responses */

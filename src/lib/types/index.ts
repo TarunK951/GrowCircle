@@ -70,6 +70,8 @@ export type User = {
   cityId: string;
   interests: string[];
   verified: boolean;
+  /** Set when logged in via Circle API — required for paid event applications. */
+  isProfileComplete?: boolean;
 };
 
 export type BookingStatus =

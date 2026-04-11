@@ -93,3 +93,146 @@ export type CircleBroadcastBody = {
   message: string;
   targetStatuses?: string[];
 };
+
+/** §5 — application answer payload */
+export type CircleApplyAnswer = {
+  question_id: string;
+  answer: string;
+};
+
+/** Nested Razorpay order payload from apply / accept-offer */
+export type CircleRazorpayOrderPayload = {
+  payment?: { id?: string };
+  orderId?: string;
+  amount?: number;
+  currency?: string;
+  key?: string;
+};
+
+export type ApplyToEventData = {
+  application: { id: string; status: string } & Record<string, unknown>;
+  payment?: CircleRazorpayOrderPayload;
+  waitlisted?: boolean;
+  waitlist_position?: number;
+};
+
+export type CircleApplicationUser = {
+  id: string;
+  username?: string | null;
+  email?: string | null;
+  verification_tier?: number;
+};
+
+export type CircleApplicationAnswerRow = {
+  id?: string;
+  answer?: string;
+  question?: { question_text?: string };
+};
+
+export type CircleApplicationPaymentRow = {
+  id?: string;
+  amount?: string;
+  status?: string;
+};
+
+/** Host list row — §5.2 */
+export type CircleEventApplicationRow = {
+  id: string;
+  status: string;
+  waitlist_position?: number | null;
+  ticket_id?: string | null;
+  is_checked_in?: boolean;
+  user?: CircleApplicationUser;
+  answers?: CircleApplicationAnswerRow[];
+  payment?: CircleApplicationPaymentRow;
+};
+
+export type SelectApplicationsData = {
+  selected: number;
+  rejected: number;
+};
+
+export type CancelApplicationData = {
+  application: { id: string; status: string };
+  refund?: {
+    eligible?: boolean;
+    percentage?: number;
+    amount?: number;
+    reason?: string;
+  };
+};
+
+export type UninviteApplicationData = {
+  message?: string;
+  refunded?: boolean;
+};
+
+export type CircleMyApplication = {
+  id: string;
+  status: string;
+  ticket_id?: string | null;
+  event?: {
+    id: string;
+    title: string;
+    host?: { username?: string | null };
+  };
+  payment?: CircleApplicationPaymentRow & { id?: string };
+};
+
+export type WaitlistPositionData = {
+  position: number;
+  totalWaitlisted: number;
+  status: string;
+};
+
+export type AcceptOfferData = {
+  application: { id: string; status: string };
+  payment?: CircleRazorpayOrderPayload;
+};
+
+/** §6.1 */
+export type CirclePaymentDetails = {
+  id: string;
+  application_id?: string;
+  razorpay_order_id?: string | null;
+  razorpay_payment_id?: string | null;
+  amount: string;
+  status: string;
+  refund_id?: string | null;
+  refund_amount?: string | null;
+  paid_at?: string | null;
+};
+
+/** §8 */
+export type CheckinGenerateData = {
+  otp: string;
+  expiresInSeconds: number;
+  message: string;
+};
+
+export type CheckinVerifyData = {
+  user: {
+    id: string;
+    username?: string;
+    avatar_url?: string | null;
+  };
+  checked_in_at: string;
+};
+
+export type CheckinAttendee = {
+  applicationId: string;
+  user: {
+    id: string;
+    username?: string;
+    avatar_url?: string | null;
+  };
+  isCheckedIn: boolean;
+  checkedInAt?: string | null;
+};
+
+export type CheckinEventStatusData = {
+  total: number;
+  checkedIn: number;
+  pending: number;
+  attendees: CheckinAttendee[];
+};
