@@ -22,7 +22,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="liquid-glass-auth">
-      <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">
+      <h1 className="font-onest text-2xl font-semibold tracking-tight text-foreground">
         Forgot password
       </h1>
       <p className="mt-2 text-sm text-muted">

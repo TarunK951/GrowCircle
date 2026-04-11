@@ -26,7 +26,7 @@ export function EventCard({
       href={`/event/${event.id}`}
       aria-label={event.title}
       className={cn(
-        "group overflow-hidden liquid-glass liquid-glass-card border border-primary/12",
+        "group overflow-hidden rounded-(--radius-section) liquid-glass liquid-glass-card border border-primary/12 shadow-sm shadow-primary/5",
         className,
       )}
     >
@@ -49,9 +49,9 @@ export function EventCard({
           </div>
         </div>
       </div>
-      <div className="p-5">
+      <div className="rounded-b-(--radius-section) bg-white/88 p-5 backdrop-blur-[2px]">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="line-clamp-2 text-lg font-bold leading-snug text-foreground">
+          <h3 className="font-onest line-clamp-2 text-lg font-bold leading-snug text-foreground">
             {event.title}
           </h3>
           {event.priceCents === 0 ? (

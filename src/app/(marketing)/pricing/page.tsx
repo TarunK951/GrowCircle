@@ -36,7 +36,7 @@ export default function PricingPage() {
           <Reveal key={t.name}>
             <div className="liquid-glass-surface liquid-glass-interactive flex h-full flex-col">
               <p className="text-sm font-semibold text-primary">{t.name}</p>
-              <p className="mt-2 font-display text-3xl font-semibold text-foreground">
+              <p className="mt-2 font-onest text-3xl font-semibold text-foreground">
                 {t.price}
               </p>
               <p className="mt-4 flex-1 text-sm leading-relaxed text-muted">

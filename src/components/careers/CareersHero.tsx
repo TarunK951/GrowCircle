@@ -15,7 +15,7 @@ export function CareersHero({
           <p className="text-sm font-semibold uppercase tracking-wider text-secondary">
             {hero.eyebrow}
           </p>
-          <h1 className="font-display mt-3 max-w-3xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+          <h1 className="font-onest mt-3 max-w-3xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
             {hero.title}
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted">

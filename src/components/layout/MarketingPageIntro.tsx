@@ -20,14 +20,14 @@ export function MarketingPageIntro({
       ) : null}
       <h1
         className={cn(
-          "font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl",
+          "font-onest text-3xl font-semibold tracking-tight text-foreground sm:text-4xl",
           eyebrow ? "mt-2" : null,
         )}
       >
         {title}
       </h1>
       {description ? (
-        <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
+        <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
           {description}
         </p>
       ) : null}

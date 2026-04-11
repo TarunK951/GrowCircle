@@ -10,7 +10,7 @@ export default function TermsPage() {
         description="This ConnectSphere build is a demonstration prototype. No real services are offered, and no contractual relationship is formed by using the mock flows."
       />
       <div className="mt-12 space-y-6 text-base leading-relaxed text-muted">
-        <h2 className="font-display text-xl font-semibold text-foreground">
+        <h2 className="font-onest text-xl font-semibold text-foreground">
           Use
         </h2>
         <p>

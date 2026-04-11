@@ -61,7 +61,7 @@ export function HomeHowItWorks({
           <p className="text-sm font-semibold uppercase tracking-wider text-secondary">
             Flow
           </p>
-          <h2 className="font-display mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+          <h2 className="font-onest mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
             {data.title}
           </h2>
           <p className="mt-3 max-w-2xl text-lg text-muted">{data.subtitle}</p>
@@ -116,7 +116,7 @@ export function HomeEventTypes({
           <p className="text-sm font-semibold uppercase tracking-wider text-secondary">
             Formats
           </p>
-          <h2 className="font-display mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+          <h2 className="font-onest mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
             {data.title}
           </h2>
           <p className="mt-3 max-w-2xl text-lg text-muted">{data.subtitle}</p>
@@ -166,7 +166,7 @@ export function HomeCities({ cities }: { cities: City[] }) {
           <p className="text-sm font-semibold uppercase tracking-wider text-secondary">
             Cities
           </p>
-          <h2 className="font-display mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+          <h2 className="font-onest mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
             Where we&apos;re live
           </h2>
           <p className="mt-3 max-w-2xl text-lg text-muted">
@@ -215,7 +215,7 @@ export function HomeTestimonials({
           <p className="text-sm font-semibold uppercase tracking-wider text-secondary">
             Stories
           </p>
-          <h2 className="font-display mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+          <h2 className="font-onest mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
             {data.title}
           </h2>
           <p className="mt-3 max-w-2xl text-lg text-muted">{data.subtitle}</p>
@@ -256,7 +256,7 @@ export function HomeClosingCta({
           <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
           <div className="relative max-w-2xl">
             <Reveal>
-              <h2 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+              <h2 className="font-onest text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
                 {data.title}
               </h2>
               <p className="mt-3 text-lg text-muted">{data.body}</p>

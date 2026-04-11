@@ -53,7 +53,7 @@ export default async function HomePage() {
               <p className="text-sm font-semibold uppercase tracking-wider text-secondary">
                 ConnectSphere
               </p>
-              <h1 className="font-display mt-3 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl sm:leading-tight">
+              <h1 className="font-onest mt-3 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl sm:leading-tight">
                 Meet new people in your city—calm discovery, real meetups.
               </h1>
               <p className="mt-4 max-w-xl text-lg text-muted">
@@ -98,7 +98,7 @@ export default async function HomePage() {
             <p className="text-sm font-semibold uppercase tracking-wider text-secondary">
               Why us
             </p>
-            <h2 className="font-display mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+            <h2 className="font-onest mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
               Why ConnectSphere
             </h2>
             <p className="mt-3 max-w-2xl text-lg text-muted">
@@ -134,7 +134,7 @@ export default async function HomePage() {
               <p className="text-sm font-semibold uppercase tracking-wider text-secondary">
                 Featured
               </p>
-              <h2 className="font-display mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              <h2 className="font-onest mt-2 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
                 Featured meets
               </h2>
               <p className="mt-3 max-w-2xl text-lg text-muted">

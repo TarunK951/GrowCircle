@@ -67,11 +67,11 @@ export const Navbar = ({ children, className }: NavbarProps) => {
   return (
     <motion.div
       className={cn(
-        "pointer-events-none fixed inset-x-0 top-4 z-50 flex w-full justify-center px-4 sm:px-6",
+        "pointer-events-none fixed inset-x-0 top-4 z-50 flex w-full justify-center px-4 sm:px-6 lg:px-8",
         className,
       )}
     >
-      <div className="pointer-events-auto w-full max-w-[min(92rem,calc(100vw-2rem))]">
+      <div className="pointer-events-auto w-full max-w-6xl">
         {React.Children.map(children, (child) =>
           React.isValidElement(child)
             ? React.cloneElement(
@@ -90,7 +90,7 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
     <motion.div
       data-elevated={visible ? "true" : "false"}
       animate={{
-        width: visible ? "min(83%, 64.5rem)" : "100%",
+        width: "100%",
         y: visible ? 20 : 0,
       }}
       transition={{
@@ -148,9 +148,9 @@ export const MobileNav = ({ children, className, visible }: MobileNavProps) => {
     <motion.div
       data-elevated={visible ? "true" : "false"}
       animate={{
-        width: visible ? "min(98%, calc(90% * 1.15))" : "100%",
-        paddingRight: visible ? "12px" : "0px",
-        paddingLeft: visible ? "12px" : "0px",
+        width: "100%",
+        paddingRight: "0px",
+        paddingLeft: "0px",
         y: visible ? 20 : 0,
       }}
       transition={{
@@ -159,7 +159,7 @@ export const MobileNav = ({ children, className, visible }: MobileNavProps) => {
         damping: 50,
       }}
       className={cn(
-        "nav-liquid-glass relative z-50 mx-auto flex w-full max-w-[min(92rem,calc(100vw-2rem))] flex-col items-center justify-between rounded-full px-0 py-2 lg:hidden",
+        "nav-liquid-glass relative z-50 mx-auto flex w-full max-w-full flex-col items-center justify-between rounded-full px-0 py-2 lg:hidden",
         className,
       )}
     >

@@ -17,7 +17,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+      <h1 className="font-onest text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
         Hello, {user?.name?.split(" ")[0] ?? "there"}
       </h1>
       <p className="mt-2 text-muted">

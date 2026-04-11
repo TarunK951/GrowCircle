@@ -46,7 +46,7 @@ export default async function EventDetailPage(props: EventPageProps) {
           <p className="text-sm font-semibold text-primary">
             {event.category} · {city?.name}
           </p>
-          <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight text-foreground">
+          <h1 className="font-onest mt-2 text-3xl font-semibold tracking-tight text-foreground">
             {event.title}
           </h1>
           <p className="mt-4 leading-relaxed text-muted">{event.description}</p>

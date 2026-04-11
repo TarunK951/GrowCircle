@@ -38,7 +38,7 @@ export default async function GroupPage(props: GroupPageProps) {
       <p className="text-sm font-semibold uppercase tracking-wider text-secondary">
         Your group
       </p>
-      <h1 className="font-display mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
+      <h1 className="font-onest mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
         {event.title}
       </h1>
       <p className="mt-2 text-muted">
