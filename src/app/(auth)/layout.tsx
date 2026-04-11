@@ -19,26 +19,18 @@ export default function AuthLayout({
         isSplitAuth ? "bg-[#FBFCF8]" : "bg-canvas",
       )}
     >
-      <header
-        className={cn(
-          "sticky top-0 z-50 border-b px-4 py-4 backdrop-blur-xl sm:px-6",
-          isSplitAuth
-            ? "border-neutral-200/60 bg-[#FBFCF8]/90"
-            : "border-primary/10 bg-canvas/85",
-        )}
-      >
-        <div className="mx-auto flex h-10 max-w-6xl items-center">
-          <Link
-            href="/"
-            className={cn(
-              "text-lg font-semibold tracking-tight",
-              isSplitAuth ? "text-foreground" : "text-primary",
-            )}
-          >
-            ConnectSphere
-          </Link>
-        </div>
-      </header>
+      {!isSplitAuth && (
+        <header className="sticky top-0 z-50 border-b border-primary/10 bg-canvas/85 px-4 py-4 backdrop-blur-xl sm:px-6">
+          <div className="mx-auto flex h-10 max-w-6xl items-center">
+            <Link
+              href="/"
+              className="text-lg font-semibold tracking-tight text-primary"
+            >
+              ConnectSphere
+            </Link>
+          </div>
+        </header>
+      )}
       {isSplitAuth ? (
         <div className="flex min-h-0 w-full flex-1 flex-col">{children}</div>
       ) : (
