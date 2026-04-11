@@ -7,8 +7,8 @@
 
 :root {
   --canvas: #fbfcf8;
-  /* Grow Circle logo blue */
-  --brand: #1d35cc;
+  /* Grow Circle logo blue (wordmark + ring) */
+  --brand: #1d42ba;
   --primary: oklch(0.205 0 0);
   --secondary: oklch(0.97 0 0);
   --muted: oklch(0.97 0 0);

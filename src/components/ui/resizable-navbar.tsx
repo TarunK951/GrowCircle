@@ -1,8 +1,8 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { IconMenu2, IconX } from "@tabler/icons-react";
-import Image from "next/image";
 import Link from "next/link";
+import { GrowCircleWordmark } from "@/components/brand/GrowCircleWordmark";
 import {
   motion,
   AnimatePresence,
@@ -252,14 +252,7 @@ export const NavbarLogo = ({
         className,
       )}
     >
-      <Image
-        src="/brand-grow-circle-logo.png"
-        alt=""
-        width={200}
-        height={56}
-        className="h-7 w-auto sm:h-8"
-        priority
-      />
+      <GrowCircleWordmark className="h-7 w-auto sm:h-8" />
     </Link>
   );
 };
