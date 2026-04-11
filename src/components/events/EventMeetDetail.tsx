@@ -28,6 +28,17 @@ function SectionTitle({
   );
 }
 
+function MetaRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-0.5 sm:grid sm:grid-cols-[5.5rem_1fr] sm:items-baseline sm:gap-4">
+      <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="text-sm text-foreground">{children}</dd>
+    </div>
+  );
+}
+
 export function EventMeetDetail({
   event,
   detail,
@@ -49,33 +60,82 @@ export function EventMeetDetail({
       ? Math.min(100, Math.round((detail.spotsTaken / event.capacity) * 100))
       : 0;
 
+  const ctaGroup = (
+    <div className="flex flex-wrap gap-3">
+      <JoinMeetButton eventId={event.id} />
+      <SaveEventButton eventId={event.id} />
+    </div>
+  );
+
   return (
     <>
       <Link
         href="/explore"
-        className="text-sm font-medium text-primary hover:underline"
+        className="text-sm font-medium text-primary transition hover:underline"
       >
         ← Back to explore
       </Link>
 
-      {/* Hero — title + actions first */}
-      <header className="mt-6 border-b border-primary/10 pb-8">
-        <p className="text-sm font-semibold text-primary">
-          {event.category} · {cityName}
-        </p>
-        <div className="mt-3 flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-          <h1 className="font-onest max-w-2xl text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-            {event.title}
-          </h1>
-          <div className="flex shrink-0 flex-wrap gap-3 sm:pt-1">
-            <JoinMeetButton eventId={event.id} />
-            <SaveEventButton eventId={event.id} />
-          </div>
-        </div>
-      </header>
+      {/* 1 — Photo + summary first */}
+      <section
+        className="mt-6"
+        aria-labelledby="event-visual-heading"
+      >
+        <h2 id="event-visual-heading" className="sr-only">
+          Photo and meet summary
+        </h2>
+        <div className="grid gap-8 lg:grid-cols-2 lg:items-stretch lg:gap-10">
+          <figure className="relative min-h-[min(72vw,22rem)] w-full overflow-hidden rounded-[var(--radius-section)] border border-white/70 shadow-[0_8px_40px_-12px_rgba(30,59,189,0.18)] lg:min-h-0 lg:h-full">
+            {/* Mobile: fixed aspect. Desktop: stretch to match details column; image fills via absolute inset */}
+            <div className="relative aspect-4/3 w-full lg:absolute lg:inset-0 lg:aspect-auto lg:h-full lg:min-h-0">
+              <Image
+                src={event.image}
+                alt=""
+                fill
+                priority
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+              />
+            </div>
+          </figure>
 
-      {/* Availability */}
-      <section className="mt-10" aria-labelledby="event-availability-heading">
+          <aside className="flex flex-col justify-between rounded-[var(--radius-section)] border border-primary/10 bg-white/75 p-6 shadow-sm backdrop-blur-sm sm:p-8">
+            <div>
+              <p className="text-sm font-semibold text-primary">
+                {event.category} · {cityName}
+              </p>
+              <p className="font-onest mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                {event.title}
+              </p>
+              <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+                {event.description}
+              </p>
+
+              <dl className="mt-8 space-y-4 border-t border-primary/10 pt-8">
+                <MetaRow label="When">{whenLabel}</MetaRow>
+                <MetaRow label="Where">
+                  {event.venueName ?? "Details shared after booking"}
+                </MetaRow>
+                <MetaRow label="Host">{hostName}</MetaRow>
+                <MetaRow label="Spots">
+                  {left} left of {event.capacity}
+                </MetaRow>
+                <MetaRow label="Price">{priceLabel}</MetaRow>
+              </dl>
+            </div>
+
+            <div className="mt-8 border-t border-primary/10 pt-8 lg:mt-10">
+              {ctaGroup}
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      {/* 2 — Availability */}
+      <section
+        className="mt-14 sm:mt-16"
+        aria-labelledby="event-availability-heading"
+      >
         <SectionTitle id="event-availability-heading">
           Available slots
         </SectionTitle>
@@ -107,21 +167,22 @@ export function EventMeetDetail({
         </div>
       </section>
 
-      {/* Long-form copy */}
-      <section className="mt-12" aria-labelledby="event-about-heading">
+      <section className="mt-12 sm:mt-14" aria-labelledby="event-about-heading">
         <SectionTitle id="event-about-heading">About this meet</SectionTitle>
         <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">
           {detail.moreAbout}
         </p>
       </section>
 
-      <section className="mt-12" aria-labelledby="event-included-heading">
-        <SectionTitle id="event-included-heading">What&apos;s included</SectionTitle>
+      <section className="mt-12 sm:mt-14" aria-labelledby="event-included-heading">
+        <SectionTitle id="event-included-heading">
+          What&apos;s included
+        </SectionTitle>
         <ul className="mt-4 grid gap-3 sm:grid-cols-2">
           {detail.whatsIncluded.map((line) => (
             <li
               key={line}
-              className="flex gap-3 rounded-xl border border-primary/10 bg-white/50 px-4 py-3 text-sm text-foreground"
+              className="flex gap-3 rounded-xl border border-primary/10 bg-white/60 px-4 py-3 text-sm text-foreground shadow-sm"
             >
               <Check
                 className="mt-0.5 h-4 w-4 shrink-0 text-primary"
@@ -133,7 +194,7 @@ export function EventMeetDetail({
         </ul>
       </section>
 
-      <section className="mt-12" aria-labelledby="event-allowed-heading">
+      <section className="mt-12 sm:mt-14" aria-labelledby="event-allowed-heading">
         <SectionTitle id="event-allowed-heading">
           What&apos;s allowed & good to know
         </SectionTitle>
@@ -144,12 +205,11 @@ export function EventMeetDetail({
         </div>
       </section>
 
-      {/* House rules — party dos / don’ts */}
-      <section className="mt-12" aria-labelledby="event-rules-heading">
+      <section className="mt-12 sm:mt-14" aria-labelledby="event-rules-heading">
         <SectionTitle id="event-rules-heading">House rules</SectionTitle>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Quick dos and don&apos;ts so everyone enjoys the night — same energy as
-          party rules, minus the fuzzy memories.
+          Quick dos and don&apos;ts so everyone enjoys the meet — clear
+          expectations, zero guesswork.
         </p>
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/6 p-5 sm:p-6">
@@ -187,23 +247,23 @@ export function EventMeetDetail({
         </div>
       </section>
 
-      <section className="mt-12" aria-labelledby="event-faq-heading">
+      <section className="mt-12 sm:mt-14" aria-labelledby="event-faq-heading">
         <SectionTitle id="event-faq-heading">FAQ</SectionTitle>
-        <div className="mt-4 max-w-3xl divide-y divide-primary/10 rounded-2xl border border-primary/10 bg-white/40 px-1">
+        <div className="mt-4 w-full divide-y divide-primary/10 rounded-2xl border border-primary/10 bg-white/50 px-2 py-1 shadow-sm sm:px-3 sm:py-2">
           {detail.faqs.map((item, i) => (
             <details
               key={`${item.q}-${i}`}
-              className="group px-4 py-1 open:bg-white/60"
+              className="group px-3 py-0 open:bg-white/80 sm:px-6 sm:py-1"
             >
-              <summary className="cursor-pointer list-none py-4 font-medium text-foreground transition hover:text-primary [&::-webkit-details-marker]:hidden">
-                <span className="flex items-start justify-between gap-3">
-                  <span>{item.q}</span>
-                  <span className="mt-1 shrink-0 text-muted-foreground transition group-open:rotate-180">
+              <summary className="cursor-pointer list-none py-4 text-base font-medium text-foreground transition hover:text-primary sm:py-5 [&::-webkit-details-marker]:hidden">
+                <span className="flex items-start justify-between gap-4">
+                  <span className="min-w-0 flex-1 pr-2">{item.q}</span>
+                  <span className="mt-0.5 shrink-0 text-muted-foreground transition group-open:rotate-180">
                     ▾
                   </span>
                 </span>
               </summary>
-              <p className="pb-4 pl-0 text-sm leading-relaxed text-muted-foreground">
+              <p className="max-w-none pb-5 pl-0 text-sm leading-relaxed text-muted-foreground sm:text-base">
                 {item.a}
               </p>
             </details>
@@ -211,59 +271,67 @@ export function EventMeetDetail({
         </div>
       </section>
 
-      {/* Image + recap — moved below */}
+      {/* Bottom — repeat Join / Save */}
       <section
-        className="mt-16 grid gap-10 lg:grid-cols-2 lg:gap-12"
-        aria-labelledby="event-visual-heading"
+        className="mt-14 sm:mt-16"
+        aria-labelledby="event-bottom-cta-heading"
       >
-        <h2 id="event-visual-heading" className="sr-only">
-          Photo and meet summary
-        </h2>
-        <div className="liquid-glass-surface relative aspect-4/3 overflow-hidden p-0! lg:aspect-auto lg:min-h-[320px]">
-          <Image
-            src={event.image}
-            alt=""
-            fill
-            className="object-cover"
-            sizes="(max-width: 1024px) 100vw, 50vw"
-          />
+        <div className="rounded-[var(--radius-section)] border border-primary/12 bg-gradient-to-br from-white/90 to-primary/[0.04] p-6 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-6 sm:p-8">
+          <div id="event-bottom-cta-heading" className="min-w-0">
+            <p className="font-onest text-lg font-semibold text-foreground">
+              Ready to join?
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Save for later or reserve your spot — same actions as above.
+            </p>
+          </div>
+          <div className="mt-6 shrink-0 sm:mt-0">{ctaGroup}</div>
         </div>
-        <div className="liquid-glass-surface flex flex-col">
-          <p className="text-sm font-semibold text-primary">
-            {event.category} · {cityName}
+      </section>
+
+      <section
+        className="mt-10 sm:mt-12"
+        aria-labelledby="event-refund-heading"
+      >
+        <h2
+          id="event-refund-heading"
+          className="font-onest text-lg font-semibold tracking-tight text-foreground sm:text-xl"
+        >
+          Refunds & cancellations
+        </h2>
+        <div className="liquid-glass-surface mt-4 w-full">
+          <p className="text-base leading-relaxed text-muted-foreground">
+            <strong className="font-semibold text-foreground">
+              Prototype notice:
+            </strong>{" "}
+            ConnectSphere doesn&apos;t process real payments yet, so nothing is
+            charged and there&apos;s nothing to refund through this demo.
           </p>
-          <p className="font-onest mt-2 text-2xl font-semibold tracking-tight text-foreground">
-            {event.title}
+          <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+            When hosts go live for real, refunds will follow each meet&apos;s
+            policy — typically shown at checkout. Common patterns:
           </p>
-          <p className="mt-4 leading-relaxed text-muted-foreground">
-            {event.description}
-          </p>
-          <ul className="mt-6 space-y-2.5 text-sm">
+          <ul className="mt-4 list-inside list-disc space-y-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
             <li>
-              <span className="font-medium text-foreground">When:</span>{" "}
-              {whenLabel}
+              <span className="text-foreground">Full refund</span> if you cancel
+              within the host&apos;s stated window (often 24–48 hours before the
+              start time).
             </li>
             <li>
-              <span className="font-medium text-foreground">Where:</span>{" "}
-              {event.venueName ?? "Details shared after booking"}
+              <span className="text-foreground">Partial or no refund</span> for
+              late cancellations or no-shows, depending on venue or minimum
+              spend commitments.
             </li>
             <li>
-              <span className="font-medium text-foreground">Host:</span>{" "}
-              {hostName}
-            </li>
-            <li>
-              <span className="font-medium text-foreground">Spots:</span>{" "}
-              {left} left of {event.capacity}
-            </li>
-            <li>
-              <span className="font-medium text-foreground">Price:</span>{" "}
-              {priceLabel}
+              <span className="text-foreground">Weather or venue changes:</span>{" "}
+              if the host cancels or reschedules, you&apos;ll be offered a refund
+              or transfer to a new date when payments are enabled.
             </li>
           </ul>
-          <div className="mt-8 flex flex-wrap gap-4 border-t border-primary/10 pt-8">
-            <JoinMeetButton eventId={event.id} />
-            <SaveEventButton eventId={event.id} />
-          </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Always check the confirmation email (in production) for the exact
+            policy for this specific meet.
+          </p>
         </div>
       </section>
     </>
