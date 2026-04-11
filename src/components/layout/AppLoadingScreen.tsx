@@ -13,7 +13,7 @@ export function AppLoadingScreen() {
       aria-busy="true"
     >
       <span className="sr-only">Loading</span>
-      <GrowCircleWordmark className="h-20 w-auto sm:h-24" />
+      <GrowCircleWordmark className="h-20 sm:h-24" />
       <div className="h-1.5 w-full max-w-[min(20rem,85vw)] overflow-hidden rounded-full bg-neutral-300/80">
         <div className="gc-load-bar-sweep h-full w-2/5 rounded-full bg-brand shadow-[0_0_14px_color-mix(in_srgb,var(--brand)_40%,transparent)]" />
       </div>

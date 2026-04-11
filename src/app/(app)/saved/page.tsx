@@ -29,12 +29,13 @@ export default function SavedPage() {
         </p>
       ) : (
         <div className="mt-8 grid gap-6 sm:grid-cols-2">
-          {saved.map((e) => (
+          {saved.map((e, index) => (
             <EventCard
               key={e.id}
               event={e}
               cityName={cityById[e.cityId] ?? ""}
               hostName={hostNameForUserId(e.hostUserId)}
+              priority={index < 2}
             />
           ))}
         </div>

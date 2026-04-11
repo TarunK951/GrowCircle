@@ -90,7 +90,6 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
     <motion.div
       data-elevated={visible ? "true" : "false"}
       animate={{
-        width: "100%",
         y: visible ? 20 : 0,
       }}
       transition={{
@@ -99,7 +98,7 @@ export const NavBody = ({ children, className, visible }: NavBodyProps) => {
         damping: 50,
       }}
       className={cn(
-        "nav-liquid-glass relative z-[60] mx-auto hidden min-h-14 w-full max-w-full flex-row items-center justify-between self-start rounded-full px-3 py-2 sm:px-4 lg:flex",
+        "nav-liquid-glass relative z-[60] mx-auto hidden min-h-14 w-full min-w-0 flex-row items-center justify-between gap-3 self-stretch rounded-full px-3 py-2 sm:px-5 lg:flex",
         className,
       )}
     >
@@ -115,7 +114,7 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
     <motion.div
       onMouseLeave={() => setHovered(null)}
       className={cn(
-        "absolute inset-0 hidden flex-1 flex-row items-center justify-center space-x-2 text-sm font-medium text-zinc-600 transition duration-200 hover:text-zinc-800 lg:flex lg:space-x-2",
+        "pointer-events-none absolute left-1/2 top-1/2 z-30 hidden -translate-x-1/2 -translate-y-1/2 flex-row items-center justify-center gap-1 text-sm font-medium text-zinc-600 transition duration-200 hover:text-zinc-800 sm:gap-2 lg:flex",
         className,
       )}
     >
@@ -124,7 +123,7 @@ export const NavItems = ({ items, className, onItemClick }: NavItemsProps) => {
           onMouseEnter={() => setHovered(idx)}
           onClick={onItemClick}
           className={cn(
-            "relative px-3 py-2 text-neutral-600 transition-colors dark:text-neutral-300 sm:px-4",
+            "pointer-events-auto relative px-3 py-2 text-neutral-600 transition-colors dark:text-neutral-300 sm:px-4",
             item.active && "text-primary dark:text-primary",
           )}
           key={`link-${idx}`}
@@ -148,9 +147,6 @@ export const MobileNav = ({ children, className, visible }: MobileNavProps) => {
     <motion.div
       data-elevated={visible ? "true" : "false"}
       animate={{
-        width: "100%",
-        paddingRight: "0px",
-        paddingLeft: "0px",
         y: visible ? 20 : 0,
       }}
       transition={{
@@ -159,7 +155,7 @@ export const MobileNav = ({ children, className, visible }: MobileNavProps) => {
         damping: 50,
       }}
       className={cn(
-        "nav-liquid-glass relative z-50 mx-auto flex w-full max-w-full flex-col items-center justify-between rounded-full px-0 py-2 lg:hidden",
+        "nav-liquid-glass relative z-50 mx-auto flex w-full min-w-0 flex-col items-stretch justify-between gap-1 rounded-full px-3 py-2 sm:px-5 lg:hidden",
         className,
       )}
     >
@@ -248,11 +244,11 @@ export const NavbarLogo = ({
       href={href}
       aria-label={alt}
       className={cn(
-        "relative z-20 mr-2 flex shrink-0 items-center px-1 py-0.5 sm:mr-4",
+        "relative z-40 mr-1 flex min-w-0 shrink-0 items-center py-0.5 sm:mr-2",
         className,
       )}
     >
-      <GrowCircleWordmark className="h-9 w-auto sm:h-10" />
+      <GrowCircleWordmark className="h-8 sm:h-9 md:h-10" />
     </Link>
   );
 };

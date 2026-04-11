@@ -8,11 +8,14 @@ export function EventCard({
   cityName,
   hostName,
   className,
+  priority,
 }: {
   event: MeetEvent;
   cityName: string;
   hostName?: string;
   className?: string;
+  /** When true, image loads eagerly (use for first cards in grid for LCP). */
+  priority?: boolean;
 }) {
   const price =
     event.priceCents === 0
@@ -35,6 +38,7 @@ export function EventCard({
           src={event.image}
           alt=""
           fill
+          priority={priority}
           className="object-cover transition duration-500 ease-out motion-safe:group-hover:scale-[1.02]"
           sizes="(max-width:768px) 100vw, 33vw"
         />

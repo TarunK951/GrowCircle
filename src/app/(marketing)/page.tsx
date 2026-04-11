@@ -150,12 +150,13 @@ export default async function HomePage() {
             </Link>
           </div>
           <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {featured.map((e) => (
+            {featured.map((e, index) => (
               <Reveal key={e.id}>
                 <EventCard
                   event={e}
                   cityName={cityById[e.cityId] ?? "City"}
                   hostName={hostNameForUserId(e.hostUserId)}
+                  priority={index < 3}
                 />
               </Reveal>
             ))}
