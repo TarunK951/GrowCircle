@@ -89,7 +89,7 @@ export function UnifiedAuthForm() {
   });
 
   return (
-    <div className="mx-auto w-full max-w-2xl">
+    <div className="mx-auto w-full max-w-md text-left">
       {mode === "login" ? (
         <>
           <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">
@@ -252,7 +252,7 @@ export function UnifiedAuthForm() {
         Continue with Google
       </button>
 
-      <p className="mt-10 text-center text-sm text-neutral-500">
+      <p className="mt-10 text-sm text-neutral-500">
         {mode === "login" ? (
           <>
             Don&apos;t have an account?{" "}
