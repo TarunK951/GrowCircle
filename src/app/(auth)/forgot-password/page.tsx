@@ -21,8 +21,10 @@ export default function ForgotPasswordPage() {
   } = useForm<Form>({ resolver: zodResolver(schema) });
 
   return (
-    <div className="rounded-2xl border border-primary/10 bg-white/60 p-8 shadow-sm backdrop-blur-md">
-      <h1 className="text-2xl font-semibold tracking-tight">Forgot password</h1>
+    <div className="liquid-glass-auth">
+      <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground">
+        Forgot password
+      </h1>
       <p className="mt-2 text-sm text-muted">
         Mock flow — we will show a toast, no email is sent.
       </p>
@@ -37,7 +39,7 @@ export default function ForgotPasswordPage() {
           <label className="text-sm font-medium">Email</label>
           <input
             type="email"
-            className="mt-1 w-full rounded-xl border border-primary/15 px-3 py-2"
+            className="liquid-glass-input mt-2"
             {...register("email")}
           />
           {errors.email && (
@@ -47,7 +49,7 @@ export default function ForgotPasswordPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full rounded-xl bg-primary py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+          className="w-full rounded-full bg-primary py-2.5 text-sm font-semibold text-white shadow-md shadow-primary/20 transition hover:bg-primary/92 disabled:opacity-60"
         >
           {isSubmitting ? "Sending…" : "Send reset link"}
         </button>

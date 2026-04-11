@@ -36,11 +36,39 @@
   --font-display: var(--font-display-fraunces), ui-serif, Georgia, serif;
 }
 
+html {
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 body {
   background: var(--canvas);
   color: var(--foreground);
   font-family: var(--font-sui);
   caret-color: var(--primary);
+  -ms-overflow-style: none;
+}
+
+/* Scrollable regions: hide track but keep scroll (dropdowns, modals) */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Consistent vertical rhythm for marketing + app content */
+.page-shell {
+  @apply py-12 sm:py-16 md:py-20;
 }
 
 ::selection {
@@ -161,6 +189,46 @@ html.cursor-none {
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
     border-radius: calc(var(--radius-section) * 0.65);
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .liquid-glass-menu::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  .liquid-glass-surface {
+    @apply rounded-[var(--radius-section)] border border-primary/12 p-5 sm:p-6;
+    background: var(--glass-bg);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+
+  .liquid-glass-input {
+    @apply w-full rounded-xl px-3 py-2.5 text-sm text-foreground outline-none transition;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg-muted);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+  }
+
+  .liquid-glass-input:focus {
+    border-color: var(--glass-border-hover);
+    background: var(--glass-bg);
+    box-shadow: 0 0 0 3px rgba(30, 59, 189, 0.12);
+  }
+
+  .liquid-glass-auth {
+    @apply p-8 sm:p-10;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: var(--radius-section);
   }
 
   .liquid-glass-option {
@@ -202,6 +270,11 @@ html.cursor-none {
     box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   }
 
+  /* Compact toolbar dropdowns (explore filters) */
+  .liquid-glass-field.liquid-glass-field-sm {
+    @apply min-h-8 gap-1.5 rounded-[0.65rem] px-2 py-1 text-[0.6875rem] font-medium leading-snug sm:min-h-[2rem] sm:px-2.5 sm:py-[0.3125rem] sm:text-xs;
+  }
+
   .liquid-glass-date {
     @apply flex min-h-[2.75rem] items-center rounded-xl border px-3 py-1.5;
     background: var(--glass-bg-muted);
@@ -218,7 +291,43 @@ html.cursor-none {
   }
 
   .liquid-glass-date input[type="date"] {
-    @apply min-h-[2rem] flex-1 cursor-pointer border-0 bg-transparent py-1 text-sm text-foreground outline-none;
+    @apply min-h-[2rem] min-w-0 flex-1 cursor-pointer border-0 bg-transparent py-1 text-sm text-foreground outline-none;
+  }
+
+  .liquid-glass-date-range {
+    @apply flex flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-3;
+  }
+
+  .liquid-glass-date-range input[type="date"] {
+    @apply min-w-[9rem] flex-1 sm:min-w-[7.5rem];
+  }
+
+  /* Compact strip for explore filters (smaller dates, icon separator) */
+  .liquid-glass-date-compact {
+    @apply flex min-h-8 flex-nowrap items-center gap-1 rounded-[0.65rem] border px-2 py-0.5 sm:min-h-[2rem] sm:gap-1.5 sm:px-2.5 sm:py-1;
+    background: var(--glass-bg-muted);
+    border-color: var(--glass-border);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    color-scheme: light;
+  }
+
+  .liquid-glass-date-compact:focus-within {
+    border-color: var(--glass-border-hover);
+    background: var(--glass-bg);
+  }
+
+  .liquid-glass-date-compact input[type="date"] {
+    @apply min-h-[1.375rem] min-w-0 flex-1 cursor-pointer border-0 bg-transparent py-0.5 text-[0.6875rem] text-foreground outline-none sm:min-h-[1.5rem] sm:text-xs;
+  }
+
+  /* Explore filters: hide native calendar glyphs so only one clean control shows */
+  .explore-filters-strip input[type="date"]::-webkit-calendar-picker-indicator {
+    display: none;
+  }
+
+  .explore-filters-strip input[type="date"]::-moz-calendar-picker-indicator {
+    display: none;
   }
 
   .glass-panel {

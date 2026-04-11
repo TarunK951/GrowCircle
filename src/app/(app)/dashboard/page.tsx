@@ -17,19 +17,21 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight">
+      <h1 className="font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
         Hello, {user?.name?.split(" ")[0] ?? "there"}
       </h1>
       <p className="mt-2 text-muted">
         Your mock dashboard — bookings and host drafts update instantly.
       </p>
       <div className="mt-8 grid gap-6 md:grid-cols-2">
-        <div className="rounded-2xl border border-primary/10 bg-white/50 p-5">
-          <h2 className="font-semibold">Upcoming meets</h2>
+        <div className="liquid-glass-surface liquid-glass-interactive">
+          <h2 className="text-base font-semibold text-foreground">
+            Upcoming meets
+          </h2>
           {upcoming.length === 0 ? (
             <p className="mt-3 text-sm text-muted">
               No bookings yet —{" "}
-              <Link className="text-primary" href="/explore">
+              <Link className="font-medium text-primary hover:underline" href="/explore">
                 explore meets
               </Link>
               .
@@ -38,7 +40,10 @@ export default function DashboardPage() {
             <ul className="mt-3 space-y-2 text-sm">
               {upcoming.map((e) => (
                 <li key={e.id}>
-                  <Link href={`/event/${e.id}`} className="text-primary">
+                  <Link
+                    href={`/event/${e.id}`}
+                    className="font-medium text-primary hover:underline"
+                  >
                     {e.title}
                   </Link>
                 </li>
@@ -46,8 +51,8 @@ export default function DashboardPage() {
             </ul>
           )}
         </div>
-        <div className="rounded-2xl border border-primary/10 bg-white/50 p-5">
-          <h2 className="font-semibold">Host draft</h2>
+        <div className="liquid-glass-surface liquid-glass-interactive">
+          <h2 className="text-base font-semibold text-foreground">Host draft</h2>
           {hostDraft?.title ? (
             <p className="mt-3 text-sm text-muted">
               <span className="font-medium text-foreground">{hostDraft.title}</span>{" "}
@@ -56,7 +61,7 @@ export default function DashboardPage() {
           ) : (
             <p className="mt-3 text-sm text-muted">
               Nothing yet —{" "}
-              <Link href="/host" className="text-primary">
+              <Link href="/host" className="font-medium text-primary hover:underline">
                 host a meet
               </Link>
               .
