@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   User,
   ShieldCheck,
+  Calendar,
   History,
   Bookmark,
   MessageCircle,
@@ -28,11 +29,12 @@ const nav: ShellNav[] = [
   { href: "/profile", label: "Profile", icon: User },
   { href: "/verify-profile", label: "Verify", icon: ShieldCheck },
   {
-    href: "/history",
-    label: "History",
-    icon: History,
-    aliases: ["/bookings", "/my-events"],
+    href: "/bookings",
+    label: "Bookings",
+    icon: Calendar,
+    aliases: ["/my-events"],
   },
+  { href: "/history", label: "History", icon: History },
   { href: "/saved", label: "Saved", icon: Bookmark },
   {
     href: "/chat",
@@ -86,7 +88,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
-          <div className="mt-auto rounded-2xl border border-neutral-200 bg-neutral-50 p-4 text-neutral-900">
+          <div className="relative isolate mt-auto overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50 p-4 text-neutral-900">
             <p className="text-sm font-semibold text-neutral-900">
               {user?.name ?? "Guest"}
             </p>

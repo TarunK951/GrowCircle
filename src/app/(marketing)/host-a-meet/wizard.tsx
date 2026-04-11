@@ -53,8 +53,8 @@ export function HostWizard() {
       spotsTaken: 0,
     };
     publishHostedEvent(ev);
-    toast.success("Meet published (mock) — manage it under History.");
-    router.push("/history");
+    toast.success("Meet published (mock) — manage it under Bookings.");
+    router.push("/bookings");
   };
 
   return (

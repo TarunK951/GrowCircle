@@ -14,7 +14,7 @@ export function BookingsStandaloneLayout({
         <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-6 sm:flex-row sm:items-end sm:justify-between sm:px-8 lg:px-10">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-neutral-900">
-              History
+              Bookings
             </p>
             <h1 className="font-onest mt-1 text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl">
               Bookings & hosting
