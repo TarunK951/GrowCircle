@@ -12,6 +12,17 @@
   --cursor-dot: #1e3bbd;
   --cursor-ring: rgba(30, 59, 189, 0.22);
   --cursor-ring-border: rgba(30, 59, 189, 0.35);
+  /* Light frosted glass (warm canvas) */
+  --glass-bg: rgba(255, 255, 255, 0.52);
+  --glass-bg-hover: rgba(255, 255, 255, 0.78);
+  --glass-bg-muted: rgba(255, 255, 255, 0.38);
+  --glass-border: rgba(255, 255, 255, 0.72);
+  --glass-border-hover: rgba(30, 59, 189, 0.2);
+  --glass-shadow: 0 4px 28px rgba(30, 59, 189, 0.07),
+    0 1px 3px rgba(0, 0, 0, 0.04);
+  --glass-shadow-hover: 0 14px 44px rgba(30, 59, 189, 0.11),
+    0 4px 14px rgba(0, 0, 0, 0.05);
+  --glass-blur: blur(22px) saturate(1.18);
 }
 
 @theme inline {
@@ -75,8 +86,141 @@ html.cursor-none {
   }
 }
 
-/* David UI–style liquid glass utilities */
+/* Light liquid glass — site-wide frosted surfaces (cream canvas) */
 @layer components {
+  .liquid-glass {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.88);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: var(--radius-section);
+  }
+
+  .liquid-glass-interactive {
+    transition: background-color 0.22s ease, border-color 0.22s ease,
+      box-shadow 0.28s ease, transform 0.28s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .liquid-glass-interactive {
+      transition: background-color 0.22s ease, border-color 0.22s ease,
+        box-shadow 0.28s ease;
+    }
+  }
+
+  .liquid-glass-interactive:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+    box-shadow: var(--glass-shadow-hover), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .liquid-glass-interactive:hover {
+      transform: translateY(-1px);
+    }
+  }
+
+  .liquid-glass-elevated {
+    box-shadow: var(--glass-shadow-hover), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  }
+
+  /* Cards: frosted panel + Apple Music–style lift on hover */
+  .liquid-glass-card {
+    transition: background-color 0.22s ease, border-color 0.22s ease,
+      box-shadow 0.28s ease, transform 0.28s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .liquid-glass-card {
+      transition: background-color 0.22s ease, border-color 0.22s ease,
+        box-shadow 0.28s ease;
+    }
+  }
+
+  .liquid-glass-card:hover {
+    background: var(--glass-bg-hover);
+    border-color: var(--glass-border-hover);
+    box-shadow: var(--glass-shadow-hover), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .liquid-glass-card:hover {
+      transform: translateY(-2px) scale(1.01);
+    }
+  }
+
+  .liquid-glass-toolbar {
+    @apply p-4 sm:p-5;
+  }
+
+  .liquid-glass-menu {
+    background: var(--glass-bg-hover);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow-hover);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: calc(var(--radius-section) * 0.65);
+  }
+
+  .liquid-glass-option {
+    @apply w-full cursor-pointer rounded-xl px-3 py-2.5 text-left text-sm text-foreground transition-colors;
+  }
+
+  .liquid-glass-option:hover,
+  .liquid-glass-option:focus-visible {
+    @apply bg-primary/8 outline-none;
+  }
+
+  .liquid-glass-option[aria-selected="true"] {
+    @apply bg-primary/12 font-medium text-primary;
+  }
+
+  .liquid-glass-field {
+    @apply flex min-h-[2.75rem] w-full items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-sm font-medium text-foreground;
+    background: var(--glass-bg-muted);
+    border-color: var(--glass-border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    transition: border-color 0.2s ease, background-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  .liquid-glass-field:hover {
+    background: var(--glass-bg);
+    border-color: var(--glass-border-hover);
+  }
+
+  .liquid-glass-field:focus-visible {
+    @apply outline-none ring-2 ring-primary/35 ring-offset-2 ring-offset-canvas;
+  }
+
+  .liquid-glass-field-open {
+    border-color: var(--glass-border-hover);
+    background: var(--glass-bg);
+    box-shadow: var(--glass-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  }
+
+  .liquid-glass-date {
+    @apply flex min-h-[2.75rem] items-center rounded-xl border px-3 py-1.5;
+    background: var(--glass-bg-muted);
+    border-color: var(--glass-border);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    color-scheme: light;
+  }
+
+  .liquid-glass-date:focus-within {
+    border-color: var(--glass-border-hover);
+    background: var(--glass-bg);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  }
+
+  .liquid-glass-date input[type="date"] {
+    @apply min-h-[2rem] flex-1 cursor-pointer border-0 bg-transparent py-1 text-sm text-foreground outline-none;
+  }
+
   .glass-panel {
     @apply relative overflow-hidden rounded-xl border border-white/50 bg-black/20 p-3 text-white shadow-[inset_0_1px_0px_rgba(255,255,255,0.75),0_0_9px_rgba(0,0,0,0.2),0_3px_8px_rgba(0,0,0,0.15)] backdrop-blur-sm;
   }

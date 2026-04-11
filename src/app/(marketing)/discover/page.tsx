@@ -1,4 +1,5 @@
 import { Container } from "@/components/layout/Container";
+import { ExploreFilters } from "@/components/discover/ExploreFilters";
 import { EventCard } from "@/components/events/EventCard";
 import { listEvents } from "@/lib/mockApi";
 import citiesData from "@/data/cities.json";
@@ -26,6 +27,7 @@ export default async function DiscoverPage({
   const cities = citiesData as City[];
   const categories = Array.from(new Set(allForMeta.map((e) => e.category)));
   const cityById = Object.fromEntries(cities.map((c) => [c.id, c.name]));
+  const cityOptions = cities.map((c) => ({ id: c.id, name: c.name }));
 
   return (
     <Container className="py-12">
@@ -45,65 +47,20 @@ export default async function DiscoverPage({
         </p>
       </Reveal>
 
-      <form
-        className="mt-8 flex flex-wrap gap-3"
-        method="get"
-      >
-        <label className="text-sm font-medium text-foreground">
-          City
-          <select
-            name="city"
-            defaultValue={sp.city ?? ""}
-            className="ml-2 rounded-xl border border-primary/15 bg-white/60 px-3 py-2 text-sm"
-          >
-            <option value="">All cities</option>
-            {cities.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm font-medium text-foreground">
-          Category
-          <select
-            name="category"
-            defaultValue={sp.category ?? "all"}
-            className="ml-2 rounded-xl border border-primary/15 bg-white/60 px-3 py-2 text-sm"
-          >
-            <option value="all">All</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm font-medium text-foreground">
-          From
-          <input
-            type="date"
-            name="dateFrom"
-            defaultValue={sp.dateFrom ?? ""}
-            className="ml-2 rounded-xl border border-primary/15 bg-white/60 px-3 py-2 text-sm"
-          />
-        </label>
-        <label className="text-sm font-medium text-foreground">
-          To
-          <input
-            type="date"
-            name="dateTo"
-            defaultValue={sp.dateTo ?? ""}
-            className="ml-2 rounded-xl border border-primary/15 bg-white/60 px-3 py-2 text-sm"
-          />
-        </label>
-        <button
-          type="submit"
-          className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white"
-        >
-          Apply
-        </button>
-      </form>
+      <ExploreFilters
+        key={[
+          sp.city ?? "",
+          sp.category ?? "all",
+          sp.dateFrom ?? "",
+          sp.dateTo ?? "",
+        ].join("|")}
+        initialCity={sp.city ?? ""}
+        initialCategory={sp.category ?? "all"}
+        initialDateFrom={sp.dateFrom ?? ""}
+        initialDateTo={sp.dateTo ?? ""}
+        cities={cityOptions}
+        categories={categories}
+      />
 
       <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {events.map((e) => (

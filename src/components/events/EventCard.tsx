@@ -21,7 +21,7 @@ export function EventCard({
     <Link
       href={`/event/${event.id}`}
       className={cn(
-        "group overflow-hidden rounded-[var(--radius-section)] border border-primary/10 bg-white/60 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+        "group overflow-hidden liquid-glass liquid-glass-card border border-primary/12",
         className,
       )}
     >
@@ -30,7 +30,7 @@ export function EventCard({
           src={event.image}
           alt=""
           fill
-          className="object-cover transition duration-500 group-hover:scale-[1.02]"
+          className="object-cover transition duration-500 ease-out motion-safe:group-hover:scale-[1.02]"
           sizes="(max-width:768px) 100vw, 33vw"
         />
       </div>
