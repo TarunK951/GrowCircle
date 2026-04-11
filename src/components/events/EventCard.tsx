@@ -19,9 +19,9 @@ export function EventCard({
 
   return (
     <Link
-      href={`/events/${event.id}`}
+      href={`/event/${event.id}`}
       className={cn(
-        "group overflow-hidden rounded-2xl border border-primary/10 bg-white/50 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+        "group overflow-hidden rounded-[var(--radius-section)] border border-primary/10 bg-white/60 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
         className,
       )}
     >

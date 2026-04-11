@@ -5,9 +5,10 @@ const cols = [
   {
     title: "Product",
     links: [
-      { href: "/discover", label: "Discover" },
-      { href: "/host-a-meet", label: "Host a meet" },
-      { href: "/join-a-meet", label: "Join a meet" },
+      { href: "/explore", label: "Explore" },
+      { href: "/locations", label: "Locations" },
+      { href: "/host", label: "Host a meet" },
+      { href: "/join", label: "Join a meet" },
       { href: "/verify-profile", label: "Verify profile" },
     ],
   },
@@ -15,6 +16,7 @@ const cols = [
     title: "Company",
     links: [
       { href: "/about", label: "About" },
+      { href: "/careers", label: "Careers" },
       { href: "/contact", label: "Contact" },
       { href: "/faqs", label: "FAQs" },
       { href: "/safety", label: "Trust & safety" },
@@ -38,8 +40,8 @@ export function SiteFooter() {
           <div>
             <p className="text-lg font-semibold text-primary">ConnectSphere</p>
             <p className="mt-2 max-w-xs text-sm text-muted">
-              Curated social discovery: real meets, real people — with a calm,
-              glassy interface.
+              Curated social discovery: real meets, real people — clear, calm,
+              and built for continuity.
             </p>
           </div>
           {cols.map((c) => (

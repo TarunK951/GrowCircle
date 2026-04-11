@@ -44,12 +44,17 @@ export function CustomCursor() {
     <>
       <div
         ref={dot}
-        className="custom-cursor pointer-events-none fixed left-0 top-0 z-[9998] h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary mix-blend-difference"
+        className="custom-cursor pointer-events-none fixed left-0 top-0 z-[9998] h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style={{ backgroundColor: "var(--cursor-dot)" }}
         aria-hidden
       />
       <div
         ref={ring}
-        className="custom-cursor pointer-events-none fixed left-0 top-0 z-[9997] h-9 w-9 -translate-x-1/2 -translate-y-1/2 rounded-full border border-primary/40 bg-white/5 backdrop-blur-[2px]"
+        className="custom-cursor pointer-events-none fixed left-0 top-0 z-[9997] h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full backdrop-blur-[2px]"
+        style={{
+          border: "1.5px solid var(--cursor-ring-border)",
+          backgroundColor: "var(--cursor-ring)",
+        }}
         aria-hidden
       />
     </>

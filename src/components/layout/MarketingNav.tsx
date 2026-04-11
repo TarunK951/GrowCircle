@@ -4,15 +4,28 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/session-store";
-import GlassyButton from "@/components/ui/GlassyButton";
+import { PrimaryButton } from "@/components/ui/MarketingButton";
 
-const links = [
-  { href: "/discover", label: "Discover" },
-  { href: "/host-a-meet", label: "Host a meet" },
-  { href: "/join-a-meet", label: "Join a meet" },
+type NavLink = {
+  href: string;
+  label: string;
+  aliases?: string[];
+};
+
+const links: NavLink[] = [
+  { href: "/explore", label: "Explore", aliases: ["/discover"] },
+  { href: "/locations", label: "Locations" },
+  { href: "/host", label: "Host", aliases: ["/host-a-meet"] },
+  { href: "/join", label: "Join", aliases: ["/join-a-meet"] },
   { href: "/how-it-works", label: "How it works" },
   { href: "/pricing", label: "Pricing" },
+  { href: "/careers", label: "Careers" },
 ];
+
+function navActive(pathname: string, href: string, aliases?: string[]) {
+  if (pathname === href) return true;
+  return aliases?.some((a) => pathname === a) ?? false;
+}
 
 export function MarketingNav() {
   const pathname = usePathname();
@@ -34,7 +47,8 @@ export function MarketingNav() {
               href={l.href}
               className={cn(
                 "rounded-full px-3 py-2 text-sm font-medium text-foreground/80 transition hover:bg-primary/10 hover:text-primary",
-                pathname === l.href && "bg-primary/10 text-primary",
+                navActive(pathname, l.href, l.aliases) &&
+                  "bg-primary/10 text-primary",
               )}
             >
               {l.label}
@@ -57,8 +71,14 @@ export function MarketingNav() {
               >
                 Log in
               </Link>
-              <div className="hidden h-10 w-[132px] sm:block">
-                <GlassyButton label="Sign up" link="/signup" />
+              <Link
+                href="/signup"
+                className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-md shadow-primary/20 transition hover:bg-primary/92 sm:hidden"
+              >
+                Sign up
+              </Link>
+              <div className="hidden min-h-10 sm:block">
+                <PrimaryButton href="/signup" label="Sign up" className="!min-h-10 !min-w-[7.5rem] !px-5 !text-sm" />
               </div>
             </>
           )}

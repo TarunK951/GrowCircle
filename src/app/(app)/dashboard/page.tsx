@@ -29,8 +29,8 @@ export default function DashboardPage() {
           {upcoming.length === 0 ? (
             <p className="mt-3 text-sm text-muted">
               No bookings yet —{" "}
-              <Link className="text-primary" href="/discover">
-                discover meets
+              <Link className="text-primary" href="/explore">
+                explore meets
               </Link>
               .
             </p>
@@ -38,7 +38,7 @@ export default function DashboardPage() {
             <ul className="mt-3 space-y-2 text-sm">
               {upcoming.map((e) => (
                 <li key={e.id}>
-                  <Link href={`/events/${e.id}`} className="text-primary">
+                  <Link href={`/event/${e.id}`} className="text-primary">
                     {e.title}
                   </Link>
                 </li>
@@ -56,7 +56,7 @@ export default function DashboardPage() {
           ) : (
             <p className="mt-3 text-sm text-muted">
               Nothing yet —{" "}
-              <Link href="/host-a-meet" className="text-primary">
+              <Link href="/host" className="text-primary">
                 host a meet
               </Link>
               .

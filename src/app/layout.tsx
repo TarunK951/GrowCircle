@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
+import { Fraunces } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "@/components/providers/AppProviders";
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-display-fraunces",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -8,7 +15,7 @@ export const metadata: Metadata = {
     template: "%s · ConnectSphere",
   },
   description:
-    "Discover curated meets, host your own, and connect with real people — ConnectSphere prototype.",
+    "Discover curated meets, host your own, and connect with real people — ConnectSphere.",
 };
 
 export default function RootLayout({
@@ -17,7 +24,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full scroll-smooth">
+    <html lang="en" className={`h-full scroll-smooth ${fraunces.variable}`}>
       <body className="flex min-h-full flex-col bg-canvas font-sans text-foreground antialiased">
         <AppProviders>{children}</AppProviders>
       </body>

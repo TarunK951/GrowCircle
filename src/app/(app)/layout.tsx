@@ -10,15 +10,18 @@ export default function AppGroupLayout({
   return (
     <div className="min-h-screen bg-canvas">
       <header className="sticky top-0 z-40 border-b border-primary/10 bg-canvas/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="text-base font-semibold text-primary">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <Link
+            href="/"
+            className="text-lg font-semibold tracking-tight text-primary"
+          >
             ConnectSphere
           </Link>
           <Link
-            href="/discover"
+            href="/explore"
             className="text-sm font-medium text-foreground/80 hover:text-primary"
           >
-            Discover meets
+            Explore meets
           </Link>
         </div>
       </header>

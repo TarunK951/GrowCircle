@@ -27,10 +27,10 @@ export default async function EventDetailPage({
   return (
     <Container className="py-12">
       <Link
-        href="/discover"
+        href="/explore"
         className="text-sm font-medium text-primary hover:underline"
       >
-        ← Back to discover
+        ← Back to explore
       </Link>
       <div className="mt-6 grid gap-10 lg:grid-cols-2">
         <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-primary/10">
@@ -46,7 +46,7 @@ export default async function EventDetailPage({
           <p className="text-sm font-semibold text-primary">
             {event.category} · {city?.name}
           </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">
+          <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight">
             {event.title}
           </h1>
           <p className="mt-4 text-muted">{event.description}</p>

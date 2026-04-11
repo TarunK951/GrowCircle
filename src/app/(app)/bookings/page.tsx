@@ -25,7 +25,7 @@ export default function BookingsPage() {
               key={b.id}
               className="rounded-xl border border-primary/10 bg-white/50 px-4 py-3"
             >
-              <Link href={`/events/${e.id}`} className="font-medium text-primary">
+              <Link href={`/event/${e.id}`} className="font-medium text-primary">
                 {e.title}
               </Link>
               <p className="text-xs text-muted">

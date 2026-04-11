@@ -4,23 +4,49 @@
 :root {
   --canvas: #fff3e0;
   --primary: #1e3bbd;
+  --secondary: #5c4a3d;
   --foreground: #1a1a1c;
   --muted: #5c5c66;
+  --radius-section: 1.5rem;
+  /* Custom cursor (pointer) — tuned for warm canvas */
+  --cursor-dot: #1e3bbd;
+  --cursor-ring: rgba(30, 59, 189, 0.22);
+  --cursor-ring-border: rgba(30, 59, 189, 0.35);
 }
 
 @theme inline {
   --color-canvas: var(--canvas);
   --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --font-sui: "Onest Variable", Onest, system-ui, sans-serif;
   --font-sans: var(--font-sui);
+  --font-display: var(--font-display-fraunces), ui-serif, Georgia, serif;
 }
 
 body {
   background: var(--canvas);
   color: var(--foreground);
   font-family: var(--font-sui);
+  caret-color: var(--primary);
+}
+
+::selection {
+  background: rgba(30, 59, 189, 0.14);
+  color: var(--foreground);
+}
+
+.section-shell {
+  padding-top: var(--spacing-section-y, 4rem);
+  padding-bottom: var(--spacing-section-y, 4rem);
+}
+
+@media (min-width: 640px) {
+  .section-shell {
+    padding-top: 5rem;
+    padding-bottom: 5rem;
+  }
 }
 
 html.cursor-none {

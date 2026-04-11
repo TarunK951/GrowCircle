@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import GlassyButton from "@/components/ui/GlassyButton";
+import { PrimaryButton, SecondaryButton } from "@/components/ui/MarketingButton";
 import { makeBookingRecord } from "@/lib/mockApi";
 import { useSessionStore } from "@/stores/session-store";
 
@@ -13,20 +13,18 @@ export function SaveEventButton({ eventId }: { eventId: string }) {
   const toggleSaved = useSessionStore((s) => s.toggleSaved);
 
   return (
-    <div className="h-12 w-[160px]">
-      <GlassyButton
-        label={saved ? "Saved" : "Save meet"}
-        type="button"
-        onClick={() => {
-          if (!isAuthenticated) {
-            router.push(`/login?returnUrl=/events/${eventId}`);
-            return;
-          }
-          toggleSaved(eventId);
-          toast.success(saved ? "Removed from saved" : "Saved for later");
-        }}
-      />
-    </div>
+    <SecondaryButton
+      label={saved ? "Saved" : "Save meet"}
+      onClick={() => {
+        if (!isAuthenticated) {
+          router.push(`/login?returnUrl=/event/${eventId}`);
+          return;
+        }
+        toggleSaved(eventId);
+        toast.success(saved ? "Removed from saved" : "Saved for later");
+      }}
+      className="!min-w-[160px]"
+    />
   );
 }
 
@@ -37,21 +35,19 @@ export function JoinMeetButton({ eventId }: { eventId: string }) {
   const addBooking = useSessionStore((s) => s.addBooking);
 
   return (
-    <div className="h-12 w-[200px]">
-      <GlassyButton
-        label="Join this meet"
-        type="button"
-        onClick={() => {
-          if (!isAuthenticated || !user) {
-            router.push(`/login?returnUrl=/events/${eventId}`);
-            return;
-          }
-          const b = makeBookingRecord(user.id, eventId);
-          addBooking(b);
-          toast.success("You’re in — mock booking confirmed.");
-          router.push("/bookings");
-        }}
-      />
-    </div>
+    <PrimaryButton
+      label="Join this meet"
+      onClick={() => {
+        if (!isAuthenticated || !user) {
+          router.push(`/login?returnUrl=/event/${eventId}`);
+          return;
+        }
+        const b = makeBookingRecord(user.id, eventId);
+        addBooking(b);
+        toast.success("You’re in — mock booking confirmed.");
+        router.push("/my-events");
+      }}
+      className="!min-w-[200px]"
+    />
   );
 }

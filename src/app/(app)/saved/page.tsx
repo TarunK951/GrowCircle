@@ -21,8 +21,8 @@ export default function SavedPage() {
       {saved.length === 0 ? (
         <p className="mt-8 text-sm text-muted">
           Nothing saved — browse{" "}
-          <Link href="/discover" className="text-primary">
-            discover
+          <Link href="/explore" className="text-primary">
+            explore
           </Link>
           .
         </p>

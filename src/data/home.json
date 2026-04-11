@@ -1,0 +1,95 @@
+{
+  "socialProof": [
+    { "label": "Cities with meets", "value": "40+" },
+    { "label": "Monthly active members", "value": "12K+" },
+    { "label": "Avg. host rating", "value": "4.8" }
+  ],
+  "howItWorks": {
+    "title": "How it works",
+    "subtitle": "From first tap to sitting down together—four simple steps.",
+    "steps": [
+      {
+        "n": 1,
+        "title": "Create your profile",
+        "body": "Tell us your city, interests, and how you like to meet—so we can surface the right circles."
+      },
+      {
+        "n": 2,
+        "title": "Discover & filter",
+        "body": "Browse dinners, coffee runs, and socials near you. Save what looks good for later."
+      },
+      {
+        "n": 3,
+        "title": "Book your spot",
+        "body": "Reserve a seat with clear time, place, and group size—no endless DMs."
+      },
+      {
+        "n": 4,
+        "title": "Show up & connect",
+        "body": "Meet face-to-face, then keep the conversation going in-app when it feels right."
+      }
+    ]
+  },
+  "eventTypes": {
+    "title": "Meetups for every mood",
+    "subtitle": "Host or join the format that fits your week—from quiet tables to active crews.",
+    "types": [
+      {
+        "id": "dinner",
+        "label": "Dinner & tables",
+        "description": "Small groups, shared plates, real conversation—matched to Social meets in your city.",
+        "href": "/explore?category=Social"
+      },
+      {
+        "id": "coffee",
+        "label": "Coffee & chats",
+        "description": "Breakfast clubs and café hangs—browse Professional and daytime circles.",
+        "href": "/explore?category=Professional"
+      },
+      {
+        "id": "active",
+        "label": "Runs & wellness",
+        "description": "Move together: jogs, walks, and active mornings.",
+        "href": "/explore?category=Wellness"
+      },
+      {
+        "id": "social",
+        "label": "Parties & games",
+        "description": "Mixers, board nights, and bigger rooms when you want energy.",
+        "href": "/explore?category=Games"
+      }
+    ]
+  },
+  "testimonials": {
+    "title": "People who showed up",
+    "subtitle": "Real feedback from hosts and members in our community.",
+    "quotes": [
+      {
+        "id": "q1",
+        "quote": "I’ve tried a dozen apps—this is the first where people actually arrived on time and stayed after dessert.",
+        "name": "Maya K.",
+        "detail": "San Francisco · Dinner series"
+      },
+      {
+        "id": "q2",
+        "quote": "Hosting felt structured, not stressful. The checklist meant I could focus on guests, not logistics.",
+        "name": "James L.",
+        "detail": "London · Coffee meetups"
+      },
+      {
+        "id": "q3",
+        "quote": "Found my running group here. Same time every week, same friendly faces.",
+        "name": "Priya R.",
+        "detail": "Bengaluru · Weekend runs"
+      }
+    ]
+  },
+  "closingCta": {
+    "title": "Ready to meet someone new this week?",
+    "body": "Browse what’s live near you or put your own meet on the map—it only takes a few minutes.",
+    "primaryLabel": "Browse meets",
+    "primaryHref": "/explore",
+    "secondaryLabel": "Host a meet",
+    "secondaryHref": "/host"
+  }
+}

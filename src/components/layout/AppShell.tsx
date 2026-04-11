@@ -13,18 +13,41 @@ import {
   MessageCircle,
   Bell,
   Settings,
+  type LucideIcon,
 } from "lucide-react";
 
-const nav = [
+type ShellNav = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  aliases?: string[];
+};
+
+const nav: ShellNav[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/profile", label: "Profile", icon: User },
   { href: "/verify-profile", label: "Verify", icon: ShieldCheck },
-  { href: "/bookings", label: "My meets", icon: Calendar },
+  {
+    href: "/my-events",
+    label: "My meets",
+    icon: Calendar,
+    aliases: ["/bookings"],
+  },
   { href: "/saved", label: "Saved", icon: Bookmark },
-  { href: "/messages", label: "Messages", icon: MessageCircle },
+  {
+    href: "/chat",
+    label: "Messages",
+    icon: MessageCircle,
+    aliases: ["/messages"],
+  },
   { href: "/notifications", label: "Notifications", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
+
+function shellNavActive(pathname: string, href: string, aliases?: string[]) {
+  if (pathname === href) return true;
+  return aliases?.some((a) => pathname === a) ?? false;
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -40,7 +63,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="mt-4 space-y-1">
           {nav.map((item) => {
             const Icon = item.icon;
-            const active = pathname === item.href;
+            const active = shellNavActive(
+              pathname,
+              item.href,
+              item.aliases,
+            );
             return (
               <Link
                 key={item.href}

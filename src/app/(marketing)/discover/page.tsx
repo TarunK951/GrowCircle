@@ -8,13 +8,20 @@ import { Reveal } from "@/components/providers/Reveal";
 export default async function DiscoverPage({
   searchParams,
 }: {
-  searchParams: Promise<{ city?: string; category?: string }>;
+  searchParams: Promise<{
+    city?: string;
+    category?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const allForMeta = await listEvents();
   const events = await listEvents({
     cityId: sp.city || undefined,
     category: sp.category,
+    dateFrom: sp.dateFrom || undefined,
+    dateTo: sp.dateTo || undefined,
   });
   const cities = citiesData as City[];
   const categories = Array.from(new Set(allForMeta.map((e) => e.category)));
@@ -23,10 +30,18 @@ export default async function DiscoverPage({
   return (
     <Container className="py-12">
       <Reveal>
-        <h1 className="text-3xl font-semibold tracking-tight">Discover meets</h1>
-        <p className="mt-2 max-w-2xl text-muted">
-          Filter by city — query params update the mock list (
-          <code className="rounded bg-primary/5 px-1">?city=sf</code>).
+        <p className="text-sm font-semibold uppercase tracking-wider text-secondary">
+          Explore
+        </p>
+        <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+          Discover meets
+        </h1>
+        <p className="mt-3 max-w-2xl text-muted">
+          Filter by city, category, or date — the list updates from mock data
+          (e.g.{" "}
+          <code className="rounded bg-primary/5 px-1">?city=sf</code>,{" "}
+          <code className="rounded bg-primary/5 px-1">dateFrom=2026-05-01</code>
+          ).
         </p>
       </Reveal>
 
@@ -63,6 +78,24 @@ export default async function DiscoverPage({
               </option>
             ))}
           </select>
+        </label>
+        <label className="text-sm font-medium text-foreground">
+          From
+          <input
+            type="date"
+            name="dateFrom"
+            defaultValue={sp.dateFrom ?? ""}
+            className="ml-2 rounded-xl border border-primary/15 bg-white/60 px-3 py-2 text-sm"
+          />
+        </label>
+        <label className="text-sm font-medium text-foreground">
+          To
+          <input
+            type="date"
+            name="dateTo"
+            defaultValue={sp.dateTo ?? ""}
+            className="ml-2 rounded-xl border border-primary/15 bg-white/60 px-3 py-2 text-sm"
+          />
         </label>
         <button
           type="submit"

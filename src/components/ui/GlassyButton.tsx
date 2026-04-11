@@ -23,6 +23,8 @@ const lightMap = {
 export type LightDirection = keyof typeof lightMap;
 
 export type GlassyButtonProps = {
+  /** High-contrast primary (default) or bordered secondary for cream backgrounds. */
+  variant?: "primary" | "outline";
   label: string;
   background?: string;
   hoverBackground?: string;
@@ -39,11 +41,18 @@ export type GlassyButtonProps = {
   onClick?: () => void;
 };
 
+const PRIMARY_BG = "#1e3bbd";
+const PRIMARY_BG_HOVER = "#152f99";
+const OUTLINE_BG = "rgba(255,255,255,0.96)";
+const OUTLINE_BG_HOVER = "rgba(30,59,189,0.08)";
+const OUTLINE_TEXT = "#1e3bbd";
+
 export default function GlassyButton({
+  variant = "primary",
   label,
-  background = "#FFFFFF33",
-  hoverBackground = "#1E3BBD44",
-  textColor = "#ffffff",
+  background: backgroundProp,
+  hoverBackground: hoverBackgroundProp,
+  textColor: textColorProp,
   borderRadius = 16,
   blur = 18,
   lightDirection = "top-left",
@@ -55,6 +64,13 @@ export default function GlassyButton({
   type = "button",
   onClick,
 }: GlassyButtonProps) {
+  const background =
+    backgroundProp ??
+    (variant === "outline" ? OUTLINE_BG : PRIMARY_BG);
+  const hoverBackground =
+    hoverBackgroundProp ??
+    (variant === "outline" ? OUTLINE_BG_HOVER : PRIMARY_BG_HOVER);
+  const textColor = textColorProp ?? (variant === "outline" ? OUTLINE_TEXT : "#ffffff");
   const [hovered, setHovered] = useState(false);
   const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 });
   const { angle, x, y } = lightMap[lightDirection];
@@ -134,22 +150,32 @@ export default function GlassyButton({
     };
   }, [x, y, hovered, mouse]);
 
-  const glassStyle = useMemo(
-    (): CSSProperties => ({
+  const glassStyle = useMemo((): CSSProperties => {
+    const isOutline = variant === "outline";
+    const topSheen = isOutline
+      ? "linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.75) 100%)"
+      : `linear-gradient(${angle}deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.05) 100%)`;
+    return {
       position: "relative",
       minHeight: 48,
       minWidth: 140,
       padding: "0 1.25rem",
       borderRadius,
-      background: `linear-gradient(${angle}deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 100%), ${
-        hovered ? hoverBackground : background
-      }`,
+      background: `${topSheen}, ${hovered ? hoverBackground : background}`,
       boxShadow: hovered
-        ? `0 18px ${48 * shadowHoverIntensity}px 0 ${shadowHoverColor}, 0 6px 24px 0 rgba(0,0,0,0.12)`
-        : "0 6px 18px 0 rgba(0,0,0,0.10)",
-      backdropFilter: `blur(${blur}px) saturate(1.2)`,
-      WebkitBackdropFilter: `blur(${blur}px) saturate(1.2)`,
-      border: "1.5px solid rgba(255,255,255,0.22)",
+        ? isOutline
+          ? `0 10px 28px 0 rgba(30,59,189,0.12), 0 2px 8px 0 rgba(0,0,0,0.06)`
+          : `0 18px ${48 * shadowHoverIntensity}px 0 ${shadowHoverColor}, 0 6px 24px 0 rgba(0,0,0,0.14)`
+        : isOutline
+          ? "0 2px 10px 0 rgba(0,0,0,0.06)"
+          : "0 6px 20px 0 rgba(30,59,189,0.25)",
+      backdropFilter: isOutline ? "blur(10px) saturate(1.1)" : `blur(${blur}px) saturate(1.2)`,
+      WebkitBackdropFilter: isOutline
+        ? "blur(10px) saturate(1.1)"
+        : `blur(${blur}px) saturate(1.2)`,
+      border: isOutline
+        ? "2px solid rgba(30, 59, 189, 0.38)"
+        : "1.5px solid rgba(255,255,255,0.28)",
       boxSizing: "border-box",
       overflow: "hidden",
       cursor: "pointer",
@@ -158,21 +184,21 @@ export default function GlassyButton({
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
-      transform: hovered ? "translateY(-11px) scale(1.08)" : "none",
+      transform: hovered ? (isOutline ? "translateY(-2px)" : "translateY(-11px) scale(1.08)") : "none",
       ...style,
-    }),
-    [
-      angle,
-      background,
-      borderRadius,
-      blur,
-      hovered,
-      style,
-      hoverBackground,
-      shadowHoverColor,
-      shadowHoverIntensity,
-    ],
-  );
+    };
+  }, [
+    variant,
+    angle,
+    background,
+    borderRadius,
+    blur,
+    hovered,
+    style,
+    hoverBackground,
+    shadowHoverColor,
+    shadowHoverIntensity,
+  ]);
 
   const textStyle = useMemo(
     (): CSSProperties => ({
@@ -195,14 +221,19 @@ export default function GlassyButton({
     position: "absolute",
     inset: 0,
     borderRadius,
-    border: "1.5px solid rgba(255,255,255,0.22)",
+    border:
+      variant === "outline"
+        ? "1px solid rgba(255,255,255,0.5)"
+        : "1.5px solid rgba(255,255,255,0.22)",
     boxShadow:
-      "inset 0 1.5px 8px 0 rgba(255,255,255,0.10), 0 1.5px 8px 0 rgba(0,0,0,0.06)",
+      variant === "outline"
+        ? "inset 0 1px 0 0 rgba(255,255,255,0.85)"
+        : "inset 0 1.5px 8px 0 rgba(255,255,255,0.10), 0 1.5px 8px 0 rgba(0,0,0,0.06)",
     zIndex: 4,
   };
 
   const shared = {
-    className: `border-0 font-inherit text-left ${className}`,
+    className: `border-0 font-inherit text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas ${className}`,
     style: glassStyle,
     "aria-label": label,
     onMouseEnter: () => startTransition(() => setHovered(true)),
@@ -218,8 +249,12 @@ export default function GlassyButton({
 
   const inner = (
     <>
-      <div style={highlightStyle} />
-      <div style={reflectionStyle} />
+      {variant === "primary" && (
+        <>
+          <div style={highlightStyle} />
+          <div style={reflectionStyle} />
+        </>
+      )}
       <span style={textStyle}>{label}</span>
       <div style={ringStyle} />
     </>

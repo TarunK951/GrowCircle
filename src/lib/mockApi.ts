@@ -13,12 +13,26 @@ export async function listCities(): Promise<City[]> {
 export async function listEvents(filters?: {
   cityId?: string;
   category?: string;
+  /** ISO date string (yyyy-mm-dd) — events on or after this local day */
+  dateFrom?: string;
+  /** ISO date string (yyyy-mm-dd) — events on or before this local day */
+  dateTo?: string;
 }): Promise<MeetEvent[]> {
   await delay();
   let list = [...(eventsData as MeetEvent[])];
   if (filters?.cityId) list = list.filter((e) => e.cityId === filters.cityId);
   if (filters?.category && filters.category !== "all")
     list = list.filter((e) => e.category === filters.category);
+
+  if (filters?.dateFrom) {
+    const from = new Date(filters.dateFrom + "T00:00:00");
+    list = list.filter((e) => new Date(e.startsAt) >= from);
+  }
+  if (filters?.dateTo) {
+    const to = new Date(filters.dateTo + "T23:59:59.999");
+    list = list.filter((e) => new Date(e.startsAt) <= to);
+  }
+
   return list;
 }
 
