@@ -42,9 +42,6 @@ export function SignupForm() {
       <p className="mt-2 text-sm text-neutral-500">
         Join ConnectSphere — create a profile and start exploring meets.
       </p>
-      <p className="mt-1 text-xs text-neutral-400">
-        Demo: no email is sent; your session is stored locally in the browser.
-      </p>
 
       <form
         className="mt-8 space-y-5"

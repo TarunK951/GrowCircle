@@ -7,12 +7,12 @@ import citiesData from "@/data/cities.json";
 import type { City } from "@/lib/types";
 import { JoinMeetButton, SaveEventButton } from "./ui";
 
-export default async function EventDetailPage({
-  params,
-}: {
+type EventPageProps = Readonly<{
   params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+}>;
+
+export default async function EventDetailPage(props: EventPageProps) {
+  const { id } = await props.params;
   const event = await getEvent(id);
   if (!event) notFound();
   const host = await getUser(event.hostUserId);

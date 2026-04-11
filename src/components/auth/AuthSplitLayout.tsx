@@ -13,8 +13,11 @@ export function AuthSplitLayout({ children }: { children: React.ReactNode }) {
         <X className="h-5 w-5" strokeWidth={2} />
       </Link>
 
-      <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col gap-4 md:flex-row md:items-stretch md:gap-6 lg:gap-8">
-        <section className="relative h-[min(200px,28vh)] max-h-[220px] w-full shrink-0 overflow-hidden rounded-2xl bg-neutral-200/30 md:max-h-none md:min-h-full md:w-[48%] md:flex-none md:self-stretch md:rounded-2xl">
+      {/* Row: explicit md min-height so flex never collapses to 0 (Next/Image fill needs a sized parent) */}
+      <div className="flex w-full min-w-0 flex-1 flex-col gap-4 md:min-h-[calc(100dvh-3rem)] md:flex-row md:items-stretch md:gap-6 lg:gap-8">
+        <section
+          className="relative w-full shrink-0 overflow-hidden rounded-2xl bg-neutral-200/30 max-md:h-[min(200px,28vh)] max-md:max-h-[220px] md:min-h-[calc(100dvh-3rem)] md:w-[48%] md:flex-none md:self-stretch md:rounded-2xl"
+        >
           <Image
             src="/auth/login-hero.png"
             alt=""
@@ -24,7 +27,7 @@ export function AuthSplitLayout({ children }: { children: React.ReactNode }) {
             sizes="(max-width: 767px) 100vw, 48vw"
           />
         </section>
-        <div className="flex min-h-0 flex-1 flex-col justify-center px-2 py-6 sm:px-4 md:min-w-0 md:max-w-xl md:flex-none md:px-8 md:py-4 lg:pl-12 lg:pr-16 xl:pl-16">
+        <div className="flex min-h-0 flex-1 flex-col justify-center px-2 py-6 sm:px-4 md:min-w-0 md:max-w-xl md:flex-none md:overflow-y-auto md:px-8 md:py-4 lg:pl-12 lg:pr-16 xl:pl-16">
           {children}
         </div>
       </div>

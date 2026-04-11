@@ -7,17 +7,17 @@ import citiesData from "@/data/cities.json";
 import type { City } from "@/lib/types";
 import { Reveal } from "@/components/providers/Reveal";
 
-export default async function DiscoverPage({
-  searchParams,
-}: {
+type DiscoverPageProps = Readonly<{
   searchParams: Promise<{
     city?: string;
     category?: string;
     dateFrom?: string;
     dateTo?: string;
   }>;
-}) {
-  const sp = await searchParams;
+}>;
+
+export default async function DiscoverPage(props: DiscoverPageProps) {
+  const sp = await props.searchParams;
   const allForMeta = await listEvents();
   const events = await listEvents({
     cityId: sp.city || undefined,
