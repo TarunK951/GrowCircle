@@ -382,7 +382,8 @@ html.cursor-none {
   }
 
   .liquid-glass-toolbar {
-    @apply p-4 sm:p-5;
+    @apply p-4 sm:p-6;
+    border-radius: 1.25rem;
   }
 
   .liquid-glass-menu {

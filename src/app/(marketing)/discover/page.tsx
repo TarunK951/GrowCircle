@@ -34,7 +34,12 @@ export default async function DiscoverPage(props: DiscoverPageProps) {
   return (
     <Container className="page-shell">
       <Reveal>
-        <MarketingPageIntro eyebrow="Explore" title="Discover meets" />
+        <MarketingPageIntro
+          className="max-w-3xl"
+          eyebrow="Explore"
+          title="Discover meets"
+          description="Browse circles by city, interest, and date. Narrow the list with the filters below, then open a meet to learn more."
+        />
       </Reveal>
 
       <ExploreFilters

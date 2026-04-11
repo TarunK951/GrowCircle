@@ -70,15 +70,17 @@ export function ExploreFilters({
     !category || category === "all" ? "All" : category;
 
   const labelCls =
-    "mb-0.5 block text-[0.6rem] font-semibold uppercase tracking-wider text-secondary sm:text-[0.65rem]";
+    "mb-2 block text-xs font-semibold uppercase tracking-[0.1em] text-zinc-800 dark:text-zinc-200";
 
   return (
     <div
       ref={toolbarRef}
-      className="liquid-glass liquid-glass-toolbar mt-8 !p-3 sm:!p-4"
+      className="liquid-glass liquid-glass-toolbar mt-10"
+      aria-label="Filter meets"
     >
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-x-3 sm:gap-y-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end md:gap-x-3 md:gap-y-0">
-        <div className="relative min-w-0">
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch lg:gap-8">
+        <div className="grid min-w-0 flex-1 grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
+          <div className="relative min-w-0">
           <span className={labelCls}>City</span>
           <button
             type="button"
@@ -97,7 +99,7 @@ export function ExploreFilters({
             <span className="truncate text-left">{cityLabel}</span>
             <ChevronDown
               className={cn(
-                "h-3 w-3 shrink-0 text-muted/90 transition-transform duration-200 sm:h-3.5 sm:w-3.5",
+                "h-3.5 w-3.5 shrink-0 text-zinc-500 transition-transform duration-200 sm:h-4 sm:w-4",
                 open === "city" && "rotate-180",
               )}
               aria-hidden
@@ -141,9 +143,9 @@ export function ExploreFilters({
               ))}
             </ul>
           )}
-        </div>
+          </div>
 
-        <div className="relative min-w-0">
+          <div className="relative min-w-0">
           <span className={labelCls}>Category</span>
           <button
             type="button"
@@ -162,7 +164,7 @@ export function ExploreFilters({
             <span className="truncate text-left">{categoryLabel}</span>
             <ChevronDown
               className={cn(
-                "h-3 w-3 shrink-0 text-muted/90 transition-transform duration-200 sm:h-3.5 sm:w-3.5",
+                "h-3.5 w-3.5 shrink-0 text-zinc-500 transition-transform duration-200 sm:h-4 sm:w-4",
                 open === "category" && "rotate-180",
               )}
               aria-hidden
@@ -206,11 +208,11 @@ export function ExploreFilters({
               ))}
             </ul>
           )}
-        </div>
+          </div>
 
-        <div className="min-w-0 sm:col-span-2 md:col-span-1">
+          <div className="min-w-0 sm:col-span-2 lg:col-span-1">
           <span className={labelCls}>Dates</span>
-          <div className="explore-filters-strip liquid-glass-date-compact w-full max-w-full md:max-w-none">
+          <div className="explore-filters-strip liquid-glass-date-compact w-full max-w-full">
             <div className="min-w-0 flex-1">
               <input
                 ref={dateFromRef}
@@ -223,7 +225,7 @@ export function ExploreFilters({
               />
             </div>
             <span
-              className="shrink-0 px-0.5 text-[0.65rem] font-medium tabular-nums text-muted/75 sm:px-1 sm:text-[0.7rem]"
+              className="shrink-0 px-1 text-xs font-medium tabular-nums text-zinc-400 sm:px-1.5"
               aria-hidden
             >
               –
@@ -240,23 +242,15 @@ export function ExploreFilters({
               />
             </div>
           </div>
+          </div>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-1 sm:col-span-2 md:col-span-1 md:min-w-[4.75rem]">
-          <span
-            className={cn(
-              labelCls,
-              "hidden select-none md:mb-0.5 md:block md:invisible",
-            )}
-            aria-hidden
-          >
-            Apply
-          </span>
+        <div className="flex min-w-0 shrink-0 flex-col justify-end border-t border-zinc-200/80 pt-5 dark:border-white/10 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
           <button
             type="button"
             onClick={apply}
             aria-label="Apply filters"
-            className="inline-flex min-h-8 w-full shrink-0 items-center justify-center rounded-full bg-primary px-3 py-1.5 text-[0.6875rem] font-semibold text-white shadow-md shadow-primary/20 transition hover:bg-primary/92 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas active:scale-[0.98] sm:min-h-[2rem] sm:px-3.5 sm:text-xs md:w-auto md:self-stretch"
+            className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/25 transition hover:bg-primary/92 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas active:scale-[0.98] lg:min-w-30"
           >
             Apply
           </button>
