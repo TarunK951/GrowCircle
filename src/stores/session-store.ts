@@ -6,6 +6,7 @@ import {
   generateShareToken,
   getEventFromCatalog,
 } from "@/lib/eventsCatalog";
+import { emptySocialConnections } from "@/lib/socialLinks";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -62,6 +63,10 @@ type SessionState = {
   /** Local UI preferences (persisted). */
   uiPrefs: UiPrefs;
   setUiPrefs: (partial: Partial<UiPrefs>) => void;
+  /** Mock OAuth-style flags per platform id (see `SOCIAL_PLATFORMS`). */
+  socialConnections: Record<string, boolean>;
+  setSocialConnection: (platformId: string, linked: boolean) => void;
+  toggleSocialConnection: (platformId: string) => void;
   notificationsRead: Record<string, boolean>;
   hostDraft: HostDraft | null;
   login: (user: User) => void;
@@ -169,6 +174,21 @@ export const useSessionStore = create<SessionState>()(
         set((s) => ({
           uiPrefs: { ...s.uiPrefs, ...partial },
         })),
+      socialConnections: emptySocialConnections(),
+      setSocialConnection: (platformId, linked) =>
+        set((s) => ({
+          socialConnections: {
+            ...s.socialConnections,
+            [platformId]: linked,
+          },
+        })),
+      toggleSocialConnection: (platformId) =>
+        set((s) => ({
+          socialConnections: {
+            ...s.socialConnections,
+            [platformId]: !s.socialConnections[platformId],
+          },
+        })),
       notificationsRead: {},
       hostDraft: null,
       chatExtras: {},
@@ -182,6 +202,7 @@ export const useSessionStore = create<SessionState>()(
           savedEventIds: [],
           chatExtras: {},
           uiPrefs: s.uiPrefs,
+          socialConnections: s.socialConnections,
         })),
       updateProfile: (partial) => {
         const u = get().user;
@@ -443,6 +464,10 @@ export const useSessionStore = create<SessionState>()(
           ...current,
           ...p,
           uiPrefs: { ...defaultUiPrefs, ...p?.uiPrefs },
+          socialConnections: {
+            ...emptySocialConnections(),
+            ...p?.socialConnections,
+          },
         };
       },
     },

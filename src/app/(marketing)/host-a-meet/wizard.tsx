@@ -150,15 +150,19 @@ export function HostWizard() {
     router.push("/bookings");
   };
 
-  const inputClass = "liquid-glass-input mt-2 w-full";
+  const inputClass = cn(
+    "mt-2 w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-900 shadow-sm outline-none transition",
+    "placeholder:text-neutral-400",
+    "focus-visible:border-neutral-900 focus-visible:ring-2 focus-visible:ring-neutral-900/10",
+  );
 
   return (
-    <div className="liquid-glass-surface mt-10 max-w-2xl">
-      <p className="text-xs font-semibold uppercase tracking-wider text-secondary">
+    <div className="mt-10 w-full rounded-(--radius-section) border border-neutral-200 bg-white/90 p-5 shadow-sm sm:p-6 md:p-8">
+      <p className="text-xs font-semibold uppercase tracking-wider text-neutral-700">
         Step {step + 1} / {STEPS}
       </p>
       <div
-        className="mt-3 flex gap-1"
+        className="mt-3 flex gap-1.5"
         role="progressbar"
         aria-valuenow={step + 1}
         aria-valuemin={1}
@@ -169,8 +173,8 @@ export function HostWizard() {
           <div
             key={i}
             className={cn(
-              "h-1 flex-1 rounded-full transition-colors",
-              i <= step ? "bg-primary" : "bg-primary/15",
+              "h-1.5 flex-1 rounded-full transition-colors",
+              i <= step ? "bg-neutral-900" : "bg-neutral-200",
             )}
           />
         ))}
@@ -179,7 +183,7 @@ export function HostWizard() {
       {step === 0 && (
         <div className="mt-4 space-y-4">
           <div>
-            <label className="text-sm font-medium">Title</label>
+            <label className="text-sm font-semibold text-neutral-900">Title</label>
             <input
               className={inputClass}
               value={draft.title}
@@ -189,7 +193,7 @@ export function HostWizard() {
             />
           </div>
           <div>
-            <label className="text-sm font-medium">Description</label>
+            <label className="text-sm font-semibold text-neutral-900">Description</label>
             <textarea
               className={`${inputClass} min-h-[100px] resize-y`}
               value={draft.description}
@@ -204,7 +208,7 @@ export function HostWizard() {
       {step === 1 && (
         <div className="mt-4 space-y-4">
           <div>
-            <label className="text-sm font-medium">City</label>
+            <label className="text-sm font-semibold text-neutral-900">City</label>
             <select
               className={inputClass}
               value={draft.cityId}
@@ -220,7 +224,7 @@ export function HostWizard() {
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium">Venue name</label>
+            <label className="text-sm font-semibold text-neutral-900">Venue name</label>
             <input
               className={inputClass}
               value={draft.venueName}
@@ -230,7 +234,7 @@ export function HostWizard() {
             />
           </div>
           <div>
-            <label className="text-sm font-medium">Address (optional)</label>
+            <label className="text-sm font-semibold text-neutral-900">Address (optional)</label>
             <input
               className={inputClass}
               value={draft.addressLine}
@@ -246,7 +250,7 @@ export function HostWizard() {
       {step === 2 && (
         <div className="mt-4 space-y-4">
           <div>
-            <label className="text-sm font-medium">Starts at</label>
+            <label className="text-sm font-semibold text-neutral-900">Starts at</label>
             <input
               type="datetime-local"
               className={inputClass}
@@ -258,7 +262,7 @@ export function HostWizard() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="text-sm font-medium">Capacity (max slots)</label>
+              <label className="text-sm font-semibold text-neutral-900">Capacity (max slots)</label>
               <input
                 type="number"
                 min={4}
@@ -273,7 +277,7 @@ export function HostWizard() {
               />
             </div>
             <div>
-              <label className="text-sm font-medium">Price (cents)</label>
+              <label className="text-sm font-semibold text-neutral-900">Price (cents)</label>
               <input
                 type="number"
                 min={0}
@@ -298,7 +302,7 @@ export function HostWizard() {
       {step === 3 && (
         <div className="mt-4 space-y-4">
           <div>
-            <label className="text-sm font-medium">Join policy</label>
+            <label className="text-sm font-semibold text-neutral-900">Join policy</label>
             <select
               className={inputClass}
               value={draft.joinMode}
@@ -316,7 +320,7 @@ export function HostWizard() {
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium">Listing</label>
+            <label className="text-sm font-semibold text-neutral-900">Listing</label>
             <select
               className={inputClass}
               value={draft.listingVisibility}
@@ -337,7 +341,7 @@ export function HostWizard() {
       {step === 4 && (
         <div className="mt-4 space-y-4">
           <div>
-            <label className="text-sm font-medium">Cover image</label>
+            <label className="text-sm font-semibold text-neutral-900">Cover image</label>
             <input
               type="file"
               accept="image/*"
@@ -366,7 +370,7 @@ export function HostWizard() {
             </p>
           </div>
           <div>
-            <label className="text-sm font-medium">Image URL (optional)</label>
+            <label className="text-sm font-semibold text-neutral-900">Image URL (optional)</label>
             <input
               className={inputClass}
               value={draft.imageUrl}
@@ -397,7 +401,7 @@ export function HostWizard() {
       {step === 5 && (
         <div className="mt-4 space-y-4">
           <div>
-            <label className="text-sm font-medium">About this meet (longer)</label>
+            <label className="text-sm font-semibold text-neutral-900">About this meet (longer)</label>
             <textarea
               className={`${inputClass} min-h-[120px] resize-y`}
               value={draft.moreAbout}
@@ -408,7 +412,7 @@ export function HostWizard() {
             />
           </div>
           <div>
-            <p className="text-sm font-medium">What&apos;s included</p>
+            <p className="text-sm font-semibold text-neutral-900">What&apos;s included</p>
             <p className="mt-1 text-xs text-muted">
               One line per item (empty lines are ignored).
             </p>
@@ -457,7 +461,7 @@ export function HostWizard() {
             </div>
           </div>
           <div>
-            <p className="text-sm font-medium">Suggestions for guests</p>
+            <p className="text-sm font-semibold text-neutral-900">Suggestions for guests</p>
             <p className="mt-1 text-xs text-muted">
               Short tips (one per line); shown on the event page if set.
             </p>
@@ -510,7 +514,7 @@ export function HostWizard() {
       {step === 6 && (
         <div className="mt-4 space-y-4">
           <div>
-            <label className="text-sm font-medium">
+            <label className="text-sm font-semibold text-neutral-900">
               What&apos;s allowed &amp; good to know
             </label>
             <textarea
@@ -522,7 +526,7 @@ export function HostWizard() {
             />
           </div>
           <div>
-            <p className="text-sm font-medium">Do</p>
+            <p className="text-sm font-semibold text-neutral-900">Do</p>
             <div className="mt-2 space-y-2">
               {draft.houseDos.map((line, i) => (
                 <div key={i} className="flex gap-2">
@@ -562,7 +566,7 @@ export function HostWizard() {
             </div>
           </div>
           <div>
-            <p className="text-sm font-medium">Don&apos;t</p>
+            <p className="text-sm font-semibold text-neutral-900">Don&apos;t</p>
             <div className="mt-2 space-y-2">
               {draft.houseDonts.map((line, i) => (
                 <div key={i} className="flex gap-2">
@@ -793,7 +797,7 @@ export function HostWizard() {
           type="button"
           onClick={back}
           disabled={step === 0}
-          className="rounded-full border border-primary/20 bg-white/40 px-5 py-2 text-sm font-medium transition hover:bg-primary/5 disabled:opacity-40"
+          className="rounded-full border border-neutral-300 bg-white px-5 py-2.5 text-sm font-semibold text-neutral-900 shadow-sm transition hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Back
         </button>

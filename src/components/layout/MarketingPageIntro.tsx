@@ -5,16 +5,30 @@ export function MarketingPageIntro({
   title,
   description,
   className,
+  align = "start",
 }: {
   eyebrow?: string;
   title: string;
   description?: string;
   className?: string;
+  /** When `center`, heading block is centered (e.g. marketing wizards). */
+  align?: "start" | "center";
 }) {
   return (
-    <header className={cn("max-w-2xl", className)}>
+    <header
+      className={cn(
+        "max-w-2xl",
+        align === "center" && "mx-auto w-full text-center",
+        className,
+      )}
+    >
       {eyebrow ? (
-        <div className="flex items-center gap-3">
+        <div
+          className={cn(
+            "flex items-center gap-3",
+            align === "center" && "justify-center",
+          )}
+        >
           <span
             className="h-1 w-10 shrink-0 rounded-full bg-primary"
             aria-hidden
