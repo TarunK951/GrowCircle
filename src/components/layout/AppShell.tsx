@@ -50,9 +50,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const logout = useSessionStore((s) => s.logout);
 
   return (
-    <div className="flex min-h-[calc(100vh-4.25rem)]">
+    <div className="flex min-h-[calc(100vh-5rem)]">
       <aside className="hidden w-60 shrink-0 border-r border-neutral-200 bg-white md:block lg:w-64">
-        <div className="sticky top-[4.25rem] flex h-[calc(100vh-4.25rem)] flex-col p-4 lg:p-5">
+        <div className="sticky top-20 flex h-[calc(100vh-5rem)] flex-col p-4 lg:p-5">
           <p className="px-1 text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-900">
             Menu
           </p>

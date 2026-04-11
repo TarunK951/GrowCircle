@@ -9,7 +9,7 @@ export function BookingsStandaloneLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-white text-foreground">
+    <div className="min-h-[calc(100vh-5rem)] bg-white text-foreground">
       <header className="border-b border-neutral-200 bg-neutral-50">
         <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-6 sm:flex-row sm:items-end sm:justify-between sm:px-8 lg:px-10">
           <div>

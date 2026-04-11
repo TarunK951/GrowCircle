@@ -61,11 +61,11 @@ export function MarketingNav() {
             {isAuthenticated ? (
               <NavbarButton
                 as={Link}
-                href="/dashboard"
+                href="/profile"
                 variant="primary"
                 className={cn(btnPrimary, "!px-4 !py-2 !text-sm")}
               >
-                Dashboard
+                Profile
               </NavbarButton>
             ) : (
               <NavbarButton
@@ -110,12 +110,12 @@ export function MarketingNav() {
               {isAuthenticated ? (
                 <NavbarButton
                   as={Link}
-                  href="/dashboard"
+                  href="/profile"
                   variant="primary"
                   className={cn(btnPrimary, "w-full !py-3")}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  Dashboard
+                  Profile
                 </NavbarButton>
               ) : (
                 <NavbarButton
