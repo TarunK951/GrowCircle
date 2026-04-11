@@ -1,1 +1,5 @@
-export { default } from "../bookings/page";
+import { redirect } from "next/navigation";
+
+export default function MyEventsRedirectPage() {
+  redirect("/history");
+}

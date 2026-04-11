@@ -1,7 +1,6 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { BookingsHub } from "@/components/bookings/BookingsHub";
-
-export default function BookingsPage() {
-  return <BookingsHub />;
+/** Canonical route is `/history`. */
+export default function BookingsRedirectPage() {
+  redirect("/history");
 }
