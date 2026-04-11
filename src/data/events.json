@@ -7,10 +7,45 @@
     "startsAt": "2026-05-02T18:30:00.000Z",
     "hostUserId": "u_host_1",
     "capacity": 24,
+    "spotsTaken": 14,
     "category": "Social",
     "image": "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1200&auto=format&fit=crop&q=80",
     "priceCents": 2500,
-    "venueName": "SOMA Terrace"
+    "venueName": "SOMA Terrace",
+    "moreAbout": "We keep the group intentionally small so you can actually talk — think short rotations, curated intros, and a sunset view. The host opens with a light structure so you’re never stuck in awkward silence. Non-alcoholic options are always available.",
+    "whatsIncluded": [
+      "Welcome drink (alcoholic or NA)",
+      "Light snacks and water station",
+      "Hosted intros and rotation cues",
+      "Indoor backup if weather shifts"
+    ],
+    "allowedAndNotes": "Outdoor terrace: dress for wind and evening chill. Small bags OK; large luggage should stay downstairs. Smoking only in designated areas off the deck.",
+    "houseRules": {
+      "dos": [
+        "Bring a photo ID if you’re drinking alcohol",
+        "Stay for at least the first rotation so everyone gets a fair intro",
+        "Use headphones if you need to take a call — step to the stairwell"
+      ],
+      "donts": [
+        "No glass near the railing — use the cups provided",
+        "Don’t invite plus-ones who aren’t ticketed",
+        "No streaming or live broadcasting without host approval"
+      ]
+    },
+    "faqs": [
+      {
+        "q": "What’s the vibe — networking or party?",
+        "a": "Social, not salesy. You’ll meet people in short, structured rounds with time to go deeper if you click."
+      },
+      {
+        "q": "What if it rains?",
+        "a": "We move to the covered lounge on the same floor — same start time, same host flow."
+      },
+      {
+        "q": "Can I get a refund?",
+        "a": "This prototype doesn’t process payments — in production you’d see the host’s cancellation window here."
+      }
+    ]
   },
   {
     "id": "evt_2",
@@ -20,10 +55,40 @@
     "startsAt": "2026-05-04T13:00:00.000Z",
     "hostUserId": "u_host_2",
     "capacity": 12,
+    "spotsTaken": 8,
     "category": "Professional",
     "image": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80",
     "priceCents": 0,
-    "venueName": "Flatiron Studio"
+    "venueName": "Flatiron Studio",
+    "moreAbout": "A tight table for builders who want signal over noise. Everyone shares a one-minute update, then one concrete “ask” — feedback, intro, or a specific challenge. No slides unless the host opens the floor.",
+    "whatsIncluded": [
+      "Coffee, tea, and pastries",
+      "Printed name tents",
+      "Timed agenda run by the host"
+    ],
+    "allowedAndNotes": "Laptops closed during intros; you can open them during the optional working block at the end. Dietary notes: oat milk and fruit available — flag allergies when you join.",
+    "houseRules": {
+      "dos": [
+        "Come with one clear ask for the group",
+        "Respect the timer — it keeps the room fair",
+        "Share contact info only when both sides opt in"
+      ],
+      "donts": [
+        "No pitching investors cold in the breakfast round",
+        "Don’t record audio or video of other attendees",
+        "No recruiting spam — use the opt-in sheet if hiring"
+      ]
+    },
+    "faqs": [
+      {
+        "q": "Is this only for funded startups?",
+        "a": "No — early ideas and side projects are welcome as long as you’re serious about showing up prepared."
+      },
+      {
+        "q": "Can I attend remotely?",
+        "a": "This session is in person so the table stays intimate and on time."
+      }
+    ]
   },
   {
     "id": "evt_3",
@@ -33,10 +98,40 @@
     "startsAt": "2026-05-08T17:45:00.000Z",
     "hostUserId": "u_host_1",
     "capacity": 18,
+    "spotsTaken": 11,
     "category": "Culture",
     "image": "https://images.unsplash.com/photo-1518998053901-5348d3961a04?w=1200&auto=format&fit=crop&q=80",
     "priceCents": 1500,
-    "venueName": "Shoreditch Arts"
+    "venueName": "Shoreditch Arts",
+    "moreAbout": "We visit three small galleries in one evening with a guided thread — no art degree required. There’s a midpoint coffee stop so the pace stays relaxed. Solo attendees are the norm; the host breaks the ice at stop one.",
+    "whatsIncluded": [
+      "Gallery entry where required",
+      "Printed route map",
+      "Mid-walk coffee break (included)"
+    ],
+    "allowedAndNotes": "Photography follows each gallery’s rules — when in doubt, ask. Comfortable shoes; we walk ~2 km total. Large backpacks should be left at coat check where available.",
+    "houseRules": {
+      "dos": [
+        "Stay with the group between stops so no one’s left behind",
+        "Keep voices low inside exhibition rooms",
+        "Tip baristas if you order extra beyond the included drink"
+      ],
+      "donts": [
+        "No touching artwork or leaning on plinths",
+        "Don’t run late into a gallery mid-tour — catch us at the next stop",
+        "No flash photography"
+      ]
+    },
+    "faqs": [
+      {
+        "q": "Do I need to know about art?",
+        "a": "No — the host shares just enough context to enjoy each stop."
+      },
+      {
+        "q": "What if I’m late?",
+        "a": "Meet us at the second stop — we’ll share the walking route in the booking message."
+      }
+    ]
   },
   {
     "id": "evt_4",
@@ -46,10 +141,40 @@
     "startsAt": "2026-05-10T16:00:00.000Z",
     "hostUserId": "u_host_2",
     "capacity": 16,
+    "spotsTaken": 10,
     "category": "Games",
     "image": "https://images.unsplash.com/photo-1566576721346-d4a3b4eaeb55?w=1200&auto=format&fit=crop&q=80",
     "priceCents": 800,
-    "venueName": "Indiranagar Loft"
+    "venueName": "Indiranagar Loft",
+    "moreAbout": "Low-pressure tabletop afternoon: we teach rules as we go and split by experience so no one gets steamrolled. Snacks and soft drinks are on the house; BYO favorite game if you want it on the table.",
+    "whatsIncluded": [
+      "Curated game library",
+      "Snacks and non-alcoholic drinks",
+      "Table assignments by vibe (cozy vs competitive)"
+    ],
+    "allowedAndNotes": "Vegetarian snacks by default — tell the host about allergies when you join. Shoes off at the door; socks or indoor slippers welcome.",
+    "houseRules": {
+      "dos": [
+        "Wash hands before handling shared cards and pieces",
+        "Call the host if a rule argument breaks the fun",
+        "Help reset the table when a game ends"
+      ],
+      "donts": [
+        "No food or drinks over the boards",
+        "Don’t bend cards or slam pieces",
+        "No outside alcohol — keep it soft drinks here"
+      ]
+    },
+    "faqs": [
+      {
+        "q": "I’ve never played these games — OK?",
+        "a": "Yes — that’s the default. We’ll place you with a patient table captain."
+      },
+      {
+        "q": "Kids allowed?",
+        "a": "This session is 18+ unless the listing says otherwise."
+      }
+    ]
   },
   {
     "id": "evt_5",
@@ -59,9 +184,39 @@
     "startsAt": "2026-05-12T07:00:00.000Z",
     "hostUserId": "u_host_1",
     "capacity": 30,
+    "spotsTaken": 17,
     "category": "Wellness",
     "image": "https://images.unsplash.com/photo-1571008887538-b36bb32f4571?w=1200&auto=format&fit=crop&q=80",
     "priceCents": 0,
-    "venueName": "Marina Bay"
+    "venueName": "Marina Bay",
+    "moreAbout": "We split into pace groups at the meetup point, jog an easy loop, then regroup for espresso nearby. Nobody gets left behind — there’s always a sweep host at the back.",
+    "whatsIncluded": [
+      "Guided warm-up",
+      "Water at the turnaround",
+      "Group espresso after (first drink hosted)"
+    ],
+    "allowedAndNotes": "Wear visible gear if you run before sunrise. Headphones OK on the path but keep one ear open near roads. Bring ID if you plan to order extra after the run.",
+    "houseRules": {
+      "dos": [
+        "Sign the safety waiver in the booking flow",
+        "Stick with your pace group unless you tell the sweep host",
+        "Stretch at the finish before heading to coffee"
+      ],
+      "donts": [
+        "No racing cars or weaving into traffic",
+        "Don’t leave the route without telling the host",
+        "No litter — carry out what you bring in"
+      ]
+    },
+    "faqs": [
+      {
+        "q": "What pace is “easy”?",
+        "a": "Roughly 6:30–7:30 min/km for the main group; a slower group leaves five minutes earlier on a shorter loop."
+      },
+      {
+        "q": "What if it storms?",
+        "a": "We cancel two hours ahead and message everyone — check your email the night before."
+      }
+    ]
   }
 ]

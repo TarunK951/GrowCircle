@@ -4,6 +4,11 @@ export type City = {
   slug: string;
 };
 
+export type EventFaq = {
+  q: string;
+  a: string;
+};
+
 export type MeetEvent = {
   id: string;
   title: string;
@@ -16,6 +21,18 @@ export type MeetEvent = {
   image: string;
   priceCents: number;
   venueName?: string;
+  /** Booked spots (mock). Used with `capacity` to show availability. */
+  spotsTaken?: number;
+  /** Longer narrative shown above the image block. */
+  moreAbout?: string;
+  whatsIncluded?: string[];
+  /** What to bring, what’s allowed on site, accessibility, etc. */
+  allowedAndNotes?: string;
+  houseRules?: {
+    dos: string[];
+    donts: string[];
+  };
+  faqs?: EventFaq[];
 };
 
 export type User = {
