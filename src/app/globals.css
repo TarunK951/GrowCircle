@@ -6,7 +6,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --canvas: #fff3e0;
+  --canvas: #fbfcf8;
   --primary: oklch(0.205 0 0);
   --secondary: oklch(0.97 0 0);
   --muted: oklch(0.97 0 0);

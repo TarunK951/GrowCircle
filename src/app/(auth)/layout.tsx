@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
 
 export default function AuthLayout({
   children,
@@ -14,10 +13,7 @@ export default function AuthLayout({
 
   return (
     <div
-      className={cn(
-        "flex min-h-screen flex-col",
-        isSplitAuth ? "bg-[#FBFCF8]" : "bg-canvas",
-      )}
+      className="flex min-h-screen flex-col bg-canvas"
     >
       {!isSplitAuth && (
         <header className="sticky top-0 z-50 border-b border-primary/10 bg-canvas/85 px-4 py-4 backdrop-blur-xl sm:px-6">

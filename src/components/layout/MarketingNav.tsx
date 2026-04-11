@@ -2,9 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { useState } from "react";
+import {
+  Navbar,
+  NavBody,
+  NavItems,
+  MobileNav,
+  NavbarLogo,
+  NavbarButton,
+  MobileNavHeader,
+  MobileNavToggle,
+  MobileNavMenu,
+} from "@/components/ui/resizable-navbar";
 import { useSessionStore } from "@/stores/session-store";
-import { PrimaryButton } from "@/components/ui/MarketingButton";
+import { cn } from "@/lib/utils";
 
 type NavLink = {
   href: string;
@@ -13,12 +24,8 @@ type NavLink = {
 };
 
 const links: NavLink[] = [
-  { href: "/explore", label: "Explore", aliases: ["/discover"] },
-  { href: "/locations", label: "Locations" },
   { href: "/host", label: "Host", aliases: ["/host-a-meet"] },
   { href: "/join", label: "Join", aliases: ["/join-a-meet"] },
-  { href: "/how-it-works", label: "How it works" },
-  { href: "/pricing", label: "Pricing" },
   { href: "/careers", label: "Careers" },
 ];
 
@@ -27,63 +34,126 @@ function navActive(pathname: string, href: string, aliases?: string[]) {
   return aliases?.some((a) => pathname === a) ?? false;
 }
 
+const btnPrimary =
+  "!border-0 !bg-primary !text-white !shadow-md !shadow-primary/25 hover:!-translate-y-0.5 hover:!bg-primary/92 active:!scale-[0.98]";
+
+const btnSecondary =
+  "!text-primary hover:!bg-primary/10 dark:!text-primary dark:hover:!bg-primary/15";
+
 export function MarketingNav() {
   const pathname = usePathname();
   const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const navItems = links.map((l) => ({
+    name: l.label,
+    link: l.href,
+    active: navActive(pathname, l.href, l.aliases),
+  }));
 
   return (
-    <header className="sticky top-0 z-50 border-b border-primary/10 bg-canvas/75 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="text-lg font-semibold tracking-tight text-primary"
-        >
-          ConnectSphere
-        </Link>
-        <nav className="hidden items-center gap-1 md:flex">
-          {links.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={cn(
-                "rounded-full px-3 py-2 text-sm font-medium text-foreground/80 transition hover:bg-primary/10 hover:text-primary",
-                navActive(pathname, l.href, l.aliases) &&
-                  "bg-primary/10 text-primary",
-              )}
-            >
-              {l.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="flex items-center gap-2">
+    <Navbar>
+      <NavBody>
+        <NavbarLogo />
+        <NavItems
+          items={navItems}
+          onItemClick={() => setIsMobileMenuOpen(false)}
+        />
+        <div className="relative z-[70] flex shrink-0 items-center gap-2 sm:gap-3">
           {isAuthenticated ? (
-            <Link
+            <NavbarButton
+              as={Link}
               href="/dashboard"
-              className="rounded-full px-3 py-2 text-sm font-medium text-primary hover:bg-primary/10"
+              variant="primary"
+              className={cn(btnPrimary, "!px-4 !py-2 !text-sm")}
             >
               Dashboard
-            </Link>
+            </NavbarButton>
           ) : (
             <>
-              <Link
+              <NavbarButton
+                as={Link}
                 href="/login"
-                className="rounded-full px-3 py-2 text-sm font-medium text-foreground/80 hover:bg-primary/10"
+                variant="secondary"
+                className={cn(btnSecondary, "!px-3 !py-2 !text-sm sm:!px-4")}
               >
                 Log in
-              </Link>
-              <Link
+              </NavbarButton>
+              <NavbarButton
+                as={Link}
                 href="/signup"
-                className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-md shadow-primary/20 transition hover:bg-primary/92 sm:hidden"
+                variant="primary"
+                className={cn(btnPrimary, "!px-4 !py-2 !text-sm")}
               >
                 Sign up
-              </Link>
-              <div className="hidden min-h-10 sm:block">
-                <PrimaryButton href="/signup" label="Sign up" className="!min-h-10 !min-w-[7.5rem] !px-5 !text-sm" />
-              </div>
+              </NavbarButton>
             </>
           )}
         </div>
-      </div>
-    </header>
+      </NavBody>
+
+      <MobileNav>
+        <MobileNavHeader>
+          <NavbarLogo />
+          <MobileNavToggle
+            isOpen={isMobileMenuOpen}
+            onClick={() => setIsMobileMenuOpen((o) => !o)}
+          />
+        </MobileNavHeader>
+
+        <MobileNavMenu
+          isOpen={isMobileMenuOpen}
+          onClose={() => setIsMobileMenuOpen(false)}
+        >
+          {navItems.map((item, idx) => (
+            <Link
+              key={`mobile-link-${idx}`}
+              href={item.link}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={cn(
+                "relative block w-full text-neutral-600 dark:text-neutral-300",
+                item.active && "font-medium text-primary",
+              )}
+            >
+              {item.name}
+            </Link>
+          ))}
+          <div className="flex w-full flex-col gap-3 pt-2">
+            {isAuthenticated ? (
+              <NavbarButton
+                as={Link}
+                href="/dashboard"
+                variant="primary"
+                className={cn(btnPrimary, "w-full !py-3")}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Dashboard
+              </NavbarButton>
+            ) : (
+              <>
+                <NavbarButton
+                  as={Link}
+                  href="/login"
+                  variant="secondary"
+                  className={cn(btnSecondary, "w-full !py-3")}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Log in
+                </NavbarButton>
+                <NavbarButton
+                  as={Link}
+                  href="/signup"
+                  variant="primary"
+                  className={cn(btnPrimary, "w-full !py-3")}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Sign up
+                </NavbarButton>
+              </>
+            )}
+          </div>
+        </MobileNavMenu>
+      </MobileNav>
+    </Navbar>
   );
 }

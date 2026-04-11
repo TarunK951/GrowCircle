@@ -7,7 +7,7 @@ export function AuthSplitLayout({ children }: { children: React.ReactNode }) {
     <div className="relative box-border flex min-h-dvh w-full flex-1 flex-col p-4 sm:p-5 md:p-6">
       <Link
         href="/"
-        className="absolute right-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200/80 bg-[#FBFCF8]/95 text-neutral-700 shadow-sm backdrop-blur-sm transition hover:bg-white hover:text-neutral-950 sm:right-5 sm:top-5 md:right-6 md:top-6"
+        className="absolute right-4 top-4 z-20 inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200/80 bg-canvas/95 text-neutral-700 shadow-sm backdrop-blur-sm transition hover:bg-white hover:text-neutral-950 sm:right-5 sm:top-5 md:right-6 md:top-6"
         aria-label="Close and return home"
       >
         <X className="h-5 w-5" strokeWidth={2} />

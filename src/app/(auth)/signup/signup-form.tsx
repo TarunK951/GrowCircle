@@ -141,7 +141,7 @@ export function SignupForm() {
           <div className="w-full border-t border-neutral-200" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-[#FBFCF8] px-3 text-neutral-400">
+          <span className="bg-canvas px-3 text-neutral-400">
             Or Continue with
           </span>
         </div>
