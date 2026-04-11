@@ -6,8 +6,7 @@ import { notFound } from "next/navigation";
 import { MessageCircle } from "lucide-react";
 import usersSeed from "@/data/users.seed.json";
 import citiesData from "@/data/cities.json";
-import { getEventFromCatalog } from "@/lib/eventsCatalog";
-import { useSessionStore } from "@/stores/session-store";
+import { useResolvedEvent } from "@/hooks/useResolvedEvent";
 import type { City, User } from "@/lib/types";
 
 const icebreakers = [
@@ -17,8 +16,12 @@ const icebreakers = [
 ];
 
 export function GroupPageView({ id }: { id: string }) {
-  const hostedEvents = useSessionStore((s) => s.hostedEvents);
-  const event = getEventFromCatalog(id, hostedEvents);
+  const { event, loading } = useResolvedEvent(id);
+  if (loading) {
+    return (
+      <p className="text-sm text-neutral-600">Loading…</p>
+    );
+  }
   if (!event) notFound();
 
   const seed = usersSeed as User[];
@@ -41,7 +44,8 @@ export function GroupPageView({ id }: { id: string }) {
         {event.title}
       </h1>
       <p className="mt-2 text-muted">
-        {city?.name ?? "City"} · {new Date(event.startsAt).toLocaleString()}
+        {event.displayLocation ?? city?.name ?? "City"} ·{" "}
+        {new Date(event.startsAt).toLocaleString()}
       </p>
 
       <section className="mt-10">

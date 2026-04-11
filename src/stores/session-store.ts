@@ -69,7 +69,18 @@ type SessionState = {
   toggleSocialConnection: (platformId: string) => void;
   notificationsRead: Record<string, boolean>;
   hostDraft: HostDraft | null;
+  /** Circle API JWTs (client-side; optional when using mock auth). */
+  accessToken: string | null;
+  refreshToken: string | null;
+  /** Public events fetched from Circle API (merged into explore / detail). */
+  circleCatalogEvents: MeetEvent[];
+  setCircleCatalogEvents: (events: MeetEvent[]) => void;
+  upsertCircleCatalogEvent: (event: MeetEvent) => void;
   login: (user: User) => void;
+  loginWithCircle: (
+    user: User,
+    tokens: { accessToken: string; refreshToken: string },
+  ) => void;
   logout: () => void;
   updateProfile: (partial: Partial<User>) => void;
   setVerified: (v: boolean) => void;
@@ -192,7 +203,23 @@ export const useSessionStore = create<SessionState>()(
       notificationsRead: {},
       hostDraft: null,
       chatExtras: {},
+      accessToken: null,
+      refreshToken: null,
+      circleCatalogEvents: [],
+      setCircleCatalogEvents: (events) => set({ circleCatalogEvents: events }),
+      upsertCircleCatalogEvent: (event) =>
+        set((s) => {
+          const rest = s.circleCatalogEvents.filter((e) => e.id !== event.id);
+          return { circleCatalogEvents: [...rest, event] };
+        }),
       login: (user) => set({ user, isAuthenticated: true }),
+      loginWithCircle: (user, tokens) =>
+        set({
+          user,
+          isAuthenticated: true,
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+        }),
       logout: () =>
         set((s) => ({
           user: null,
@@ -201,6 +228,8 @@ export const useSessionStore = create<SessionState>()(
           hostedEvents: [],
           savedEventIds: [],
           chatExtras: {},
+          accessToken: null,
+          refreshToken: null,
           uiPrefs: s.uiPrefs,
           socialConnections: s.socialConnections,
         })),
@@ -283,7 +312,11 @@ export const useSessionStore = create<SessionState>()(
         const bookings = get().bookings;
         const b = bookings.find((x) => x.id === bookingId);
         if (!b || b.status !== "pending") return;
-        const event = getEventFromCatalog(b.eventId, get().hostedEvents);
+        const event = getEventFromCatalog(
+          b.eventId,
+          get().hostedEvents,
+          get().circleCatalogEvents,
+        );
         if (!event) return;
         const others = bookings.filter((x) => x.id !== bookingId);
         if (isEventFull(event, others)) return;
@@ -468,6 +501,9 @@ export const useSessionStore = create<SessionState>()(
             ...emptySocialConnections(),
             ...p?.socialConnections,
           },
+          circleCatalogEvents: p?.circleCatalogEvents ?? current.circleCatalogEvents,
+          accessToken: p?.accessToken ?? current.accessToken,
+          refreshToken: p?.refreshToken ?? current.refreshToken,
         };
       },
     },

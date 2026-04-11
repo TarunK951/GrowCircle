@@ -8,13 +8,17 @@ export function getStaticEvents(): MeetEvent[] {
   return staticList;
 }
 
-/** Merge seed events with user-published meets (by id: hosted wins for same id — should not happen). */
+/** Merge seed events, Circle API rows, and user-published meets (hosted wins on id clash). */
 export function mergeEventCatalog(
   hosted: MeetEvent[],
+  remoteRows: MeetEvent[] = [],
 ): MeetEvent[] {
   const byId = new Map<string, MeetEvent>();
   for (const e of staticList) {
     byId.set(e.id, { ...e });
+  }
+  for (const r of remoteRows) {
+    byId.set(r.id, { ...r });
   }
   for (const h of hosted) {
     byId.set(h.id, { ...h });
@@ -25,8 +29,9 @@ export function mergeEventCatalog(
 export function getEventFromCatalog(
   id: string,
   hosted: MeetEvent[],
+  remoteRows: MeetEvent[] = [],
 ): MeetEvent | null {
-  const merged = mergeEventCatalog(hosted);
+  const merged = mergeEventCatalog(hosted, remoteRows);
   return merged.find((e) => e.id === id) ?? null;
 }
 
@@ -40,8 +45,9 @@ export function listEventsMerged(
     /** When true, only events visible on explore. */
     publicOnly?: boolean;
   },
+  remoteRows: MeetEvent[] = [],
 ): MeetEvent[] {
-  let list = mergeEventCatalog(hosted);
+  let list = mergeEventCatalog(hosted, remoteRows);
   list = list.filter((e) => !e.cancelledAt);
   if (filters?.publicOnly) {
     list = list.filter((e) => (e.listingVisibility ?? "public") === "public");

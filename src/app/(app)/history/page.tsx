@@ -46,10 +46,11 @@ export default function HistoryPage() {
   const user = useSessionStore((s) => s.user);
   const bookings = useSessionStore((s) => s.bookings);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
+  const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
 
   const catalog = useMemo(
-    () => mergeEventCatalog(hostedEvents),
-    [hostedEvents],
+    () => mergeEventCatalog(hostedEvents, circleCatalogEvents),
+    [hostedEvents, circleCatalogEvents],
   );
 
   const activity = useMemo(() => {

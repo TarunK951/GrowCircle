@@ -1,4 +1,5 @@
 [
+  { "id": "circle", "name": "Circle", "slug": "circle" },
   { "id": "sf", "name": "San Francisco", "slug": "san-francisco" },
   { "id": "nyc", "name": "New York", "slug": "new-york" },
   { "id": "lon", "name": "London", "slug": "london" },

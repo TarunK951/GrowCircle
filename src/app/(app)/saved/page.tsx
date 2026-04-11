@@ -12,6 +12,7 @@ import type { City } from "@/lib/types";
 export default function SavedPage() {
   const savedIds = useSessionStore((s) => s.savedEventIds);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
+  const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
   const sessionUser = useSessionStore((s) => s.user);
   const seedDemoSavedIfEmpty = useSessionStore((s) => s.seedDemoSavedIfEmpty);
 
@@ -23,8 +24,8 @@ export default function SavedPage() {
   const cityById = Object.fromEntries(cities.map((c) => [c.id, c.name]));
 
   const catalog = useMemo(
-    () => mergeEventCatalog(hostedEvents),
-    [hostedEvents],
+    () => mergeEventCatalog(hostedEvents, circleCatalogEvents),
+    [hostedEvents, circleCatalogEvents],
   );
 
   return (
@@ -76,7 +77,7 @@ export default function SavedPage() {
               <EventCard
                 key={e.id}
                 event={e}
-                cityName={cityById[e.cityId] ?? ""}
+                cityName={e.displayLocation ?? cityById[e.cityId] ?? ""}
                 hostName={
                   sessionUser && e.hostUserId === sessionUser.id
                     ? sessionUser.name

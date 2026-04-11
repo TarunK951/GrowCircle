@@ -2,7 +2,7 @@
 
 import { notFound } from "next/navigation";
 import { EventMeetDetail } from "@/components/events/EventMeetDetail";
-import { getEventFromCatalog } from "@/lib/eventsCatalog";
+import { useResolvedEvent } from "@/hooks/useResolvedEvent";
 import { resolveEventDetail } from "@/lib/eventDetail";
 import { hostNameForUserId } from "@/lib/hostName";
 import { useSessionStore } from "@/stores/session-store";
@@ -25,7 +25,16 @@ export function EventDetailView({ id }: { id: string }) {
   const bookings = useSessionStore((s) => s.bookings);
   const user = useSessionStore((s) => s.user);
 
-  const event = getEventFromCatalog(id, hostedEvents);
+  const { event, loading } = useResolvedEvent(id);
+
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-neutral-200 bg-white/80 p-10 text-center text-sm text-neutral-600">
+        Loading event…
+      </div>
+    );
+  }
+
   if (!event) notFound();
 
   const isUserHosted = hostedEvents.some((e) => e.id === event.id);
@@ -52,7 +61,7 @@ export function EventDetailView({ id }: { id: string }) {
       ? "Free"
       : `$${(event.priceCents / 100).toFixed(2)}`;
 
-  const whenLabel = new Date(event.startsAt).toLocaleString(undefined, {
+  const whenLabel = new Date(event.startsAt).toLocaleString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
@@ -65,7 +74,7 @@ export function EventDetailView({ id }: { id: string }) {
     <EventMeetDetail
       event={event}
       detail={detail}
-      cityName={city?.name ?? ""}
+      cityName={event.displayLocation ?? city?.name ?? ""}
       hostName={hostName}
       priceLabel={price}
       whenLabel={whenLabel}

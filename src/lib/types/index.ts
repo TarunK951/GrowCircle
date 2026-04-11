@@ -20,6 +20,8 @@ export type MeetEvent = {
   title: string;
   description: string;
   cityId: string;
+  /** When set (e.g. API-backed), shown in cards instead of city name lookup. */
+  displayLocation?: string;
   startsAt: string;
   hostUserId: string;
   capacity: number;
@@ -56,6 +58,8 @@ export type MeetEvent = {
   preJoinQuestions?: PreJoinQuestion[];
   /** Host soft-cancelled; meet stays in history but is hidden from Explore. */
   cancelledAt?: string;
+  /** Backend slug when synced from Circle API */
+  slug?: string;
 };
 
 export type User = {

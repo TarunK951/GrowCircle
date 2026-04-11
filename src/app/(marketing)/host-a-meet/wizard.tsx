@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import citiesData from "@/data/cities.json";
 import { EVENT_CATEGORY_PRESETS } from "@/lib/eventCategories";
+import {
+  addEventQuestion,
+  createEvent,
+  publishEvent,
+} from "@/lib/circle/api";
+import { isCircleApiConfigured } from "@/lib/circle/config";
+import { circleEventToMeetEvent } from "@/lib/circle/mappers";
 import { generateShareToken } from "@/lib/eventsCatalog";
 import type { City, MeetEvent, PreJoinQuestion } from "@/lib/types";
 import {
@@ -13,6 +20,7 @@ import {
   type HostDraft,
 } from "@/stores/session-store";
 import { cn } from "@/lib/utils";
+import { Upload } from "lucide-react";
 
 const cities = citiesData as City[];
 
@@ -57,9 +65,33 @@ export function HostWizard() {
   const router = useRouter();
   const user = useSessionStore((s) => s.user);
   const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
+  const accessToken = useSessionStore((s) => s.accessToken);
   const publishHostedEvent = useSessionStore((s) => s.publishHostedEvent);
+  const [publishing, setPublishing] = useState(false);
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState(initialHostDraft());
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
+  const [coverDragActive, setCoverDragActive] = useState(false);
+
+  const applyCoverFile = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please choose an image file (PNG, JPG, WebP, …).");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      toast.error("Image must be under 750KB for local demo storage.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setDraft((d) => ({
+        ...d,
+        imageDataUrl: reader.result as string,
+        imageUrl: "",
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
 
   const next = () => setStep((s) => Math.min(s + 1, STEPS - 1));
   const back = () => setStep((s) => Math.max(s - 1, 0));
@@ -75,79 +107,157 @@ export function HostWizard() {
   };
 
   const submit = () => {
-    if (!isAuthenticated || !user) {
-      toast.error("Sign in to publish a meet.");
-      router.push("/login?returnUrl=/host-a-meet");
-      return;
-    }
-    const err = validateDraft(draft);
-    if (err) {
-      toast.error(err);
-      return;
-    }
+    void (async () => {
+      if (!isAuthenticated || !user) {
+        toast.error("Sign in to publish a meet.");
+        router.push("/login?returnUrl=/host-a-meet");
+        return;
+      }
+      const err = validateDraft(draft);
+      if (err) {
+        toast.error(err);
+        return;
+      }
 
-    const startsAtIso = draft.startsAt
-      ? new Date(draft.startsAt).toISOString()
-      : new Date(Date.now() + 864e5).toISOString();
+      const startsAtIso = draft.startsAt
+        ? new Date(draft.startsAt).toISOString()
+        : new Date(Date.now() + 864e5).toISOString();
 
-    const cats = draft.categories.slice(0, 3);
-    const primaryCategory = cats[0] ?? "Social";
+      const cats = draft.categories.slice(0, 3);
+      const primaryCategory = cats[0] ?? "Social";
 
-    let image = DEFAULT_COVER;
-    if (draft.imageDataUrl) image = draft.imageDataUrl;
-    else if (draft.imageUrl.trim() && isProbablyUrl(draft.imageUrl)) {
-      image = draft.imageUrl.trim();
-    }
+      let image = DEFAULT_COVER;
+      if (draft.imageDataUrl) image = draft.imageDataUrl;
+      else if (draft.imageUrl.trim() && isProbablyUrl(draft.imageUrl)) {
+        image = draft.imageUrl.trim();
+      }
 
-    const whatsIncluded = trimLines(draft.whatsIncludedLines);
-    const guestSuggestions = trimLines(draft.guestSuggestions);
-    const dos = trimLines(draft.houseDos);
-    const donts = trimLines(draft.houseDonts);
-    const faqs = draft.faqs
-      .map((f) => ({ q: f.q.trim(), a: f.a.trim() }))
-      .filter((f) => f.q && f.a);
+      const whatsIncluded = trimLines(draft.whatsIncludedLines);
+      const guestSuggestions = trimLines(draft.guestSuggestions);
+      const dos = trimLines(draft.houseDos);
+      const donts = trimLines(draft.houseDonts);
+      const faqs = draft.faqs
+        .map((f) => ({ q: f.q.trim(), a: f.a.trim() }))
+        .filter((f) => f.q && f.a);
 
-    const preJoinQuestions: PreJoinQuestion[] = draft.preJoinQuestions.map(
-      (row, i) => ({
-        id: `pj_${i}_${Math.random().toString(36).slice(2, 9)}`,
-        prompt: row.prompt.trim(),
-        options: row.options.map((o) => o.trim()).filter(Boolean).slice(0, 6),
-      }),
-    );
+      const preJoinQuestions: PreJoinQuestion[] = draft.preJoinQuestions.map(
+        (row, i) => ({
+          id: `pj_${i}_${Math.random().toString(36).slice(2, 9)}`,
+          prompt: row.prompt.trim(),
+          options: row.options.map((o) => o.trim()).filter(Boolean).slice(0, 6),
+        }),
+      );
 
-    const ev: MeetEvent = {
-      id: `evt_u_${Math.random().toString(36).slice(2, 11)}`,
-      title: draft.title.trim() || "Untitled meet",
-      description: draft.description.trim() || "—",
-      cityId: draft.cityId,
-      startsAt: startsAtIso,
-      hostUserId: user.id,
-      capacity: Math.max(4, draft.capacity),
-      category: primaryCategory,
-      categories: cats,
-      image,
-      priceCents: Math.max(0, draft.priceCents),
-      venueName: draft.venueName.trim() || undefined,
-      addressLine: draft.addressLine.trim() || undefined,
-      joinMode: draft.joinMode,
-      listingVisibility: draft.listingVisibility,
-      shareToken: generateShareToken(),
-      spotsTaken: 0,
-      moreAbout: draft.moreAbout.trim() || undefined,
-      whatsIncluded: whatsIncluded.length ? whatsIncluded : undefined,
-      guestSuggestions: guestSuggestions.length ? guestSuggestions : undefined,
-      allowedAndNotes: draft.allowedAndNotes.trim() || undefined,
-      houseRules:
-        dos.length || donts.length
-          ? { dos, donts }
-          : undefined,
-      faqs: faqs.length ? faqs : undefined,
-      preJoinQuestions: preJoinQuestions.length ? preJoinQuestions : undefined,
-    };
+      if (isCircleApiConfigured() && accessToken) {
+        setPublishing(true);
+        try {
+          const location =
+            [draft.venueName, draft.addressLine]
+              .map((s) => s.trim())
+              .filter(Boolean)
+              .join(", ") || "TBD";
+          const coverUrl =
+            !draft.imageDataUrl &&
+            draft.imageUrl.trim() &&
+            isProbablyUrl(draft.imageUrl)
+              ? draft.imageUrl.trim()
+              : image.startsWith("http")
+                ? image
+                : undefined;
 
-    publishHostedEvent(ev);
-    toast.success("Meet published (mock) — manage it under Bookings.");
-    router.push("/bookings");
+          const created = await createEvent(accessToken, {
+            title: draft.title.trim() || "Untitled meet",
+            description: draft.description.trim() || "—",
+            max_capacity: Math.max(4, draft.capacity),
+            price: Math.max(0, draft.priceCents) / 100,
+            event_date: startsAtIso,
+            location,
+            ...(coverUrl ? { cover_image_url: coverUrl } : {}),
+            visibility: draft.listingVisibility,
+            waitlist_enabled: true,
+          });
+
+          for (let i = 0; i < draft.preJoinQuestions.length; i++) {
+            const row = draft.preJoinQuestions[i];
+            const opts = row.options.map((o) => o.trim()).filter(Boolean);
+            if (opts.length < 2) continue;
+            await addEventQuestion(accessToken, created.id, {
+              question_text: row.prompt.trim(),
+              question_type: "single_select",
+              options: opts.slice(0, 6),
+              is_required: true,
+              sort_order: i + 1,
+            });
+          }
+
+          const published = await publishEvent(accessToken, created.id);
+          const ev = circleEventToMeetEvent(published);
+          publishHostedEvent({
+            ...ev,
+            category: primaryCategory,
+            categories: cats,
+            cityId: draft.cityId,
+            moreAbout: draft.moreAbout.trim() || undefined,
+            whatsIncluded: whatsIncluded.length ? whatsIncluded : undefined,
+            guestSuggestions: guestSuggestions.length
+              ? guestSuggestions
+              : undefined,
+            allowedAndNotes: draft.allowedAndNotes.trim() || undefined,
+            houseRules:
+              dos.length || donts.length ? { dos, donts } : undefined,
+            faqs: faqs.length ? faqs : undefined,
+            preJoinQuestions: preJoinQuestions.length
+              ? preJoinQuestions
+              : undefined,
+            joinMode: draft.joinMode,
+            shareToken: generateShareToken(),
+          });
+          toast.success("Meet published — manage it under Bookings.");
+          router.push("/bookings");
+        } catch (e) {
+          toast.error(
+            e instanceof Error ? e.message : "Could not publish to Circle API",
+          );
+        } finally {
+          setPublishing(false);
+        }
+        return;
+      }
+
+      const ev: MeetEvent = {
+        id: `evt_u_${Math.random().toString(36).slice(2, 11)}`,
+        title: draft.title.trim() || "Untitled meet",
+        description: draft.description.trim() || "—",
+        cityId: draft.cityId,
+        startsAt: startsAtIso,
+        hostUserId: user.id,
+        capacity: Math.max(4, draft.capacity),
+        category: primaryCategory,
+        categories: cats,
+        image,
+        priceCents: Math.max(0, draft.priceCents),
+        venueName: draft.venueName.trim() || undefined,
+        addressLine: draft.addressLine.trim() || undefined,
+        joinMode: draft.joinMode,
+        listingVisibility: draft.listingVisibility,
+        shareToken: generateShareToken(),
+        spotsTaken: 0,
+        moreAbout: draft.moreAbout.trim() || undefined,
+        whatsIncluded: whatsIncluded.length ? whatsIncluded : undefined,
+        guestSuggestions: guestSuggestions.length ? guestSuggestions : undefined,
+        allowedAndNotes: draft.allowedAndNotes.trim() || undefined,
+        houseRules:
+          dos.length || donts.length
+            ? { dos, donts }
+            : undefined,
+        faqs: faqs.length ? faqs : undefined,
+        preJoinQuestions: preJoinQuestions.length ? preJoinQuestions : undefined,
+      };
+
+      publishHostedEvent(ev);
+      toast.success("Meet published (mock) — manage it under Bookings.");
+      router.push("/bookings");
+    })();
   };
 
   const inputClass = cn(
@@ -339,39 +449,113 @@ export function HostWizard() {
       )}
 
       {step === 4 && (
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 space-y-5">
           <div>
-            <label className="text-sm font-semibold text-neutral-900">Cover image</label>
+            <p className="text-sm font-semibold text-neutral-900">Cover image</p>
+            <p className="mt-1 text-xs leading-relaxed text-neutral-600">
+              Upload a file from your device, or paste an HTTPS image URL below.
+              Uploads stay in this browser only (demo).
+            </p>
+
             <input
+              ref={coverFileInputRef}
               type="file"
               accept="image/*"
-              className="mt-2 block w-full text-sm"
+              className="sr-only"
+              aria-label="Upload cover image"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (!file) return;
-                if (file.size > MAX_IMAGE_BYTES) {
-                  toast.error("Image must be under 750KB for local demo storage.");
-                  return;
-                }
-                const reader = new FileReader();
-                reader.onload = () => {
-                  setDraft((d) => ({
-                    ...d,
-                    imageDataUrl: reader.result as string,
-                    imageUrl: "",
-                  }));
-                };
-                reader.readAsDataURL(file);
+                if (file) applyCoverFile(file);
+                e.target.value = "";
               }}
             />
-            <p className="mt-1 text-xs text-muted">
-              Or paste an image URL (https) below. Uploaded images are stored in
-              your browser for this demo.
-            </p>
+
+            <div
+              role="button"
+              tabIndex={0}
+              onDragEnter={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setCoverDragActive(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setCoverDragActive(false);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setCoverDragActive(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file) applyCoverFile(file);
+              }}
+              onClick={() => coverFileInputRef.current?.click()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  coverFileInputRef.current?.click();
+                }
+              }}
+              className={cn(
+                "mt-3 flex w-full min-h-[168px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-8 text-center transition outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/20",
+                coverDragActive
+                  ? "border-neutral-900 bg-neutral-100"
+                  : "border-neutral-300 bg-neutral-50 hover:border-neutral-500 hover:bg-neutral-100/90",
+              )}
+            >
+              <Upload
+                className="h-10 w-10 text-neutral-500"
+                strokeWidth={1.5}
+                aria-hidden
+              />
+              <span className="mt-3 text-sm font-semibold text-neutral-900">
+                {coverDragActive ? "Drop image here" : "Click to upload"}
+              </span>
+              <span className="mt-1 text-xs text-neutral-600">
+                or drag and drop — PNG, JPG, WebP · max 750KB
+              </span>
+            </div>
+
+            {draft.imageDataUrl ? (
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => coverFileInputRef.current?.click()}
+                  className="text-xs font-semibold text-neutral-900 underline-offset-2 hover:underline"
+                >
+                  Replace image
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDraft((d) => ({ ...d, imageDataUrl: null }))
+                  }
+                  className="text-xs font-semibold text-red-700 underline-offset-2 hover:underline"
+                >
+                  Remove upload
+                </button>
+              </div>
+            ) : null}
           </div>
+
           <div>
-            <label className="text-sm font-semibold text-neutral-900">Image URL (optional)</label>
+            <label
+              htmlFor="host-cover-image-url"
+              className="text-sm font-semibold text-neutral-900"
+            >
+              Image URL (optional)
+            </label>
+            <p className="mt-1 text-xs text-neutral-600">
+              Use a direct link if you prefer not to upload. Entering a URL
+              clears an uploaded file.
+            </p>
             <input
+              id="host-cover-image-url"
               className={inputClass}
               value={draft.imageUrl}
               placeholder="https://…"
@@ -384,15 +568,21 @@ export function HostWizard() {
               }
             />
           </div>
+
           {(draft.imageDataUrl ||
             (draft.imageUrl.trim() && isProbablyUrl(draft.imageUrl))) && (
-            <div className="relative aspect-4/3 w-full max-w-md overflow-hidden rounded-xl border border-primary/10">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={draft.imageDataUrl ?? draft.imageUrl.trim()}
-                alt=""
-                className="h-full w-full object-cover"
-              />
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
+                Preview
+              </p>
+              <div className="relative mt-2 aspect-4/3 w-full max-w-md overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={draft.imageDataUrl ?? draft.imageUrl.trim()}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              </div>
             </div>
           )}
         </div>
@@ -813,9 +1003,14 @@ export function HostWizard() {
           <button
             type="button"
             onClick={submit}
-            className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow-md shadow-primary/20 transition hover:bg-primary/92"
+            disabled={publishing}
+            className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow-md shadow-primary/20 transition hover:bg-primary/92 disabled:opacity-60"
           >
-            Publish (mock)
+            {publishing
+              ? "Publishing…"
+              : isCircleApiConfigured() && accessToken
+                ? "Publish"
+                : "Publish (mock)"}
           </button>
         )}
       </div>

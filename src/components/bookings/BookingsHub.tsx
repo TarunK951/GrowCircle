@@ -48,6 +48,7 @@ export function BookingsHub() {
   const user = useSessionStore((s) => s.user);
   const bookings = useSessionStore((s) => s.bookings);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
+  const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
   const cancelBooking = useSessionStore((s) => s.cancelBooking);
   const refundBooking = useSessionStore((s) => s.refundBooking);
   const updateHostedEvent = useSessionStore((s) => s.updateHostedEvent);
@@ -64,8 +65,8 @@ export function BookingsHub() {
   const [codeInputs, setCodeInputs] = useState<Record<string, string>>({});
 
   const catalog = useMemo(
-    () => mergeEventCatalog(hostedEvents),
-    [hostedEvents],
+    () => mergeEventCatalog(hostedEvents, circleCatalogEvents),
+    [hostedEvents, circleCatalogEvents],
   );
 
   const myHosting = useMemo(() => {
@@ -120,7 +121,11 @@ export function BookingsHub() {
             </li>
           )}
           {myBookings.map((b) => {
-            const ev = getEventFromCatalog(b.eventId, hostedEvents);
+            const ev = getEventFromCatalog(
+              b.eventId,
+              hostedEvents,
+              circleCatalogEvents,
+            );
             if (!ev) return null;
             const origin =
               typeof window !== "undefined" ? window.location.origin : "";

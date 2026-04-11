@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/MarketingButton";
@@ -43,10 +43,6 @@ function PreJoinModal({
 }) {
   const questions = event.preJoinQuestions ?? [];
   const [answers, setAnswers] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    if (open) setAnswers({});
-  }, [open, event.id]);
 
   if (!open) return null;
 
@@ -143,8 +139,10 @@ export function JoinMeetButton({ event }: { event: MeetEvent }) {
   const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
   const user = useSessionStore((s) => s.user);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
+  const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
   const tryJoinEvent = useSessionStore((s) => s.tryJoinEvent);
   const [preJoinOpen, setPreJoinOpen] = useState(false);
+  const [preJoinKey, setPreJoinKey] = useState(0);
 
   const runJoin = (latest: MeetEvent, preJoinAnswers?: Record<string, string>) => {
     const result = tryJoinEvent(latest, preJoinAnswers);
@@ -174,9 +172,12 @@ export function JoinMeetButton({ event }: { event: MeetEvent }) {
             router.push(`/login?returnUrl=/event/${event.id}`);
             return;
           }
-          const latest = getEventFromCatalog(event.id, hostedEvents) ?? event;
+          const latest =
+            getEventFromCatalog(event.id, hostedEvents, circleCatalogEvents) ??
+            event;
           const qs = latest.preJoinQuestions ?? [];
           if (qs.length > 0) {
+            setPreJoinKey((k) => k + 1);
             setPreJoinOpen(true);
             return;
           }
@@ -185,11 +186,17 @@ export function JoinMeetButton({ event }: { event: MeetEvent }) {
         className="!min-w-[200px]"
       />
       <PreJoinModal
-        event={getEventFromCatalog(event.id, hostedEvents) ?? event}
+        key={preJoinKey}
+        event={
+          getEventFromCatalog(event.id, hostedEvents, circleCatalogEvents) ??
+          event
+        }
         open={preJoinOpen}
         onClose={() => setPreJoinOpen(false)}
         onConfirm={(answers) => {
-          const latest = getEventFromCatalog(event.id, hostedEvents) ?? event;
+          const latest =
+            getEventFromCatalog(event.id, hostedEvents, circleCatalogEvents) ??
+            event;
           setPreJoinOpen(false);
           runJoin(latest, answers);
         }}

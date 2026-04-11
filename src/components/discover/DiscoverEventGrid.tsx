@@ -12,6 +12,7 @@ import type { City } from "@/lib/types";
 
 export function DiscoverEventGrid() {
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
+  const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
   const user = useSessionStore((s) => s.user);
   const sp = useSearchParams();
   const city = sp.get("city") ?? "";
@@ -21,14 +22,18 @@ export function DiscoverEventGrid() {
 
   const events = useMemo(
     () =>
-      listEventsMerged(hostedEvents, {
-        cityId: city || undefined,
-        category: category || undefined,
-        dateFrom: dateFrom || undefined,
-        dateTo: dateTo || undefined,
-        publicOnly: true,
-      }),
-    [hostedEvents, city, category, dateFrom, dateTo],
+      listEventsMerged(
+        hostedEvents,
+        {
+          cityId: city || undefined,
+          category: category || undefined,
+          dateFrom: dateFrom || undefined,
+          dateTo: dateTo || undefined,
+          publicOnly: true,
+        },
+        circleCatalogEvents,
+      ),
+    [hostedEvents, circleCatalogEvents, city, category, dateFrom, dateTo],
   );
 
   const cities = citiesData as City[];
@@ -40,7 +45,7 @@ export function DiscoverEventGrid() {
         <Reveal key={e.id}>
           <EventCard
             event={e}
-            cityName={cityById[e.cityId] ?? ""}
+            cityName={e.displayLocation ?? cityById[e.cityId] ?? ""}
             hostName={
               user && e.hostUserId === user.id
                 ? user.name

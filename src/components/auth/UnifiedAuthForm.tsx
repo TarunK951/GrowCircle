@@ -9,6 +9,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import { GoogleGlyph } from "@/components/auth/GoogleGlyph";
+import { CirclePhoneAuth } from "@/components/auth/CirclePhoneAuth";
+import { isCircleApiConfigured } from "@/lib/circle/config";
 import { loginMock, signupMock } from "@/lib/mockApi";
 import { useSessionStore } from "@/stores/session-store";
 
@@ -87,6 +89,10 @@ export function UnifiedAuthForm() {
       toast.error("Something went wrong. Please try again.");
     }
   });
+
+  if (isCircleApiConfigured()) {
+    return <CirclePhoneAuth />;
+  }
 
   return (
     <div className="mx-auto w-full max-w-md text-left">

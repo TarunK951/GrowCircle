@@ -13,12 +13,17 @@ import type { City } from "@/lib/types";
 
 export function HomeFeaturedGrid() {
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
+  const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
   const user = useSessionStore((s) => s.user);
 
   const featured = useMemo(() => {
-    const list = listEventsMerged(hostedEvents, { publicOnly: true });
+    const list = listEventsMerged(
+      hostedEvents,
+      { publicOnly: true },
+      circleCatalogEvents,
+    );
     return list.slice(0, 3);
-  }, [hostedEvents]);
+  }, [hostedEvents, circleCatalogEvents]);
 
   const cities = citiesData as City[];
   const cityById = Object.fromEntries(cities.map((c) => [c.id, c.name]));
@@ -51,7 +56,7 @@ export function HomeFeaturedGrid() {
             <Reveal key={e.id}>
               <EventCard
                 event={e}
-                cityName={cityById[e.cityId] ?? "City"}
+                cityName={e.displayLocation ?? cityById[e.cityId] ?? "City"}
                 hostName={
                   user && e.hostUserId === user.id
                     ? user.name

@@ -28,6 +28,7 @@ export function EventCard({
 
   const subtitle = hostName?.trim() || cityName;
   const coverIsDataUrl = event.image.startsWith("data:");
+  const coverIsUnsplash = event.image.includes("images.unsplash.com");
 
   return (
     <Link
@@ -58,6 +59,7 @@ export function EventCard({
             alt=""
             fill
             priority={priority}
+            unoptimized={!coverIsUnsplash}
             className="object-cover transition duration-500 ease-out motion-safe:group-hover:scale-[1.02]"
             sizes="(max-width:768px) 100vw, 33vw"
           />
@@ -90,7 +92,7 @@ export function EventCard({
         <p className="mt-2 text-sm font-bold text-foreground">{subtitle}</p>
         <div className="mt-3 flex items-center justify-between gap-3 text-sm">
           <span className="text-muted-foreground">
-            {new Date(event.startsAt).toLocaleString(undefined, {
+            {new Date(event.startsAt).toLocaleString("en-US", {
               weekday: "short",
               month: "short",
               day: "numeric",
