@@ -10,19 +10,19 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isLogin = pathname === "/login";
+  const isSplitAuth = pathname === "/login" || pathname === "/signup";
 
   return (
     <div
       className={cn(
         "flex min-h-screen flex-col",
-        isLogin ? "bg-[#FBFCF8]" : "bg-canvas",
+        isSplitAuth ? "bg-[#FBFCF8]" : "bg-canvas",
       )}
     >
       <header
         className={cn(
           "sticky top-0 z-50 border-b px-4 py-4 backdrop-blur-xl sm:px-6",
-          isLogin
+          isSplitAuth
             ? "border-neutral-200/60 bg-[#FBFCF8]/90"
             : "border-primary/10 bg-canvas/85",
         )}
@@ -32,14 +32,14 @@ export default function AuthLayout({
             href="/"
             className={cn(
               "text-lg font-semibold tracking-tight",
-              isLogin ? "text-foreground" : "text-primary",
+              isSplitAuth ? "text-foreground" : "text-primary",
             )}
           >
             ConnectSphere
           </Link>
         </div>
       </header>
-      {isLogin ? (
+      {isSplitAuth ? (
         <div className="flex min-h-0 w-full flex-1 flex-col">{children}</div>
       ) : (
         <div className="flex w-full flex-1 flex-col items-center justify-center px-4 py-12 sm:px-6">
