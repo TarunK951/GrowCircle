@@ -15,6 +15,8 @@ import {
 import { CircleApiError } from "@/lib/circle/client";
 import { isCircleApiConfigured } from "@/lib/circle/config";
 import { CircleHostMeetSection } from "@/components/bookings/CircleHostMeetSection";
+import { TicketModal } from "@/components/bookings/TicketModal";
+import { downloadApplicationInvoice } from "@/lib/circle/invoicesApi";
 import type { CircleMyApplication, CirclePaymentDetails } from "@/lib/circle/types";
 import {
   getEventFromCatalog,
@@ -31,6 +33,17 @@ type Tab = "guest" | "host";
 function copyText(label: string, text: string) {
   void navigator.clipboard.writeText(text);
   toast.success(`${label} copied`);
+}
+
+function triggerBlobDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function statusLabel(s: Booking["status"]) {
@@ -202,6 +215,8 @@ function CircleGuestApplicationCard({
   } | null>(null);
   const [otpSecsLeft, setOtpSecsLeft] = useState(0);
   const [paymentModal, setPaymentModal] = useState(false);
+  const [ticketOpen, setTicketOpen] = useState(false);
+  const [receiptBusy, setReceiptBusy] = useState(false);
 
   useEffect(() => {
     if (!otpState) return;
@@ -229,6 +244,33 @@ function CircleGuestApplicationCard({
     app.payment && "id" in app.payment && app.payment.id
       ? String(app.payment.id)
       : null;
+
+  const canViewTicket =
+    isCircleApiConfigured() &&
+    (Boolean(app.ticket_id) ||
+      ["selected", "paid", "confirmed", "attended", "checked_in"].includes(
+        app.status,
+      ));
+
+  const runDownloadReceipt = async () => {
+    if (!payId) return;
+    setReceiptBusy(true);
+    try {
+      const blob = await downloadApplicationInvoice(accessToken, app.id);
+      triggerBlobDownload(blob, `receipt-${app.id}.pdf`);
+      toast.success("Receipt downloaded.");
+    } catch (e) {
+      toast.error(
+        e instanceof CircleApiError
+          ? e.message
+          : e instanceof Error
+            ? e.message
+            : "Could not download receipt",
+      );
+    } finally {
+      setReceiptBusy(false);
+    }
+  };
 
   const runAcceptOffer = async () => {
     try {
@@ -326,6 +368,12 @@ function CircleGuestApplicationCard({
         open={paymentModal}
         onClose={() => setPaymentModal(false)}
       />
+      <TicketModal
+        open={ticketOpen}
+        onClose={() => setTicketOpen(false)}
+        applicationId={app.id}
+        accessToken={accessToken}
+      />
       <div className="flex flex-col sm:flex-row sm:items-stretch">
         <div className="relative h-36 w-full shrink-0 bg-neutral-100 sm:w-40 md:w-44">
           <Image
@@ -399,6 +447,25 @@ function CircleGuestApplicationCard({
                 onClick={() => setPaymentModal(true)}
               >
                 View payment
+              </button>
+            )}
+            {canViewTicket && (
+              <button
+                type="button"
+                className="rounded-full border border-neutral-900 bg-white px-4 py-2 text-xs font-semibold text-neutral-900 hover:bg-neutral-100"
+                onClick={() => setTicketOpen(true)}
+              >
+                View ticket
+              </button>
+            )}
+            {payId && isCircleApiConfigured() && (
+              <button
+                type="button"
+                disabled={receiptBusy}
+                className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-xs font-semibold text-neutral-900 hover:bg-neutral-100 disabled:opacity-60"
+                onClick={() => void runDownloadReceipt()}
+              >
+                {receiptBusy ? "Downloading…" : "Download receipt"}
               </button>
             )}
             {app.status === "waitlisted" && (

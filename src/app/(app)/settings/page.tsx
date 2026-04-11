@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { toast } from "sonner";
 import { useSessionStore } from "@/stores/session-store";
 
@@ -32,6 +33,17 @@ export default function SettingsPage() {
       <p className="mt-2 text-muted">
         Local preferences — not synced to a server.
       </p>
+      <div className="mt-6 rounded-2xl border border-neutral-200 bg-white/80 p-5 shadow-sm">
+        <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+          Safety
+        </p>
+        <Link
+          href="/reports"
+          className="mt-3 inline-flex text-sm font-semibold text-neutral-900 underline"
+        >
+          My reports — submit or view status
+        </Link>
+      </div>
       <div className="mt-8 space-y-5 rounded-2xl border border-neutral-200 bg-white/80 p-6 shadow-sm">
         <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">
           Notifications (mock)

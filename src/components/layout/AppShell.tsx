@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { logoutApi } from "@/lib/circle/api";
+import { getUnreadNotificationCount } from "@/lib/circle/notificationsApi";
 import { isCircleApiConfigured } from "@/lib/circle/config";
 import { useSessionStore } from "@/stores/session-store";
 import {
@@ -55,6 +57,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const logout = useSessionStore((s) => s.logout);
   const accessToken = useSessionStore((s) => s.accessToken);
   const refreshToken = useSessionStore((s) => s.refreshToken);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+
+  useEffect(() => {
+    const load = () => {
+      if (!accessToken || !isCircleApiConfigured()) {
+        setUnreadNotifCount(0);
+        return;
+      }
+      void getUnreadNotificationCount(accessToken)
+        .then((d) => setUnreadNotifCount(d.count))
+        .catch(() => setUnreadNotifCount(0));
+    };
+    load();
+    const onRefresh = () => load();
+    window.addEventListener("circle-unread-refresh", onRefresh);
+    return () => window.removeEventListener("circle-unread-refresh", onRefresh);
+  }, [pathname, accessToken]);
 
   return (
     <div className="flex min-h-[calc(100vh-5rem)]">
@@ -87,7 +106,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     )}
                   >
                     <Icon className="h-4 w-4 shrink-0 opacity-90" />
-                    {item.label}
+                    <span className="min-w-0 flex-1">{item.label}</span>
+                    {item.href === "/notifications" && unreadNotifCount > 0 && (
+                      <span
+                        className={cn(
+                          "flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1 text-[10px] font-bold",
+                          active
+                            ? "bg-white text-neutral-900"
+                            : "bg-red-600 text-white",
+                        )}
+                        aria-label={`${unreadNotifCount} unread`}
+                      >
+                        {unreadNotifCount > 99 ? "99+" : unreadNotifCount}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

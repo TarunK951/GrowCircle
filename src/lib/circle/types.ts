@@ -236,3 +236,78 @@ export type CheckinEventStatusData = {
   pending: number;
   attendees: CheckinAttendee[];
 };
+
+/** §9 — ticket detail */
+export type CircleTicketEventSummary = {
+  id?: string;
+  title?: string;
+  event_date?: string;
+  location?: string;
+};
+
+export type CircleTicketAttendeeSummary = {
+  id?: string;
+  username?: string | null;
+};
+
+export type CircleTicketDetail = {
+  ticket_id: string;
+  qr_code_token?: string | null;
+  event?: CircleTicketEventSummary;
+  attendee?: CircleTicketAttendeeSummary;
+  status: string;
+  is_checked_in?: boolean;
+  checked_in_at?: string | null;
+};
+
+export type CircleTicketQrData = {
+  qr_code: string;
+};
+
+/** §9.3 public verify — same shape as detail subset */
+export type CircleTicketVerifyPublic = {
+  ticket_id: string;
+  event?: CircleTicketEventSummary;
+  attendee?: CircleTicketAttendeeSummary;
+  status: string;
+  is_checked_in?: boolean;
+  checked_in_at?: string | null;
+};
+
+/** §11 */
+export type CircleApiNotification = {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  metadata?: Record<string, unknown> | null;
+  is_read: boolean;
+  is_email_sent?: boolean;
+  created_at: string;
+};
+
+export type CircleUnreadCountData = {
+  count: number;
+};
+
+/** §12 */
+export type CircleReportTargetType = "user" | "host" | "event";
+
+export type CircleSubmitReportBody = {
+  target_type: CircleReportTargetType;
+  target_id: string;
+  event_id?: string;
+  reason: string;
+  description?: string;
+};
+
+export type CircleReportRow = {
+  id: string;
+  target_type: string;
+  target_id: string;
+  event_id?: string | null;
+  reason?: string;
+  description?: string | null;
+  status?: string;
+  created_at?: string;
+};
