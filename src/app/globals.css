@@ -7,6 +7,8 @@
 
 :root {
   --canvas: #fbfcf8;
+  /* Grow Circle logo blue */
+  --brand: #1d35cc;
   --primary: oklch(0.205 0 0);
   --secondary: oklch(0.97 0 0);
   --muted: oklch(0.97 0 0);
@@ -59,6 +61,7 @@
 
 @theme inline {
   --color-canvas: var(--canvas);
+  --color-brand: var(--brand);
   --color-primary: var(--primary);
   --color-secondary: var(--secondary);
   --color-foreground: var(--foreground);
@@ -101,6 +104,19 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@keyframes gc-load-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+.gc-load-bar-sweep {
+  animation: gc-load-indeterminate 1.15s ease-in-out infinite;
 }
 
 html {

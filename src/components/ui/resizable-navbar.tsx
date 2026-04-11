@@ -1,6 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { IconMenu2, IconX } from "@tabler/icons-react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   motion,
@@ -234,22 +235,31 @@ export const MobileNavToggle = ({
 
 export const NavbarLogo = ({
   href = "/",
-  title = "ConnectSphere",
+  alt = "Grow Circle",
   className,
 }: {
   href?: string;
-  title?: string;
+  /** Accessible name (logo image contains wordmark) */
+  alt?: string;
   className?: string;
 }) => {
   return (
     <Link
       href={href}
+      aria-label={alt}
       className={cn(
-        "relative z-20 mr-2 flex shrink-0 items-center px-2 py-1 text-base font-semibold tracking-tight text-primary sm:mr-4",
+        "relative z-20 mr-2 flex shrink-0 items-center px-1 py-0.5 sm:mr-4",
         className,
       )}
     >
-      {title}
+      <Image
+        src="/brand-grow-circle-logo.png"
+        alt=""
+        width={200}
+        height={56}
+        className="h-7 w-auto sm:h-8"
+        priority
+      />
     </Link>
   );
 };
