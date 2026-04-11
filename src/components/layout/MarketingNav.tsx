@@ -26,7 +26,8 @@ type NavLink = {
 const links: NavLink[] = [
   { href: "/host", label: "Host", aliases: ["/host-a-meet"] },
   { href: "/join", label: "Join", aliases: ["/join-a-meet"] },
-  { href: "/history", label: "History", aliases: ["/bookings", "/my-events"] },
+  { href: "/bookings", label: "Bookings", aliases: ["/my-events"] },
+  { href: "/history", label: "History" },
 ];
 
 function navActive(pathname: string, href: string, aliases?: string[]) {

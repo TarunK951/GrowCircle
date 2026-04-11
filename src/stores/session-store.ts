@@ -52,8 +52,10 @@ type SessionState = {
   resetNotificationsRead: () => void;
   chatExtras: Record<string, ChatMessage[]>;
   appendChatMessage: (threadId: string, msg: ChatMessage) => void;
-  /** One-time demo rows for History / hosting UI testing (id prefix b_demo_). */
+  /** One-time demo rows for Bookings / hosting UI testing (id prefix b_demo_). */
   seedDemoBookingData: () => void;
+  /** Seed Saved with sample event ids when empty (demo). */
+  seedDemoSavedIfEmpty: () => void;
 };
 
 const initialHostDraft = (): HostDraft => ({
@@ -346,6 +348,12 @@ export const useSessionStore = create<SessionState>()(
         set({
           hostedEvents: hosted,
           bookings: [...get().bookings, ...extra],
+        });
+      },
+      seedDemoSavedIfEmpty: () => {
+        if (get().savedEventIds.length > 0) return;
+        set({
+          savedEventIds: ["evt_1", "evt_2", "evt_3"],
         });
       },
     }),
