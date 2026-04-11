@@ -1,0 +1,67 @@
+[
+  {
+    "id": "evt_1",
+    "title": "Rooftop sunset mixer",
+    "description": "Small group, curated intros, zero awkward icebreakers. Drinks provided.",
+    "cityId": "sf",
+    "startsAt": "2026-05-02T18:30:00.000Z",
+    "hostUserId": "u_host_1",
+    "capacity": 24,
+    "category": "Social",
+    "image": "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1200&auto=format&fit=crop&q=80",
+    "priceCents": 2500,
+    "venueName": "SOMA Terrace"
+  },
+  {
+    "id": "evt_2",
+    "title": "Founders breakfast club",
+    "description": "Early birds only. Share what you're building and one ask for the table.",
+    "cityId": "nyc",
+    "startsAt": "2026-05-04T13:00:00.000Z",
+    "hostUserId": "u_host_2",
+    "capacity": 12,
+    "category": "Professional",
+    "image": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=1200&auto=format&fit=crop&q=80",
+    "priceCents": 0,
+    "venueName": "Flatiron Studio"
+  },
+  {
+    "id": "evt_3",
+    "title": "Gallery night walk",
+    "description": "Three stops, one coffee break, great for solo attendees.",
+    "cityId": "lon",
+    "startsAt": "2026-05-08T17:45:00.000Z",
+    "hostUserId": "u_host_1",
+    "capacity": 18,
+    "category": "Culture",
+    "image": "https://images.unsplash.com/photo-1518998053901-5348d3961a04?w=1200&auto=format&fit=crop&q=80",
+    "priceCents": 1500,
+    "venueName": "Shoreditch Arts"
+  },
+  {
+    "id": "evt_4",
+    "title": "Weekend board games",
+    "description": "Beginner-friendly. Snacks, soft drinks, and a few competitive souls.",
+    "cityId": "blr",
+    "startsAt": "2026-05-10T16:00:00.000Z",
+    "hostUserId": "u_host_2",
+    "capacity": 16,
+    "category": "Games",
+    "image": "https://images.unsplash.com/photo-1610890716171-6b1c98afd665?w=1200&auto=format&fit=crop&q=80",
+    "priceCents": 800,
+    "venueName": "Indiranagar Loft"
+  },
+  {
+    "id": "evt_5",
+    "title": "Harbor-side jog + coffee",
+    "description": "Easy 5k, then espresso. Pace groups at signup.",
+    "cityId": "sg",
+    "startsAt": "2026-05-12T07:00:00.000Z",
+    "hostUserId": "u_host_1",
+    "capacity": 30,
+    "category": "Wellness",
+    "image": "https://images.unsplash.com/photo-1571008887538-b36bb32f4571?w=1200&auto=format&fit=crop&q=80",
+    "priceCents": 0,
+    "venueName": "Marina Bay"
+  }
+]

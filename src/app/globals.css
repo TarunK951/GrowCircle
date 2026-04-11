@@ -1,0 +1,76 @@
+@import "tailwindcss";
+@import "@fontsource-variable/onest/wght.css";
+
+:root {
+  --canvas: #fff3e0;
+  --primary: #1e3bbd;
+  --foreground: #1a1a1c;
+  --muted: #5c5c66;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-primary: var(--primary);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --font-sui: "Onest Variable", Onest, system-ui, sans-serif;
+  --font-sans: var(--font-sui);
+}
+
+body {
+  background: var(--canvas);
+  color: var(--foreground);
+  font-family: var(--font-sui);
+}
+
+html.cursor-none {
+  cursor: none;
+}
+
+.custom-cursor {
+  display: none;
+}
+
+@media (pointer: fine) {
+  .custom-cursor {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .custom-cursor {
+    display: none !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* David UI–style liquid glass utilities */
+@layer components {
+  .glass-panel {
+    @apply relative overflow-hidden rounded-xl border border-white/50 bg-black/20 p-3 text-white shadow-[inset_0_1px_0px_rgba(255,255,255,0.75),0_0_9px_rgba(0,0,0,0.2),0_3px_8px_rgba(0,0,0,0.15)] backdrop-blur-sm;
+  }
+  .glass-panel::before {
+    content: "";
+    @apply pointer-events-none absolute inset-0 rounded-lg bg-gradient-to-br from-white/60 via-transparent to-transparent opacity-70;
+  }
+  .glass-panel::after {
+    content: "";
+    @apply pointer-events-none absolute inset-0 rounded-lg bg-gradient-to-tl from-white/30 via-transparent to-transparent opacity-50;
+  }
+  .glass-icon-btn {
+    @apply relative inline-flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg border border-white/50 bg-white/[0.025] p-2 text-center text-sm font-medium text-white shadow-[inset_0_1px_0px_rgba(255,255,255,0.75),0_0_9px_rgba(0,0,0,0.2),0_3px_8px_rgba(0,0,0,0.15)] backdrop-blur-sm transition-all duration-300 antialiased select-none hover:bg-white/30;
+  }
+  .glass-icon-btn::before {
+    content: "";
+    @apply pointer-events-none absolute inset-0 rounded-lg bg-gradient-to-br from-white/60 via-transparent to-transparent opacity-70;
+  }
+  .glass-icon-btn::after {
+    content: "";
+    @apply pointer-events-none absolute inset-0 rounded-lg bg-gradient-to-tl from-white/30 via-transparent to-transparent opacity-50;
+  }
+}

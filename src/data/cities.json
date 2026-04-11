@@ -1,0 +1,7 @@
+[
+  { "id": "sf", "name": "San Francisco", "slug": "san-francisco" },
+  { "id": "nyc", "name": "New York", "slug": "new-york" },
+  { "id": "lon", "name": "London", "slug": "london" },
+  { "id": "blr", "name": "Bengaluru", "slug": "bengaluru" },
+  { "id": "sg", "name": "Singapore", "slug": "singapore" }
+]

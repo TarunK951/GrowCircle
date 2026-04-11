@@ -1,0 +1,30 @@
+[
+  {
+    "id": "t1",
+    "title": "Alex Rivera",
+    "participantIds": ["u_host_1", "me"],
+    "messages": [
+      {
+        "id": "m1",
+        "threadId": "t1",
+        "senderId": "u_host_1",
+        "body": "Hey! Looking forward to seeing you at the rooftop mixer.",
+        "sentAt": "2026-04-08T12:00:00.000Z"
+      }
+    ]
+  },
+  {
+    "id": "t2",
+    "title": "Sam Chen",
+    "participantIds": ["u_host_2", "me"],
+    "messages": [
+      {
+        "id": "m2",
+        "threadId": "t2",
+        "senderId": "me",
+        "body": "Is there parking near the venue?",
+        "sentAt": "2026-04-07T09:15:00.000Z"
+      }
+    ]
+  }
+]

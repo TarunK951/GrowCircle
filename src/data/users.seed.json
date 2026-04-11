@@ -1,0 +1,20 @@
+[
+  {
+    "id": "u_host_1",
+    "name": "Alex Rivera",
+    "email": "alex@example.com",
+    "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=128&h=128&fit=crop",
+    "cityId": "sf",
+    "interests": ["outdoors", "food"],
+    "verified": true
+  },
+  {
+    "id": "u_host_2",
+    "name": "Sam Chen",
+    "email": "sam@example.com",
+    "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=128&h=128&fit=crop",
+    "cityId": "nyc",
+    "interests": ["music", "networking"],
+    "verified": true
+  }
+]
