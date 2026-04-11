@@ -27,7 +27,8 @@ export function AuthSplitLayout({ children }: { children: React.ReactNode }) {
             sizes="(max-width: 767px) 100vw, 48vw"
           />
         </section>
-        <div className="flex min-h-0 flex-1 flex-col justify-center px-2 py-6 sm:px-4 md:min-w-0 md:max-w-xl md:flex-none md:overflow-y-auto md:px-8 md:py-4 lg:pl-12 lg:pr-16 xl:pl-16">
+        {/* Top-aligned + scroll (not justify-center — avoids clipped/awkward scroll); pad clears floating close control */}
+        <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col justify-start px-2 pb-10 pt-6 sm:px-4 md:flex-1 md:overflow-y-auto md:overflow-x-hidden md:px-8 md:pb-12 md:pl-8 md:pr-14 md:pt-14 lg:pl-12 lg:pr-16 xl:pl-16">
           {children}
         </div>
       </div>

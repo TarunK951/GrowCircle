@@ -32,8 +32,13 @@ export function LoginForm() {
     formState: { errors, isSubmitting },
   } = useForm<Form>({ resolver: zodResolver(schema) });
 
+  const signupHref =
+    returnUrl && returnUrl !== "/dashboard"
+      ? `/signup?returnUrl=${encodeURIComponent(returnUrl)}`
+      : "/signup";
+
   return (
-    <div className="w-full max-w-md">
+    <div className="mx-auto w-full max-w-2xl">
       <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">
         Log in
       </h1>
@@ -44,10 +49,14 @@ export function LoginForm() {
       <form
         className="mt-8 space-y-5"
         onSubmit={handleSubmit(async (data) => {
-          const user = await loginMock(data.email, data.password);
-          login(user);
-          toast.success("Signed in");
-          router.push(returnUrl);
+          try {
+            const user = await loginMock(data.email, data.password);
+            login(user);
+            toast.success("Signed in");
+            router.push(returnUrl);
+          } catch {
+            toast.error("Something went wrong. Please try again.");
+          }
         })}
       >
         <div>
@@ -107,16 +116,21 @@ export function LoginForm() {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-          <label className="flex cursor-pointer items-center gap-2 text-neutral-500">
+          <label
+            htmlFor="login-remember"
+            className="flex cursor-pointer select-none items-center gap-2 text-neutral-600"
+          >
             <input
+              id="login-remember"
+              name="remember"
               type="checkbox"
-              className="h-4 w-4 rounded border-neutral-300 text-neutral-900 focus:ring-neutral-950/20"
+              className="h-4 w-4 shrink-0 rounded border-neutral-300 text-neutral-900 focus:ring-2 focus:ring-neutral-950/15"
             />
             Remember me
           </label>
           <Link
             href="/forgot-password"
-            className="text-neutral-500 transition hover:text-neutral-800"
+            className="shrink-0 text-neutral-600 underline-offset-2 transition hover:text-neutral-950 hover:underline"
           >
             Forgot Password?
           </Link>
@@ -155,12 +169,12 @@ export function LoginForm() {
 
       <p className="mt-10 text-center text-sm text-neutral-500">
         Don&apos;t have an account?{" "}
-        <Link
-          href="/signup"
-          className="font-semibold text-neutral-950 underline-offset-4 hover:underline"
-        >
-          Sign up here
-        </Link>
+          <Link
+            href={signupHref}
+            className="font-semibold text-brand underline decoration-brand/35 underline-offset-[3px] transition hover:decoration-brand"
+          >
+            Sign up here
+          </Link>
       </p>
     </div>
   );

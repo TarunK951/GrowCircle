@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -25,6 +25,12 @@ const inputClass =
 
 export function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get("returnUrl");
+  const loginHref =
+    returnUrl && returnUrl !== "/dashboard"
+      ? `/login?returnUrl=${encodeURIComponent(returnUrl)}`
+      : "/login";
   const login = useSessionStore((s) => s.login);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -35,7 +41,7 @@ export function SignupForm() {
   } = useForm<Form>({ resolver: zodResolver(schema) });
 
   return (
-    <div className="w-full max-w-md">
+    <div className="mx-auto w-full max-w-2xl">
       <h1 className="text-3xl font-semibold tracking-tight text-neutral-950">
         Create account
       </h1>
@@ -46,10 +52,14 @@ export function SignupForm() {
       <form
         className="mt-8 space-y-5"
         onSubmit={handleSubmit(async (data) => {
-          const user = await signupMock(data);
-          login(user);
-          toast.success("Welcome to ConnectSphere");
-          router.push("/onboarding");
+          try {
+            const user = await signupMock(data);
+            login(user);
+            toast.success("Welcome to ConnectSphere");
+            router.push("/onboarding");
+          } catch {
+            toast.error("Something went wrong. Please try again.");
+          }
         })}
       >
         <div>
@@ -161,8 +171,8 @@ export function SignupForm() {
       <p className="mt-10 text-center text-sm text-neutral-500">
         Already have an account?{" "}
         <Link
-          href="/login"
-          className="font-semibold text-neutral-950 underline-offset-4 hover:underline"
+          href={loginHref}
+          className="font-semibold text-brand underline decoration-brand/35 underline-offset-[3px] transition hover:decoration-brand"
         >
           Log in here
         </Link>
