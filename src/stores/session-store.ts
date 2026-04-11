@@ -13,13 +13,26 @@ export type HostDraft = {
   title: string;
   description: string;
   cityId: string;
-  category: string;
+  /** Max 3 preset category labels. */
+  categories: string[];
+  addressLine: string;
   startsAt: string;
   capacity: number;
   venueName: string;
   joinMode: "open" | "invite";
   listingVisibility: "public" | "private";
   priceCents: number;
+  imageUrl: string;
+  imageDataUrl: string | null;
+  moreAbout: string;
+  whatsIncludedLines: string[];
+  guestSuggestions: string[];
+  allowedAndNotes: string;
+  houseDos: string[];
+  houseDonts: string[];
+  faqs: { q: string; a: string }[];
+  /** Draft rows; ids assigned on publish. */
+  preJoinQuestions: { prompt: string; options: string[] }[];
 };
 
 type SessionState = {
@@ -36,7 +49,10 @@ type SessionState = {
   setVerified: (v: boolean) => void;
   addBooking: (b: Booking) => void;
   /** Join flow: creates pending or confirmed booking; returns false if duplicate / full. */
-  tryJoinEvent: (event: MeetEvent) => { ok: boolean; booking?: Booking; reason?: string };
+  tryJoinEvent: (
+    event: MeetEvent,
+    preJoinAnswers?: Record<string, string>,
+  ) => { ok: boolean; booking?: Booking; reason?: string };
   toggleSaved: (eventId: string) => void;
   setHostDraft: (d: HostDraft | null) => void;
   publishHostedEvent: (event: MeetEvent) => void;
@@ -62,13 +78,24 @@ const initialHostDraft = (): HostDraft => ({
   title: "",
   description: "",
   cityId: "sf",
-  category: "Social",
+  categories: ["Social"],
+  addressLine: "",
   startsAt: "",
   capacity: 16,
   venueName: "",
   joinMode: "open",
   listingVisibility: "public",
   priceCents: 0,
+  imageUrl: "",
+  imageDataUrl: null,
+  moreAbout: "",
+  whatsIncludedLines: [""],
+  guestSuggestions: [""],
+  allowedAndNotes: "",
+  houseDos: [""],
+  houseDonts: [""],
+  faqs: [{ q: "", a: "" }],
+  preJoinQuestions: [],
 });
 
 function bookingOccupiesSeat(b: Booking): boolean {
@@ -90,6 +117,7 @@ function makeBookingBase(
   eventId: string,
   status: Booking["status"],
   withCode: boolean,
+  preJoinAnswers?: Record<string, string>,
 ): Booking {
   const b: Booking = {
     id: "b_" + Math.random().toString(36).slice(2, 12),
@@ -98,6 +126,9 @@ function makeBookingBase(
     status,
     createdAt: new Date().toISOString(),
   };
+  if (preJoinAnswers && Object.keys(preJoinAnswers).length > 0) {
+    b.preJoinAnswers = { ...preJoinAnswers };
+  }
   if (withCode && (status === "confirmed" || status === "attended")) {
     b.attendanceCode = generateAttendanceCode();
   }
@@ -136,7 +167,7 @@ export const useSessionStore = create<SessionState>()(
         set({ user: { ...u, verified: v } });
       },
       addBooking: (b) => set({ bookings: [...get().bookings, b] }),
-      tryJoinEvent: (event) => {
+      tryJoinEvent: (event, preJoinAnswers) => {
         const user = get().user;
         if (!user) return { ok: false, reason: "Not signed in" };
         const bookings = get().bookings;
@@ -146,10 +177,30 @@ export const useSessionStore = create<SessionState>()(
         if (isEventFull(event, bookings)) {
           return { ok: false, reason: "This meet is full" };
         }
+        const qs = event.preJoinQuestions ?? [];
+        if (qs.length > 0) {
+          for (const q of qs) {
+            const ans = preJoinAnswers?.[q.id]?.trim();
+            if (!ans || !q.options.includes(ans)) {
+              return {
+                ok: false,
+                reason: "Please answer all pre-join questions with valid choices.",
+              };
+            }
+          }
+        }
         const invite = (event.joinMode ?? "open") === "invite";
         const status = invite ? "pending" : "confirmed";
         const withCode = status === "confirmed";
-        const b = makeBookingBase(user.id, event.id, status, withCode);
+        const answers =
+          qs.length > 0 && preJoinAnswers ? { ...preJoinAnswers } : undefined;
+        const b = makeBookingBase(
+          user.id,
+          event.id,
+          status,
+          withCode,
+          answers,
+        );
         set({ bookings: [...get().bookings, b] });
         return { ok: true, booking: b };
       },

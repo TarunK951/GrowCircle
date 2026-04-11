@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { formatCategoryEyebrow } from "@/lib/eventCategories";
 import type { MeetEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,7 @@ export function EventCard({
       : `$${(event.priceCents / 100).toFixed(0)}`;
 
   const subtitle = hostName?.trim() || cityName;
+  const coverIsDataUrl = event.image.startsWith("data:");
 
   return (
     <Link
@@ -34,18 +36,27 @@ export function EventCard({
       )}
     >
       <div className="relative aspect-4/3 w-full overflow-hidden rounded-t-(--radius-section)">
-        <Image
-          src={event.image}
-          alt=""
-          fill
-          priority={priority}
-          className="object-cover transition duration-500 ease-out motion-safe:group-hover:scale-[1.02]"
-          sizes="(max-width:768px) 100vw, 33vw"
-        />
+        {coverIsDataUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={event.image}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover transition duration-500 ease-out motion-safe:group-hover:scale-[1.02]"
+          />
+        ) : (
+          <Image
+            src={event.image}
+            alt=""
+            fill
+            priority={priority}
+            className="object-cover transition duration-500 ease-out motion-safe:group-hover:scale-[1.02]"
+            sizes="(max-width:768px) 100vw, 33vw"
+          />
+        )}
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3">
           <div className="flex flex-wrap gap-2">
             <span className="rounded-full bg-black/35 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
-              {event.category}
+              {formatCategoryEyebrow(event)}
             </span>
             <span className="rounded-full bg-black/35 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
               {cityName}

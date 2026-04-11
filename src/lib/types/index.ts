@@ -9,6 +9,12 @@ export type EventFaq = {
   a: string;
 };
 
+export type PreJoinQuestion = {
+  id: string;
+  prompt: string;
+  options: string[];
+};
+
 export type MeetEvent = {
   id: string;
   title: string;
@@ -17,10 +23,15 @@ export type MeetEvent = {
   startsAt: string;
   hostUserId: string;
   capacity: number;
+  /** Legacy single label; keep for seed data. Prefer `categories` when set. */
   category: string;
+  /** Up to 3 labels for display and explore filters. */
+  categories?: string[];
   image: string;
   priceCents: number;
   venueName?: string;
+  /** Street / full address shown with venue. */
+  addressLine?: string;
   /** Instant join vs request-to-join (host approves). */
   joinMode?: "open" | "invite";
   /** Listed on explore vs link-only. */
@@ -39,6 +50,10 @@ export type MeetEvent = {
     donts: string[];
   };
   faqs?: EventFaq[];
+  /** Shown before “What’s allowed”; short guest tips. */
+  guestSuggestions?: string[];
+  /** Max 5; each needs ≥2 options for join-time radios. */
+  preJoinQuestions?: PreJoinQuestion[];
 };
 
 export type User = {
@@ -63,6 +78,8 @@ export type Booking = {
   eventId: string;
   status: BookingStatus;
   createdAt: string;
+  /** Pre-join questionnaire answers (question id → selected option). */
+  preJoinAnswers?: Record<string, string>;
   /** Set when status is confirmed or attended; host verifies at door. */
   attendanceCode?: string;
   attendedAt?: string;

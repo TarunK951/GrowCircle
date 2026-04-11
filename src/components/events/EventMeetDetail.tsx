@@ -1,8 +1,19 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Check, X } from "lucide-react";
+import {
+  Banknote,
+  Check,
+  Clock,
+  Lightbulb,
+  MapPin,
+  User,
+  Users,
+  X,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { MeetEvent } from "@/lib/types";
 import type { ResolvedEventDetail } from "@/lib/eventDetail";
+import { formatCategoryEyebrow } from "@/lib/eventCategories";
 import { cn } from "@/lib/utils";
 import { JoinMeetButton, SaveEventButton } from "@/components/events/EventMeetActions";
 
@@ -28,13 +39,29 @@ function SectionTitle({
   );
 }
 
-function MetaRow({ label, children }: { label: string; children: React.ReactNode }) {
+function MetaRow({
+  label,
+  icon: Icon,
+  children,
+}: {
+  label: string;
+  icon?: LucideIcon;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex flex-col gap-0.5 sm:grid sm:grid-cols-[5.5rem_1fr] sm:items-baseline sm:gap-4">
+    <div className="flex flex-col gap-0.5 sm:grid sm:grid-cols-[5.5rem_1fr] sm:items-start sm:gap-4">
       <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </dt>
-      <dd className="text-sm text-foreground">{children}</dd>
+      <dd className="flex gap-2 text-sm text-foreground">
+        {Icon ? (
+          <Icon
+            className="mt-0.5 h-4 w-4 shrink-0 text-foreground"
+            aria-hidden
+          />
+        ) : null}
+        <span className="min-w-0">{children}</span>
+      </dd>
     </div>
   );
 }
@@ -67,6 +94,24 @@ export function EventMeetDetail({
     </div>
   );
 
+  const whereContent =
+    event.venueName || event.addressLine ? (
+      <>
+        {event.venueName ? (
+          <span className="block">{event.venueName}</span>
+        ) : null}
+        {event.addressLine ? (
+          <span className="mt-1 block text-muted-foreground">
+            {event.addressLine}
+          </span>
+        ) : null}
+      </>
+    ) : (
+      "Details shared after booking"
+    );
+
+  const coverIsDataUrl = event.image.startsWith("data:");
+
   return (
     <>
       <Link
@@ -88,21 +133,30 @@ export function EventMeetDetail({
           <figure className="relative min-h-[min(72vw,22rem)] w-full overflow-hidden rounded-[var(--radius-section)] border border-white/70 shadow-[0_8px_40px_-12px_rgba(30,59,189,0.18)] lg:min-h-0 lg:h-full">
             {/* Mobile: fixed aspect. Desktop: stretch to match details column; image fills via absolute inset */}
             <div className="relative aspect-4/3 w-full lg:absolute lg:inset-0 lg:aspect-auto lg:h-full lg:min-h-0">
-              <Image
-                src={event.image}
-                alt=""
-                fill
-                priority
-                className="object-cover"
-                sizes="(max-width: 1024px) 100vw, 50vw"
-              />
+              {coverIsDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- data URLs from host upload
+                <img
+                  src={event.image}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              ) : (
+                <Image
+                  src={event.image}
+                  alt=""
+                  fill
+                  priority
+                  className="object-cover"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                />
+              )}
             </div>
           </figure>
 
           <aside className="flex flex-col justify-between rounded-[var(--radius-section)] border border-primary/10 bg-white/75 p-6 shadow-sm backdrop-blur-sm sm:p-8">
             <div>
               <p className="text-sm font-semibold text-primary">
-                {event.category} · {cityName}
+                {formatCategoryEyebrow(event)} · {cityName}
               </p>
               <p className="font-onest mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
                 {event.title}
@@ -112,15 +166,21 @@ export function EventMeetDetail({
               </p>
 
               <dl className="mt-8 space-y-4 border-t border-primary/10 pt-8">
-                <MetaRow label="When">{whenLabel}</MetaRow>
-                <MetaRow label="Where">
-                  {event.venueName ?? "Details shared after booking"}
+                <MetaRow label="When" icon={Clock}>
+                  {whenLabel}
                 </MetaRow>
-                <MetaRow label="Host">{hostName}</MetaRow>
-                <MetaRow label="Spots">
+                <MetaRow label="Where" icon={MapPin}>
+                  {whereContent}
+                </MetaRow>
+                <MetaRow label="Host" icon={User}>
+                  {hostName}
+                </MetaRow>
+                <MetaRow label="Spots" icon={Users}>
                   {left} left of {event.capacity}
                 </MetaRow>
-                <MetaRow label="Price">{priceLabel}</MetaRow>
+                <MetaRow label="Price" icon={Banknote}>
+                  {priceLabel}
+                </MetaRow>
               </dl>
             </div>
 
@@ -193,6 +253,31 @@ export function EventMeetDetail({
           ))}
         </ul>
       </section>
+
+      {event.guestSuggestions && event.guestSuggestions.length > 0 ? (
+        <section
+          className="mt-12 sm:mt-14"
+          aria-labelledby="event-suggestions-heading"
+        >
+          <SectionTitle id="event-suggestions-heading">
+            Suggestions
+          </SectionTitle>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+            {event.guestSuggestions.map((line) => (
+              <li
+                key={line}
+                className="flex gap-3 rounded-xl border border-primary/10 bg-white/60 px-4 py-3 text-sm text-foreground shadow-sm"
+              >
+                <Lightbulb
+                  className="mt-0.5 h-4 w-4 shrink-0 text-foreground"
+                  aria-hidden
+                />
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="mt-12 sm:mt-14" aria-labelledby="event-allowed-heading">
         <SectionTitle id="event-allowed-heading">

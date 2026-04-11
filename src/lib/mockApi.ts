@@ -1,3 +1,4 @@
+import { eventMatchesCategoryFilter } from "@/lib/eventCategories";
 import { generateAttendanceCode } from "@/lib/eventsCatalog";
 import type { Booking, City, MeetEvent, User } from "@/lib/types";
 import citiesData from "@/data/cities.json";
@@ -23,8 +24,11 @@ export async function listEvents(filters?: {
   await delay();
   let list = [...(eventsData as MeetEvent[])];
   if (filters?.cityId) list = list.filter((e) => e.cityId === filters.cityId);
-  if (filters?.category && filters.category !== "all")
-    list = list.filter((e) => e.category === filters.category);
+  if (filters?.category && filters.category !== "all") {
+    list = list.filter((e) =>
+      eventMatchesCategoryFilter(e, filters.category!),
+    );
+  }
 
   if (filters?.dateFrom) {
     const from = new Date(filters.dateFrom + "T00:00:00");

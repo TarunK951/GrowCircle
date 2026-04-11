@@ -3,7 +3,7 @@ import { Container } from "@/components/layout/Container";
 import { MarketingPageIntro } from "@/components/layout/MarketingPageIntro";
 import { ExploreFilters } from "@/components/discover/ExploreFilters";
 import { DiscoverEventGrid } from "@/components/discover/DiscoverEventGrid";
-import { getStaticEvents } from "@/lib/eventsCatalog";
+import { EVENT_CATEGORY_PRESETS } from "@/lib/eventCategories";
 import citiesData from "@/data/cities.json";
 import type { City } from "@/lib/types";
 import { Reveal } from "@/components/providers/Reveal";
@@ -20,9 +20,7 @@ type DiscoverPageProps = Readonly<{
 export default async function DiscoverPage(props: DiscoverPageProps) {
   const sp = await props.searchParams;
   const cities = citiesData as City[];
-  const categories = Array.from(
-    new Set(getStaticEvents().map((e) => e.category)),
-  );
+  const categories = [...EVENT_CATEGORY_PRESETS];
   const cityOptions = cities.map((c) => ({ id: c.id, name: c.name }));
 
   return (

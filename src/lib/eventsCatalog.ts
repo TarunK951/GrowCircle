@@ -1,3 +1,4 @@
+import { eventMatchesCategoryFilter } from "@/lib/eventCategories";
 import type { MeetEvent } from "@/lib/types";
 import eventsData from "@/data/events.json";
 
@@ -45,8 +46,11 @@ export function listEventsMerged(
     list = list.filter((e) => (e.listingVisibility ?? "public") === "public");
   }
   if (filters?.cityId) list = list.filter((e) => e.cityId === filters.cityId);
-  if (filters?.category && filters.category !== "all")
-    list = list.filter((e) => e.category === filters.category);
+  if (filters?.category && filters.category !== "all") {
+    list = list.filter((e) =>
+      eventMatchesCategoryFilter(e, filters.category!),
+    );
+  }
   if (filters?.dateFrom) {
     const from = new Date(filters.dateFrom + "T00:00:00");
     list = list.filter((e) => new Date(e.startsAt) >= from);
