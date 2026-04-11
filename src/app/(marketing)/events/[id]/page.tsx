@@ -25,7 +25,7 @@ export default async function EventDetailPage({
       : `$${(event.priceCents / 100).toFixed(2)}`;
 
   return (
-    <Container className="py-12">
+    <Container className="page-shell">
       <Link
         href="/explore"
         className="text-sm font-medium text-primary hover:underline"
@@ -33,7 +33,7 @@ export default async function EventDetailPage({
         ← Back to explore
       </Link>
       <div className="mt-6 grid gap-10 lg:grid-cols-2">
-        <div className="relative aspect-[4/3] overflow-hidden rounded-3xl border border-primary/10">
+        <div className="liquid-glass-surface relative aspect-[4/3] overflow-hidden !p-0">
           <Image
             src={event.image}
             alt=""
@@ -42,15 +42,15 @@ export default async function EventDetailPage({
             priority
           />
         </div>
-        <div>
+        <div className="liquid-glass-surface flex flex-col">
           <p className="text-sm font-semibold text-primary">
             {event.category} · {city?.name}
           </p>
-          <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight">
+          <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight text-foreground">
             {event.title}
           </h1>
-          <p className="mt-4 text-muted">{event.description}</p>
-          <ul className="mt-6 space-y-2 text-sm">
+          <p className="mt-4 leading-relaxed text-muted">{event.description}</p>
+          <ul className="mt-6 space-y-2.5 text-sm">
             <li>
               <span className="font-medium text-foreground">When:</span>{" "}
               {new Date(event.startsAt).toLocaleString()}

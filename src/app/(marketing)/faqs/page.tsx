@@ -1,4 +1,5 @@
 import { Container } from "@/components/layout/Container";
+import { MarketingPageIntro } from "@/components/layout/MarketingPageIntro";
 
 const faqs = [
   {
@@ -17,13 +18,17 @@ const faqs = [
 
 export default function FaqsPage() {
   return (
-    <Container className="py-16">
-      <h1 className="text-3xl font-semibold tracking-tight">FAQs</h1>
-      <div className="mt-10 space-y-6">
+    <Container className="page-shell">
+      <MarketingPageIntro
+        eyebrow="Help"
+        title="FAQs"
+        description="Quick answers about this prototype."
+      />
+      <div className="mt-10 space-y-4">
         {faqs.map((f) => (
-          <div key={f.q} className="rounded-2xl border border-primary/10 bg-white/50 p-5">
+          <div key={f.q} className="liquid-glass-surface">
             <p className="font-semibold text-foreground">{f.q}</p>
-            <p className="mt-2 text-sm text-muted">{f.a}</p>
+            <p className="mt-2 text-sm leading-relaxed text-muted">{f.a}</p>
           </div>
         ))}
       </div>

@@ -1,4 +1,5 @@
 import { Container } from "@/components/layout/Container";
+import { MarketingPageIntro } from "@/components/layout/MarketingPageIntro";
 import { ExploreFilters } from "@/components/discover/ExploreFilters";
 import { EventCard } from "@/components/events/EventCard";
 import { listEvents } from "@/lib/mockApi";
@@ -30,21 +31,9 @@ export default async function DiscoverPage({
   const cityOptions = cities.map((c) => ({ id: c.id, name: c.name }));
 
   return (
-    <Container className="py-12">
+    <Container className="page-shell">
       <Reveal>
-        <p className="text-sm font-semibold uppercase tracking-wider text-secondary">
-          Explore
-        </p>
-        <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
-          Discover meets
-        </h1>
-        <p className="mt-3 max-w-2xl text-muted">
-          Filter by city, category, or date — the list updates from mock data
-          (e.g.{" "}
-          <code className="rounded bg-primary/5 px-1">?city=sf</code>,{" "}
-          <code className="rounded bg-primary/5 px-1">dateFrom=2026-05-01</code>
-          ).
-        </p>
+        <MarketingPageIntro eyebrow="Explore" title="Discover meets" />
       </Reveal>
 
       <ExploreFilters
