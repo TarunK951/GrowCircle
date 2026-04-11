@@ -252,7 +252,7 @@ export const NavbarLogo = ({
         className,
       )}
     >
-      <GrowCircleWordmark className="h-7 w-auto sm:h-8" />
+      <GrowCircleWordmark className="h-9 w-auto sm:h-10" />
     </Link>
   );
 };
