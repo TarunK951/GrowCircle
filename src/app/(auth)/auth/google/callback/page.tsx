@@ -9,6 +9,7 @@ import { formatCircleError } from "@/lib/circle/client";
 import { getGoogleOAuthCallbackUrl } from "@/lib/circle/config";
 import { circleProfileToUser } from "@/lib/circle/mappers";
 import type { CircleAuthUser } from "@/lib/circle/types";
+import { AppLoadingScreen } from "@/components/layout/AppLoadingScreen";
 import { useSessionStore } from "@/stores/session-store";
 
 const DEFAULT_GOOGLE_SUCCESS_PATH = "/";
@@ -310,22 +311,12 @@ function GoogleCallbackInner() {
     );
   }
 
-  return (
-    <div className="mx-auto max-w-md px-4 py-16 text-center text-sm text-neutral-700">
-      Completing sign-in…
-    </div>
-  );
+  return <AppLoadingScreen />;
 }
 
 export default function GoogleCallbackPage() {
   return (
-    <Suspense
-      fallback={
-        <p className="mx-auto max-w-md px-4 py-16 text-center text-sm text-neutral-700">
-          Loading…
-        </p>
-      }
-    >
+    <Suspense fallback={<AppLoadingScreen />}>
       <GoogleCallbackInner />
     </Suspense>
   );
