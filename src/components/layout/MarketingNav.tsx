@@ -37,8 +37,17 @@ function navActive(pathname: string, href: string, aliases?: string[]) {
 const btnPrimary =
   "!border-0 !bg-primary !text-white !shadow-md !shadow-primary/25 hover:!-translate-y-0.5 hover:!bg-primary/92 active:!scale-[0.98]";
 
+/** Tighter pill for desktop + mobile marketing CTAs */
+const btnPrimaryCompact = cn(
+  btnPrimary,
+  "!px-3 !py-1.5 !text-xs !font-semibold hover:!-translate-y-0.5 sm:!px-3.5 sm:!py-2 sm:!text-sm",
+);
+
+const glassHome = "nav-liquid-glass-hero";
+
 export function MarketingNav() {
   const pathname = usePathname();
+  const isHome = pathname === "/";
   const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -50,20 +59,34 @@ export function MarketingNav() {
 
   return (
     <div className="relative w-full">
-      <Navbar>
-        <NavBody>
-          <NavbarLogo />
+      {/* Full-width bar on every route — never collapse into the floating pill on scroll */}
+      <Navbar disableFloating>
+        <NavBody
+          className={cn(
+            isHome && glassHome,
+            isHome &&
+              "min-h-12 gap-2 py-1 sm:gap-3 sm:px-5 sm:py-1.5 md:px-6 md:py-2",
+          )}
+        >
+          <NavbarLogo
+            wordmarkClassName="h-10 w-auto max-w-[min(280px,58vw)] sm:h-11 md:h-12"
+          />
           <NavItems
             items={navItems}
             onItemClick={() => setIsMobileMenuOpen(false)}
+            className={
+              isHome
+                ? "gap-0 sm:gap-1 [&_a]:px-2 [&_a]:py-1.5 sm:[&_a]:px-3 sm:[&_a]:py-2"
+                : undefined
+            }
           />
-          <div className="relative z-[70] flex shrink-0 items-center gap-4">
+          <div className="relative z-[70] flex shrink-0 items-center gap-3">
             {isAuthenticated ? (
               <NavbarButton
                 as={Link}
                 href="/profile"
                 variant="primary"
-                className={cn(btnPrimary, "!px-4 !py-2 !text-sm")}
+                className={btnPrimaryCompact}
               >
                 Profile
               </NavbarButton>
@@ -72,17 +95,24 @@ export function MarketingNav() {
                 as={Link}
                 href="/signup"
                 variant="primary"
-                className={cn(btnPrimary, "!px-4 !py-2 !text-sm")}
+                className={btnPrimaryCompact}
               >
-                Sign up
+                Get Started
               </NavbarButton>
             )}
           </div>
         </NavBody>
 
-        <MobileNav>
+        <MobileNav
+          className={cn(
+            isHome && glassHome,
+            isHome && "py-1 sm:px-5 md:px-6",
+          )}
+        >
           <MobileNavHeader>
-            <NavbarLogo />
+            <NavbarLogo
+              wordmarkClassName="h-10 w-auto max-w-[min(280px,58vw)] sm:h-11"
+            />
             <MobileNavToggle
               isOpen={isMobileMenuOpen}
               onClick={() => setIsMobileMenuOpen((o) => !o)}
@@ -112,7 +142,7 @@ export function MarketingNav() {
                   as={Link}
                   href="/profile"
                   variant="primary"
-                  className={cn(btnPrimary, "w-full !py-3")}
+                  className={cn(btnPrimary, "w-full !py-2.5 !text-sm")}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Profile
@@ -122,10 +152,10 @@ export function MarketingNav() {
                   as={Link}
                   href="/signup"
                   variant="primary"
-                  className={cn(btnPrimary, "w-full !py-3")}
+                  className={cn(btnPrimary, "w-full !py-2.5 !text-sm")}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  Sign up
+                  Get Started
                 </NavbarButton>
               )}
             </div>

@@ -26,6 +26,11 @@ function scrollPast20vhThreshold(): number {
 interface NavbarProps {
   children: React.ReactNode;
   className?: string;
+  /**
+   * When true, the bar stays full-width at the top and never collapses into the
+   * floating pill after scroll (used on the home hero).
+   */
+  disableFloating?: boolean;
 }
 
 interface NavBodyProps {
@@ -61,12 +66,20 @@ interface MobileNavMenuProps {
   onClose?: () => void;
 }
 
-export const Navbar = ({ children, className }: NavbarProps) => {
-  const [isFloating, setIsFloating] = useState(false);
+export const Navbar = ({
+  children,
+  className,
+  disableFloating = false,
+}: NavbarProps) => {
+  const [scrollFloating, setScrollFloating] = useState(false);
 
   useEffect(() => {
+    if (disableFloating) {
+      setScrollFloating(false);
+      return;
+    }
     const update = () => {
-      setIsFloating(window.scrollY > scrollPast20vhThreshold());
+      setScrollFloating(window.scrollY > scrollPast20vhThreshold());
     };
     update();
     window.addEventListener("scroll", update, { passive: true });
@@ -75,7 +88,9 @@ export const Navbar = ({ children, className }: NavbarProps) => {
       window.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
     };
-  }, []);
+  }, [disableFloating]);
+
+  const isFloating = disableFloating ? false : scrollFloating;
 
   return (
     <NavBarFloatingContext.Provider value={isFloating}>
@@ -244,10 +259,13 @@ export const NavbarLogo = ({
   href = "/",
   alt = "Grow Circle",
   className,
+  wordmarkClassName,
 }: {
   href?: string;
   alt?: string;
   className?: string;
+  /** Classes merged onto `GrowCircleWordmark` (e.g. larger logo on marketing nav). */
+  wordmarkClassName?: string;
 }) => {
   return (
     <Link
@@ -258,7 +276,9 @@ export const NavbarLogo = ({
         className,
       )}
     >
-      <GrowCircleWordmark className="h-8 sm:h-9 md:h-10" />
+      <GrowCircleWordmark
+        className={cn("h-8 sm:h-9 md:h-10", wordmarkClassName)}
+      />
     </Link>
   );
 };

@@ -32,7 +32,10 @@ export default function RootLayout({
       data-scroll-behavior="smooth"
       className={cn("h-full", "scroll-smooth", fraunces.variable, "font-sans", geist.variable)}
     >
-      <body className="flex min-h-full flex-col bg-canvas font-sans text-foreground antialiased">
+      <body
+        className="flex min-h-full flex-col bg-canvas font-sans text-foreground antialiased"
+        suppressHydrationWarning
+      >
         <AppProviders>{children}</AppProviders>
       </body>
     </html>

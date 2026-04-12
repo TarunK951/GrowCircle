@@ -11,8 +11,9 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      {!isHome && <MarketingNav />}
-      <main className={cn("flex-1", !isHome && "pt-20")}>{children}</main>
+      <MarketingNav />
+      {/* Home: no top padding — hero is full-bleed under the fixed nav (no white strip). */}
+      <main className={cn("flex-1", isHome ? "pt-0" : "pt-20")}>{children}</main>
       <SiteFooter />
     </>
   );
