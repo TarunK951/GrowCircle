@@ -24,13 +24,8 @@ type NavLink = {
   aliases?: string[];
 };
 
-const links: NavLink[] = [
-  { href: "/host", label: "Host", aliases: ["/host-a-meet"] },
-  { href: "/join", label: "Join", aliases: ["/join-a-meet"] },
-  { href: "/bookings", label: "Bookings", aliases: ["/my-events"] },
-];
-
-const homeLinks: NavLink[] = [
+/** Same primary nav everywhere — matches landing hero bar (Discover / Host). */
+const navLinks: NavLink[] = [
   { href: "/join", label: "Discover events", aliases: ["/join-a-meet", "/explore"] },
   { href: "/host", label: "Host event", aliases: ["/host-a-meet"] },
 ];
@@ -42,12 +37,6 @@ function navActive(pathname: string, href: string, aliases?: string[]) {
 
 const btnPrimary =
   "!border-0 !bg-primary !text-white !shadow-md !shadow-primary/25 hover:!-translate-y-0.5 hover:!bg-primary/92 active:!scale-[0.98]";
-
-/** Tighter pill for desktop + mobile marketing CTAs */
-const btnPrimaryCompact = cn(
-  btnPrimary,
-  "!px-3 !py-1.5 !text-xs !font-semibold hover:!-translate-y-0.5 sm:!px-3.5 sm:!py-2 sm:!text-sm",
-);
 
 const glassHome = "nav-liquid-glass-hero";
 
@@ -62,12 +51,10 @@ const switchCta = cn(
 
 export function MarketingNav() {
   const pathname = usePathname();
-  const isHome = pathname === "/";
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const sourceLinks = isHome ? homeLinks : links;
 
-  const navItems = sourceLinks.map((l) => {
+  const navItems = navLinks.map((l) => {
     const link =
       isAuthenticated && l.href === "/join" ? "/explore" : l.href;
     const active =
@@ -78,13 +65,14 @@ export function MarketingNav() {
 
   return (
     <div className="relative w-full">
-      {/* Full-width bar on every route — never collapse into the floating pill on scroll */}
-      <Navbar disableFloating className={cn(isHome && "top-2 px-2 sm:top-3 sm:px-3")}>
+      <Navbar
+        disableFloating
+        className="top-2 px-2 sm:top-3 sm:px-3"
+      >
         <NavBody
           className={cn(
-            isHome && glassHome,
-            isHome &&
-              "min-h-10 rounded-full gap-1.5 py-1 pl-2 pr-1 sm:gap-2 sm:pl-3 sm:pr-1.5 sm:py-1.5 md:pl-4 md:pr-2",
+            glassHome,
+            "min-h-10 rounded-full gap-1.5 py-1 pl-2 pr-1 sm:gap-2 sm:pl-3 sm:pr-1.5 sm:py-1.5 md:pl-4 md:pr-2",
           )}
         >
           <NavbarLogo
@@ -93,19 +81,15 @@ export function MarketingNav() {
           <NavItems
             items={navItems}
             onItemClick={() => setIsMobileMenuOpen(false)}
-            className={
-              isHome
-                ? "gap-0 sm:gap-0.5 [&_a]:text-[11px] [&_a]:font-medium [&_a]:text-black/80 [&_a]:px-2 [&_a]:py-1 sm:[&_a]:px-2.5 sm:[&_a]:py-1.5 sm:[&_a]:text-xs"
-                : undefined
-            }
+            className="gap-0 sm:gap-0.5 [&_a]:text-[11px] [&_a]:font-medium [&_a]:text-black/80 [&_a]:px-2 [&_a]:py-1 sm:[&_a]:px-2.5 sm:[&_a]:py-1.5 sm:[&_a]:text-xs"
           />
           <div className="relative z-[70] flex shrink-0 items-center gap-3">
             {isAuthenticated ? (
               <NavbarButton
                 as={Link}
                 href="/profile"
-                variant={isHome ? "dark" : "primary"}
-                className={cn(isHome ? homeNavCtaBase : btnPrimaryCompact)}
+                variant="dark"
+                className={homeNavCtaBase}
               >
                 Profile
               </NavbarButton>
@@ -114,7 +98,7 @@ export function MarketingNav() {
                 as={Link}
                 href="/signup"
                 variant="primary"
-                className={cn(isHome ? switchCta : btnPrimaryCompact)}
+                className={switchCta}
               >
                 Get Started
               </NavbarButton>
@@ -124,8 +108,8 @@ export function MarketingNav() {
 
         <MobileNav
           className={cn(
-            isHome && glassHome,
-            isHome && "rounded-full py-1 pl-2 pr-1 sm:pl-3 sm:pr-1.5 md:pl-4 md:pr-2",
+            glassHome,
+            "rounded-full py-1 pl-2 pr-1 sm:pl-3 sm:pr-1.5 md:pl-4 md:pr-2",
           )}
         >
           <MobileNavHeader>
