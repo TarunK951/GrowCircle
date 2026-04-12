@@ -8,6 +8,7 @@ import type { City } from "@/lib/types";
 import { selectUser } from "@/lib/store/authSlice";
 import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
+import { HostMeetSelect } from "@/components/host/HostMeetSelect";
 
 const cities = (citiesData as City[]).filter((c) => c.id !== "circle");
 
@@ -35,22 +36,13 @@ export default function OnboardingPage() {
         </p>
 
         <div className="mt-5 space-y-4">
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-              Home city
-            </label>
-            <select
-              className="mt-1.5 w-full rounded-xl border border-neutral-200 bg-neutral-50/80 px-3 py-2.5 text-sm text-neutral-900 outline-none transition focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
-              value={cityId}
-              onChange={(e) => setCityId(e.target.value)}
-            >
-              {cities.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <HostMeetSelect
+            label="Home city"
+            labelClassName="text-xs font-semibold uppercase tracking-wide text-neutral-900"
+            value={cityId}
+            options={cities.map((c) => ({ value: c.id, label: c.name }))}
+            onChange={setCityId}
+          />
           <div>
             <label className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
               Interests (comma separated)

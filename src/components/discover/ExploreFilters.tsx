@@ -421,6 +421,12 @@ export function ExploreFilters({
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  apply();
+                }
+              }}
               placeholder="Search meets…"
               className="liquid-glass-field liquid-glass-field-sm w-full min-h-11 rounded-xl py-2.5 pl-10 pr-3 text-sm"
               aria-label="Search meets"
@@ -506,17 +512,6 @@ export function ExploreFilters({
             </button>
           </div>
         </div>
-      </div>
-
-      {/* Mobile: apply bar when drawer closed — quick apply from search only */}
-      <div className="mt-4 flex justify-end lg:hidden">
-        <button
-          type="button"
-          onClick={apply}
-          className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/25"
-        >
-          Apply
-        </button>
       </div>
     </>
   );

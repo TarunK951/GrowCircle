@@ -15,6 +15,8 @@ type HostMeetSelectProps = {
   options: HostMeetSelectOption[];
   onChange: (value: string) => void;
   className?: string;
+  /** Override label styles (e.g. uppercase eyebrow on settings). */
+  labelClassName?: string;
 };
 
 export function HostMeetSelect({
@@ -23,6 +25,7 @@ export function HostMeetSelect({
   options,
   onChange,
   className,
+  labelClassName,
 }: HostMeetSelectProps) {
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -39,68 +42,79 @@ export function HostMeetSelect({
   const selected = options.find((o) => o.value === value)?.label ?? value;
 
   return (
-    <div ref={rootRef} className={cn("relative", open && "z-20", className)}>
+    <div ref={rootRef} className={cn("relative", open && "z-30", className)}>
       <label
         id={`${id}-label`}
-        className="text-sm font-semibold text-neutral-900"
+        htmlFor={`${id}-btn`}
+        className={cn(
+          "text-sm font-semibold text-neutral-900",
+          labelClassName,
+        )}
       >
         {label}
       </label>
-      <button
-        type="button"
-        id={`${id}-btn`}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-labelledby={`${id}-label ${id}-btn`}
+      {/* Single bordered shell: trigger + list share one box so no seam/double border */}
+      <div
         className={cn(
-          "mt-2 flex w-full min-h-[2.75rem] items-center justify-between gap-2 rounded-2xl border border-neutral-300 bg-white px-3.5 py-2.5 text-left text-sm font-medium text-neutral-900 shadow-sm outline-none transition",
-          "hover:border-neutral-400 hover:bg-neutral-50/80",
-          "focus-visible:border-neutral-900 focus-visible:ring-2 focus-visible:ring-neutral-900/10",
-          open && "border-neutral-900 ring-2 ring-neutral-900/10",
+          "mt-2 overflow-hidden rounded-2xl border border-neutral-300 bg-white shadow-sm transition-shadow",
+          open && "shadow-md ring-2 ring-neutral-900/10",
         )}
-        onClick={() => setOpen(!open)}
       >
-        <span className="min-w-0 flex-1 truncate">{selected}</span>
-        <ChevronDown
-          className={cn(
-            "h-4 w-4 shrink-0 text-neutral-500 transition-transform duration-200",
-            open && "rotate-180",
-          )}
-          aria-hidden
-        />
-      </button>
-      {open ? (
-        <ul
-          className="absolute left-0 right-0 top-full z-30 mt-1.5 max-h-56 overflow-auto rounded-2xl border border-neutral-200 bg-white p-1.5 text-sm shadow-lg ring-1 ring-black/5"
-          role="listbox"
+        <button
+          type="button"
+          id={`${id}-btn`}
+          aria-haspopup="listbox"
+          aria-expanded={open}
           aria-labelledby={`${id}-label`}
+          className={cn(
+            "flex w-full min-h-11 items-center justify-between gap-2 px-3.5 py-2.5 text-left text-sm font-medium text-neutral-900 outline-none transition",
+            "hover:bg-neutral-50/90",
+            "focus-visible:bg-neutral-50/90 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-neutral-900/15",
+          )}
+          onClick={() => setOpen(!open)}
         >
-          {options.map((opt) => {
-            const isSelected = opt.value === value;
-            return (
-              <li key={opt.value} role="presentation">
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={isSelected}
-                  className={cn(
-                    "flex w-full rounded-xl px-3 py-2.5 text-left text-neutral-900 transition-colors",
-                    isSelected
-                      ? "bg-neutral-900 text-white"
-                      : "hover:bg-neutral-100",
-                  )}
-                  onClick={() => {
-                    onChange(opt.value);
-                    setOpen(false);
-                  }}
-                >
-                  {opt.label}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
+          <span className="min-w-0 flex-1 truncate">{selected}</span>
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 shrink-0 text-neutral-500 transition-transform duration-200",
+              open && "rotate-180",
+            )}
+            aria-hidden
+          />
+        </button>
+        {open ? (
+          <ul
+            className="max-h-56 overflow-auto border-t border-neutral-200 bg-white py-1"
+            role="listbox"
+            aria-labelledby={`${id}-label`}
+          >
+            {options.map((opt) => {
+              const isSelected = opt.value === value;
+              return (
+                <li key={opt.value} role="presentation">
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected}
+                    className={cn(
+                      "flex w-full px-3 py-2.5 text-left text-sm text-neutral-900 transition-colors",
+                      isSelected
+                        ? "bg-neutral-100 font-medium"
+                        : "hover:bg-neutral-50",
+                    )}
+                    onClick={() => {
+                      onChange(opt.value);
+                      setOpen(false);
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+      </div>
     </div>
   );
 }

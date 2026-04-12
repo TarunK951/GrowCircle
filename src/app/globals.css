@@ -31,17 +31,18 @@
     0 4px 14px rgba(0, 0, 0, 0.05);
   --glass-blur: blur(22px) saturate(1.18);
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  /* Default copy: black on light canvas (avoids washed-out or off-white foreground). */
+  --foreground: #000000;
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: #000000;
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --popover-foreground: #000000;
   --primary-foreground: oklch(0.985 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  /* Secondary text — dark gray (not light gray) for readability on light canvas */
-  --muted-foreground: oklch(0.22 0.01 264);
+  --secondary-foreground: #000000;
+  /* Secondary text — still essentially black for subtitles / muted utility */
+  --muted-foreground: #1a1a1a;
   --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --accent-foreground: #000000;
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
@@ -53,7 +54,7 @@
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
   --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-foreground: #000000;
   --sidebar-primary: oklch(0.205 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.97 0 0);
@@ -160,6 +161,7 @@
 
 html {
   scrollbar-width: none;
+  color: var(--foreground);
 }
 
 html::-webkit-scrollbar {
@@ -170,6 +172,7 @@ html::-webkit-scrollbar {
 
 body {
   background: var(--canvas);
+  color: var(--foreground);
   font-family: var(--font-sui);
   caret-color: var(--primary);
   -ms-overflow-style: none;
