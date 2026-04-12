@@ -373,35 +373,33 @@ html.cursor-none {
     background:
       linear-gradient(
         168deg,
-        rgba(255, 255, 255, 0.78) 0%,
-        rgba(255, 255, 255, 0.58) 40%,
-        rgba(248, 250, 252, 0.48) 100%
+        rgba(255, 255, 255, 0.5) 0%,
+        rgba(255, 255, 255, 0.35) 40%,
+        rgba(248, 250, 252, 0.28) 100%
       ),
       linear-gradient(
         118deg,
-        rgba(255, 255, 255, 0.45) 0%,
+        rgba(255, 255, 255, 0.34) 0%,
         transparent 55%
       );
-    border-color: rgba(255, 255, 255, 0.62);
+    border-color: rgba(255, 255, 255, 0.46);
     box-shadow:
-      0 2px 2px rgba(255, 255, 255, 0.75) inset,
-      0 -2px 3px rgba(15, 23, 42, 0.07) inset,
-      0 0 0 1px rgba(255, 255, 255, 0.2) inset,
-      0 3px 8px rgba(15, 23, 42, 0.05),
-      0 14px 40px rgba(15, 23, 42, 0.1),
-      0 28px 70px rgba(15, 23, 42, 0.12);
-    backdrop-filter: blur(56px) saturate(1.55) brightness(1.06);
-    -webkit-backdrop-filter: blur(56px) saturate(1.55) brightness(1.06);
+      0 1px 2px rgba(255, 255, 255, 0.75) inset,
+      0 -1px 2px rgba(15, 23, 42, 0.05) inset,
+      0 0 0 1px rgba(255, 255, 255, 0.17) inset,
+      0 8px 30px rgba(15, 23, 42, 0.16);
+    backdrop-filter: blur(28px) saturate(1.28) brightness(1.02);
+    -webkit-backdrop-filter: blur(28px) saturate(1.28) brightness(1.02);
   }
 
   .nav-liquid-glass.nav-liquid-glass-hero::before {
     background: linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.65) 0%,
-      rgba(255, 255, 255, 0.18) 32%,
+      rgba(255, 255, 255, 0.54) 0%,
+      rgba(255, 255, 255, 0.14) 32%,
       transparent 58%
     );
-    opacity: 0.88;
+    opacity: 0.8;
   }
 
   .nav-liquid-glass.nav-liquid-glass-hero[data-elevated="true"] {

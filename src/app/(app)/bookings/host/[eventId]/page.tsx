@@ -106,6 +106,11 @@ function normalizeQuestionRows(rows: EditableQuestion[]): EditableQuestion[] {
   }));
 }
 
+const editorInputClass =
+  "mt-0 w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm outline-none transition focus-visible:border-neutral-900 focus-visible:ring-2 focus-visible:ring-neutral-900/10";
+const editorTextareaClass =
+  "w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 shadow-sm outline-none transition focus-visible:border-neutral-900 focus-visible:ring-2 focus-visible:ring-neutral-900/10";
+
 export default function HostManagePage() {
   const params = useParams<{ eventId: string }>();
   const searchParams = useSearchParams();
@@ -583,7 +588,7 @@ export default function HostManagePage() {
                   About this meet
                 </label>
                 <textarea
-                  className="liquid-glass-input mt-2 min-h-20 w-full text-sm text-neutral-900"
+                  className={cn(editorTextareaClass, "mt-2 min-h-20")}
                   value={detailDraft.moreAbout}
                   onChange={(e) =>
                     setDetailDraft((prev) => ({ ...prev, moreAbout: e.target.value }))
@@ -600,7 +605,7 @@ export default function HostManagePage() {
                   {detailDraft.whatsIncluded.map((line, idx) => (
                     <div key={`wi-${idx}`} className="flex gap-2">
                       <input
-                        className="liquid-glass-input mt-0 w-full text-sm text-neutral-900"
+                        className={editorInputClass}
                         value={line}
                         onChange={(e) =>
                           setDetailDraft((prev) => ({
@@ -653,7 +658,7 @@ export default function HostManagePage() {
                     {detailDraft.dos.map((line, idx) => (
                       <div key={`do-${idx}`} className="flex gap-2">
                         <input
-                          className="liquid-glass-input mt-0 w-full text-sm text-neutral-900"
+                          className={editorInputClass}
                           value={line}
                           onChange={(e) =>
                             setDetailDraft((prev) => ({
@@ -697,7 +702,7 @@ export default function HostManagePage() {
                     {detailDraft.donts.map((line, idx) => (
                       <div key={`dont-${idx}`} className="flex gap-2">
                         <input
-                          className="liquid-glass-input mt-0 w-full text-sm text-neutral-900"
+                          className={editorInputClass}
                           value={line}
                           onChange={(e) =>
                             setDetailDraft((prev) => ({
@@ -743,7 +748,7 @@ export default function HostManagePage() {
                   {detailDraft.guestSuggestions.map((line, idx) => (
                     <div key={`gs-${idx}`} className="flex gap-2">
                       <input
-                        className="liquid-glass-input mt-0 w-full text-sm text-neutral-900"
+                        className={editorInputClass}
                         value={line}
                         onChange={(e) =>
                           setDetailDraft((prev) => ({
@@ -792,7 +797,7 @@ export default function HostManagePage() {
                   Allowed & good to know
                 </label>
                 <textarea
-                  className="liquid-glass-input mt-2 min-h-20 w-full text-sm text-neutral-900"
+                  className={cn(editorTextareaClass, "mt-2 min-h-20")}
                   value={detailDraft.allowedAndNotes}
                   onChange={(e) =>
                     setDetailDraft((prev) => ({ ...prev, allowedAndNotes: e.target.value }))
@@ -809,7 +814,7 @@ export default function HostManagePage() {
                   {detailDraft.faqs.map((row, idx) => (
                     <div key={`faq-${idx}`} className="rounded-xl border border-neutral-200 p-3">
                       <input
-                        className="liquid-glass-input mt-0 w-full text-sm text-neutral-900"
+                        className={editorInputClass}
                         value={row.q}
                         onChange={(e) =>
                           setDetailDraft((prev) => ({
@@ -822,7 +827,7 @@ export default function HostManagePage() {
                         placeholder="Question"
                       />
                       <textarea
-                        className="liquid-glass-input mt-2 min-h-16 w-full text-sm text-neutral-900"
+                        className={cn(editorTextareaClass, "mt-2 min-h-16")}
                         value={row.a}
                         onChange={(e) =>
                           setDetailDraft((prev) => ({
@@ -867,11 +872,96 @@ export default function HostManagePage() {
               </div>
 
               <div>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.08em] text-neutral-700">
+                    Pre-join questions
+                  </label>
+                  <button
+                    type="button"
+                    className="rounded-full bg-neutral-900 px-3 py-1 text-xs font-semibold text-white disabled:opacity-60"
+                    onClick={() => void saveQuestions()}
+                    disabled={busy}
+                  >
+                    {busy ? "Saving..." : "Save questions"}
+                  </button>
+                </div>
+                <div className="mt-2 space-y-2">
+                  {rows.map((row, idx) => (
+                    <div key={row.id ?? `preview-q-${idx}`} className="rounded-xl border border-neutral-200 p-3">
+                      <input
+                        className={editorInputClass}
+                        placeholder="Question"
+                        value={row.prompt}
+                        onChange={(e) =>
+                          setRows((prev) =>
+                            prev.map((x, i) => (i === idx ? { ...x, prompt: e.target.value } : x)),
+                          )
+                        }
+                      />
+                      <div className="mt-2 space-y-2">
+                        {row.options.map((opt, oi) => (
+                          <input
+                            key={oi}
+                            className={editorInputClass}
+                            placeholder={`Option ${oi + 1}`}
+                            value={opt}
+                            onChange={(e) =>
+                              setRows((prev) =>
+                                prev.map((x, i) =>
+                                  i === idx
+                                    ? {
+                                        ...x,
+                                        options: x.options.map((v, vi) => (vi === oi ? e.target.value : v)),
+                                      }
+                                    : x,
+                                ),
+                              )
+                            }
+                          />
+                        ))}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="rounded-full border border-neutral-300 px-3 py-1 text-xs font-semibold"
+                          onClick={() =>
+                            setRows((prev) =>
+                              prev.map((x, i) =>
+                                i === idx && x.options.length < 6
+                                  ? { ...x, options: [...x.options, ""] }
+                                  : x,
+                              ),
+                            )
+                          }
+                        >
+                          + Option
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-full border border-red-200 px-3 py-1 text-xs font-semibold text-red-700"
+                          onClick={() => setRows((prev) => prev.filter((_, i) => i !== idx))}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="mt-2 rounded-full border border-neutral-300 px-3 py-1 text-xs font-semibold"
+                  onClick={() => setRows((prev) => [...prev, { prompt: "", options: ["", ""] }])}
+                >
+                  + Add question
+                </button>
+              </div>
+
+              <div>
                 <label className="text-xs font-semibold uppercase tracking-[0.08em] text-neutral-700">
                   Refund policy (shown last)
                 </label>
                 <textarea
-                  className="liquid-glass-input mt-2 min-h-20 w-full text-sm text-neutral-900"
+                  className={cn(editorTextareaClass, "mt-2 min-h-20")}
                   value={detailDraft.refundPolicy}
                   onChange={(e) =>
                     setDetailDraft((prev) => ({ ...prev, refundPolicy: e.target.value }))
@@ -891,7 +981,7 @@ export default function HostManagePage() {
           {rows.map((row, idx) => (
             <div key={row.id ?? `new-${idx}`} className="rounded-xl border border-neutral-200 p-4">
               <input
-                className="liquid-glass-input mt-0 w-full text-sm text-neutral-900"
+                className={editorInputClass}
                 placeholder="Question"
                 value={row.prompt}
                 onChange={(e) =>
@@ -904,7 +994,7 @@ export default function HostManagePage() {
                 {row.options.map((opt, oi) => (
                   <input
                     key={oi}
-                    className="liquid-glass-input mt-0 w-full text-sm text-neutral-900"
+                    className={editorInputClass}
                     placeholder={`Option ${oi + 1}`}
                     value={opt}
                     onChange={(e) =>
@@ -1007,7 +1097,7 @@ export default function HostManagePage() {
                     {b.status === "confirmed" ? (
                       <>
                         <input
-                          className="liquid-glass-input w-24 py-1 text-xs text-neutral-900"
+                          className={cn(editorInputClass, "w-24 py-1 text-xs")}
                           placeholder="OTP"
                           value={codeInputs[b.id] ?? ""}
                           onChange={(e) =>

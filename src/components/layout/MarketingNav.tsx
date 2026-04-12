@@ -30,6 +30,11 @@ const links: NavLink[] = [
   { href: "/bookings", label: "Bookings", aliases: ["/my-events"] },
 ];
 
+const homeLinks: NavLink[] = [
+  { href: "/join", label: "Discover events", aliases: ["/join-a-meet", "/explore"] },
+  { href: "/host", label: "Host event", aliases: ["/host-a-meet"] },
+];
+
 function navActive(pathname: string, href: string, aliases?: string[]) {
   if (pathname === href) return true;
   return aliases?.some((a) => pathname === a) ?? false;
@@ -45,14 +50,17 @@ const btnPrimaryCompact = cn(
 );
 
 const glassHome = "nav-liquid-glass-hero";
+const switchCta =
+  "!h-8 !rounded-full !border !border-black/55 !bg-black !px-3 !py-1 !text-[11px] !font-medium !tracking-[0.01em] !text-white after:ml-2 after:inline-block after:size-4 after:rounded-full after:bg-white after:align-middle sm:!h-9 sm:!px-3.5 sm:!text-xs";
 
 export function MarketingNav() {
   const pathname = usePathname();
   const isHome = pathname === "/";
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const sourceLinks = isHome ? homeLinks : links;
 
-  const navItems = links.map((l) => {
+  const navItems = sourceLinks.map((l) => {
     const link =
       isAuthenticated && l.href === "/join" ? "/explore" : l.href;
     const active =
@@ -64,23 +72,23 @@ export function MarketingNav() {
   return (
     <div className="relative w-full">
       {/* Full-width bar on every route — never collapse into the floating pill on scroll */}
-      <Navbar disableFloating>
+      <Navbar disableFloating className={cn(isHome && "top-2 px-2 sm:top-3 sm:px-3")}>
         <NavBody
           className={cn(
             isHome && glassHome,
             isHome &&
-              "min-h-12 gap-2 py-1 sm:gap-3 sm:px-5 sm:py-1.5 md:px-6 md:py-2",
+              "min-h-10 rounded-full gap-1.5 py-1 pl-2 pr-1 sm:gap-2 sm:pl-3 sm:pr-1.5 sm:py-1.5 md:pl-4 md:pr-2",
           )}
         >
           <NavbarLogo
-            wordmarkClassName="h-10 w-auto max-w-[min(280px,58vw)] sm:h-11 md:h-12"
+            wordmarkClassName="h-7 w-auto max-w-[min(220px,54vw)] sm:h-8 md:h-9"
           />
           <NavItems
             items={navItems}
             onItemClick={() => setIsMobileMenuOpen(false)}
             className={
               isHome
-                ? "gap-0 sm:gap-1 [&_a]:px-2 [&_a]:py-1.5 sm:[&_a]:px-3 sm:[&_a]:py-2"
+                ? "gap-0 sm:gap-0.5 [&_a]:text-[11px] [&_a]:font-medium [&_a]:text-black/80 [&_a]:px-2 [&_a]:py-1 sm:[&_a]:px-2.5 sm:[&_a]:py-1.5 sm:[&_a]:text-xs"
                 : undefined
             }
           />
@@ -99,7 +107,7 @@ export function MarketingNav() {
                 as={Link}
                 href="/signup"
                 variant="primary"
-                className={btnPrimaryCompact}
+                className={cn(isHome ? switchCta : btnPrimaryCompact)}
               >
                 Get Started
               </NavbarButton>
@@ -110,12 +118,12 @@ export function MarketingNav() {
         <MobileNav
           className={cn(
             isHome && glassHome,
-            isHome && "py-1 sm:px-5 md:px-6",
+            isHome && "rounded-full py-1 pl-2 pr-1 sm:pl-3 sm:pr-1.5 md:pl-4 md:pr-2",
           )}
         >
           <MobileNavHeader>
             <NavbarLogo
-              wordmarkClassName="h-10 w-auto max-w-[min(280px,58vw)] sm:h-11"
+              wordmarkClassName="h-7 w-auto max-w-[min(220px,58vw)] sm:h-8"
             />
             <MobileNavToggle
               isOpen={isMobileMenuOpen}
