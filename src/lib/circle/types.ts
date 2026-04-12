@@ -56,13 +56,19 @@ export type CircleEvent = {
   id: string;
   title: string;
   description?: string;
+  /** Some list endpoints send a single label */
+  category?: string;
+  categories?: string[];
   max_capacity: number;
   price: string | number;
   event_date: string;
   location?: string;
   slug?: string;
   cover_image_url?: string | null;
+  /** Some backends emit camelCase only */
+  coverImageUrl?: string | null;
   image_urls?: string[];
+  imageUrls?: string[];
   status?: string;
   visibility?: string;
   min_age?: number;
@@ -73,6 +79,24 @@ export type CircleEvent = {
   refund_partial_percentage?: number;
   host?: CircleEventHost;
   questions?: CircleEventQuestion[];
+  /** Filled seats / applications count — snake or camel per backend */
+  spots_taken?: number;
+  spotsTaken?: number;
+  registered_count?: number;
+  /** Long-form fields when API returns them */
+  more_about?: string;
+  moreAbout?: string;
+  whats_included?: string[];
+  whatsIncluded?: string[];
+  guest_suggestions?: string[];
+  guestSuggestions?: string[];
+  allowed_and_notes?: string;
+  allowedAndNotes?: string;
+  house_rules?: { dos?: string[]; donts?: string[] };
+  houseRules?: { dos?: string[]; donts?: string[] };
+  faqs?: { q: string; a: string }[];
+  refund_policy?: string;
+  refundPolicy?: string;
 };
 
 export type CircleListMeta = {

@@ -115,6 +115,8 @@ export function EventMeetDetail({
   const galleryUrls = meetEventGalleryUrls(event);
   const cover = galleryUrls[0] ?? null;
   const coverIsDataUrl = cover?.startsWith("data:") ?? false;
+  /** Next/Image requires allowed hosts; S3 and most CDNs use unoptimized (same pattern as EventCard). */
+  const coverIsUnsplash = cover?.includes("images.unsplash.com") ?? false;
 
   return (
     <>
@@ -158,6 +160,7 @@ export function EventMeetDetail({
                     alt=""
                     fill
                     priority
+                    unoptimized={!coverIsUnsplash}
                     className="object-cover"
                     sizes="(max-width: 1024px) 100vw, 50vw"
                   />
@@ -168,6 +171,7 @@ export function EventMeetDetail({
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {galleryUrls.slice(1).map((url, i) => {
                   const extraIsData = url.startsWith("data:");
+                  const extraUnsplash = url.includes("images.unsplash.com");
                   return (
                     <div
                       key={`${i}-${url.slice(0, 32)}`}
@@ -188,7 +192,9 @@ export function EventMeetDetail({
                           className="object-cover"
                           sizes="112px"
                           unoptimized={
-                            url.includes("localhost") || url.startsWith("http://")
+                            !extraUnsplash ||
+                            url.includes("localhost") ||
+                            url.startsWith("http://")
                           }
                         />
                       )}

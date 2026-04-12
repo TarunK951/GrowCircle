@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { PrimaryButton, SecondaryButton } from "@/components/ui/MarketingButton";
@@ -81,6 +82,11 @@ function PreJoinModal({
   const questions = event.preJoinQuestions ?? [];
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   if (!open) return null;
 
   const setAnswer = (qid: string, value: string) => {
@@ -109,9 +115,9 @@ function PreJoinModal({
     await Promise.resolve(onConfirm(answers));
   };
 
-  return (
+  const modal = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6"
       role="presentation"
     >
       <button
@@ -124,7 +130,7 @@ function PreJoinModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="prejoin-dialog-title"
-        className="relative z-10 max-h-[min(90vh,720px)] w-full max-w-lg overflow-y-auto rounded-2xl border border-primary/15 bg-white p-6 shadow-xl"
+        className="relative z-10 max-h-[min(90vh,800px)] w-full max-w-xl overflow-y-auto rounded-2xl border border-primary/15 bg-white p-6 shadow-xl sm:max-w-2xl sm:p-8"
       >
         <h2
           id="prejoin-dialog-title"
@@ -227,6 +233,9 @@ function PreJoinModal({
       </div>
     </div>
   );
+
+  if (!mounted || typeof document === "undefined") return null;
+  return createPortal(modal, document.body);
 }
 
 export function JoinMeetButton({ event }: { event: MeetEvent }) {

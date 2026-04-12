@@ -13,6 +13,17 @@ const nextConfig: NextConfig = {
         hostname: "**.googleusercontent.com",
         pathname: "/**",
       },
+      /** Host-uploaded meet images (S3 / compatible object storage) */
+      {
+        protocol: "https",
+        hostname: "**.amazonaws.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "**.cloudfront.net",
+        pathname: "/**",
+      },
     ],
   },
 };

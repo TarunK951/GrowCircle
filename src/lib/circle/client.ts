@@ -29,9 +29,33 @@ type RequestOpts = {
   raw?: boolean;
 };
 
-export async function circleRequest<T>(
+type InternalRequestOpts = RequestOpts & {
+  /** Prevents infinite refresh loops */
+  _authRetryDone?: boolean;
+};
+
+function isAuthFailureRetryable(err: CircleApiError): boolean {
+  const m = (err.message || "").toLowerCase();
+  if (err.status === 401) return true;
+  if (err.status === 403) {
+    if (
+      m.includes("token") ||
+      m.includes("unauthorized") ||
+      m.includes("forbidden")
+    ) {
+      return true;
+    }
+  }
+  if (m.includes("invalid or expired token")) return true;
+  if (m.includes("token expired")) return true;
+  if (m.includes("expired") && m.includes("token")) return true;
+  if (m.includes("invalid") && m.includes("token")) return true;
+  return false;
+}
+
+async function circleRequestOnce<T>(
   path: string,
-  opts: RequestOpts = {},
+  opts: InternalRequestOpts,
 ): Promise<T> {
   const base = getCircleApiBase();
 
@@ -108,14 +132,41 @@ export async function circleRequest<T>(
   return parsed as T;
 }
 
+export async function circleRequest<T>(
+  path: string,
+  opts: RequestOpts = {},
+): Promise<T> {
+  const o = opts as InternalRequestOpts;
+  try {
+    return await circleRequestOnce<T>(path, o);
+  } catch (e) {
+    if (!(e instanceof CircleApiError)) throw e;
+    if (o._authRetryDone || !o.accessToken) throw e;
+    if (!isAuthFailureRetryable(e)) throw e;
+    const { refreshCircleAccessToken } = await import(
+      "@/lib/circle/sessionBridge"
+    );
+    const { store } = await import("@/lib/store/store");
+    const ok = await refreshCircleAccessToken();
+    if (!ok) throw e;
+    const next = store.getState().auth.accessToken;
+    if (!next) throw e;
+    return circleRequestOnce<T>(path, {
+      ...o,
+      accessToken: next,
+      _authRetryDone: true,
+    });
+  }
+}
+
 type RequestOptsNoBody = Omit<RequestOpts, "body">;
 
 /**
  * GET requests that return `{ success, data: T[], meta }` (e.g. §5.2 event applications).
  */
-export async function circleRequestList<T>(
+async function circleRequestListOnce<T>(
   path: string,
-  opts: RequestOptsNoBody & { accessToken: string },
+  opts: RequestOptsNoBody & { accessToken: string } & InternalRequestOpts,
 ): Promise<{ data: T[]; meta: CircleListMeta }> {
   const base = getCircleApiBase();
   const url = path.startsWith("http")
@@ -177,8 +228,34 @@ export async function circleRequestList<T>(
   return { data, meta };
 }
 
-/** For CSV / binary responses */
-export async function circleRequestBlob(
+export async function circleRequestList<T>(
+  path: string,
+  opts: RequestOptsNoBody & { accessToken: string },
+): Promise<{ data: T[]; meta: CircleListMeta }> {
+  const o = opts as typeof opts & InternalRequestOpts;
+  try {
+    return await circleRequestListOnce<T>(path, o);
+  } catch (e) {
+    if (!(e instanceof CircleApiError)) throw e;
+    if (o._authRetryDone || !o.accessToken) throw e;
+    if (!isAuthFailureRetryable(e)) throw e;
+    const { refreshCircleAccessToken } = await import(
+      "@/lib/circle/sessionBridge"
+    );
+    const { store } = await import("@/lib/store/store");
+    const ok = await refreshCircleAccessToken();
+    if (!ok) throw e;
+    const next = store.getState().auth.accessToken;
+    if (!next) throw e;
+    return circleRequestListOnce<T>(path, {
+      ...o,
+      accessToken: next,
+      _authRetryDone: true,
+    });
+  }
+}
+
+async function circleRequestBlobOnce(
   path: string,
   accessToken: string,
 ): Promise<Blob> {
@@ -188,7 +265,39 @@ export async function circleRequestBlob(
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) {
-    throw new CircleApiError(res.statusText, res.status);
+    let msg = res.statusText || "Request failed";
+    try {
+      const ct = res.headers.get("content-type") ?? "";
+      if (ct.includes("application/json")) {
+        const j = (await res.json()) as { message?: string };
+        if (typeof j.message === "string") msg = j.message;
+      }
+    } catch {
+      /* keep statusText */
+    }
+    throw new CircleApiError(msg, res.status);
   }
   return res.blob();
+}
+
+/** For CSV / binary responses */
+export async function circleRequestBlob(
+  path: string,
+  accessToken: string,
+): Promise<Blob> {
+  try {
+    return await circleRequestBlobOnce(path, accessToken);
+  } catch (e) {
+    if (!(e instanceof CircleApiError)) throw e;
+    if (!isAuthFailureRetryable(e)) throw e;
+    const { refreshCircleAccessToken } = await import(
+      "@/lib/circle/sessionBridge"
+    );
+    const { store } = await import("@/lib/store/store");
+    const ok = await refreshCircleAccessToken();
+    if (!ok) throw e;
+    const next = store.getState().auth.accessToken;
+    if (!next) throw e;
+    return circleRequestBlobOnce(path, next);
+  }
 }

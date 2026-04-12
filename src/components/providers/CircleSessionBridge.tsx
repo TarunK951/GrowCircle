@@ -38,6 +38,8 @@ export function CircleSessionBridge() {
   const accessToken = useAppSelector(selectAccessToken);
   const refreshToken = useAppSelector(selectRefreshToken);
   const lastVisibilityRefreshRef = useRef(0);
+  /** One-shot refresh when JWT has no `exp` (opaque token) — avoids a refresh loop. */
+  const opaqueTokenWarmupRef = useRef(false);
 
   useEffect(() => {
     configureCircleSession({
@@ -64,11 +66,21 @@ export function CircleSessionBridge() {
 
   useEffect(() => {
     if (!isCircleApiConfigured() || !user || !refreshToken || !accessToken) {
+      opaqueTokenWarmupRef.current = false;
       return;
     }
 
     const expMs = getAccessTokenExpiryMs(accessToken);
-    if (expMs == null) return;
+    /** Opaque or non-JWT access tokens: rotate once per session so API calls don’t 401 first. */
+    if (expMs == null) {
+      if (!opaqueTokenWarmupRef.current) {
+        opaqueTokenWarmupRef.current = true;
+        void refreshCircleAccessToken();
+      }
+      return;
+    }
+
+    opaqueTokenWarmupRef.current = false;
 
     let cancelled = false;
     const msUntil = expMs - Date.now() - REFRESH_BEFORE_EXPIRY_MS;
