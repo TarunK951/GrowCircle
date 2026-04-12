@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 import { useSessionStore } from "@/stores/session-store";
 import { mergeEventCatalog } from "@/lib/eventsCatalog";
-import { hostNameForUserId } from "@/lib/hostName";
+import { hostLabelForEvent } from "@/lib/hostName";
 import type { Booking } from "@/lib/types";
 
 const FALLBACK_IMAGE =
@@ -158,7 +158,7 @@ export default function HistoryPage() {
                   {ev && (
                     <p className="text-xs font-medium text-neutral-800">
                       {ev.venueName ? `${ev.venueName} · ` : ""}
-                      {hostNameForUserId(ev.hostUserId) ?? "Host"}
+                      {hostLabelForEvent(ev, user)}
                     </p>
                   )}
                 </div>

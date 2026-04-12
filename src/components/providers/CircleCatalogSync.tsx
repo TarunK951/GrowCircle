@@ -22,7 +22,7 @@ export function CircleCatalogSync() {
       try {
         const { data } = await listPublicEvents({
           status: "published",
-          limit: 50,
+          limit: 100,
           page: 1,
         });
         if (cancelled) return;

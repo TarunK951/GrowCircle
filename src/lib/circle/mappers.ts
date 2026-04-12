@@ -62,6 +62,7 @@ export function circleEventToMeetEvent(api: CircleEvent): MeetEvent {
     title: api.title,
     description: api.description ?? "",
     cityId: "circle",
+    hostUsername: api.host?.username?.trim() || undefined,
     displayLocation: api.location?.trim() || undefined,
     startsAt: api.event_date,
     hostUserId: hostId,

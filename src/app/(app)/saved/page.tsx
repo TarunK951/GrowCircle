@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useSessionStore } from "@/stores/session-store";
 import { isMeetInactive, mergeEventCatalog } from "@/lib/eventsCatalog";
-import { hostNameForUserId } from "@/lib/hostName";
+import { hostLabelForEvent } from "@/lib/hostName";
 import { EventCard } from "@/components/events/EventCard";
 import citiesData from "@/data/cities.json";
 import type { City } from "@/lib/types";
@@ -78,11 +78,7 @@ export default function SavedPage() {
                 key={e.id}
                 event={e}
                 cityName={e.displayLocation ?? cityById[e.cityId] ?? ""}
-                hostName={
-                  sessionUser && e.hostUserId === sessionUser.id
-                    ? sessionUser.name
-                    : hostNameForUserId(e.hostUserId) ?? "Host"
-                }
+                hostName={hostLabelForEvent(e, sessionUser)}
                 priority={index < 3}
                 inactive={isMeetInactive(e)}
               />

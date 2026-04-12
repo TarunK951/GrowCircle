@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Container } from "@/components/layout/Container";
 import { EventCard } from "@/components/events/EventCard";
 import { Reveal } from "@/components/providers/Reveal";
-import { hostNameForUserId } from "@/lib/hostName";
+import { hostLabelForEvent } from "@/lib/hostName";
 import { listEventsMerged } from "@/lib/eventsCatalog";
 import { useSessionStore } from "@/stores/session-store";
 import citiesData from "@/data/cities.json";
@@ -57,11 +57,7 @@ export function HomeFeaturedGrid() {
               <EventCard
                 event={e}
                 cityName={e.displayLocation ?? cityById[e.cityId] ?? "City"}
-                hostName={
-                  user && e.hostUserId === user.id
-                    ? user.name
-                    : hostNameForUserId(e.hostUserId) ?? "Host"
-                }
+                hostName={hostLabelForEvent(e, user)}
                 priority={index < 3}
               />
             </Reveal>

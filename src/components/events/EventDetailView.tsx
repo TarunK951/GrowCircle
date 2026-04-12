@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { EventMeetDetail } from "@/components/events/EventMeetDetail";
 import { useResolvedEvent } from "@/hooks/useResolvedEvent";
 import { resolveEventDetail } from "@/lib/eventDetail";
-import { hostNameForUserId } from "@/lib/hostName";
+import { hostLabelForEvent } from "@/lib/hostName";
 import { useSessionStore } from "@/stores/session-store";
 import citiesData from "@/data/cities.json";
 import type { City } from "@/lib/types";
@@ -51,10 +51,7 @@ export function EventDetailView({ id }: { id: string }) {
 
   const cities = citiesData as City[];
   const city = cities.find((c) => c.id === event.cityId);
-  const hostName =
-    event.hostUserId === user?.id
-      ? user.name
-      : hostNameForUserId(event.hostUserId) ?? "Host";
+  const hostName = hostLabelForEvent(event, user ?? null);
 
   const price =
     event.priceCents === 0

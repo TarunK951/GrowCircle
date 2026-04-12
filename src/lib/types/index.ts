@@ -60,6 +60,8 @@ export type MeetEvent = {
   cancelledAt?: string;
   /** Backend slug when synced from Circle API */
   slug?: string;
+  /** When set (e.g. Circle API `host.username`), shown on cards instead of seed lookup */
+  hostUsername?: string | null;
 };
 
 export type User = {

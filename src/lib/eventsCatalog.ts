@@ -1,8 +1,21 @@
 import { eventMatchesCategoryFilter } from "@/lib/eventCategories";
+import { isCircleApiConfigured } from "@/lib/circle/config";
 import type { MeetEvent } from "@/lib/types";
 import eventsData from "@/data/events.json";
 
 const staticList = eventsData as MeetEvent[];
+
+export type CatalogMergeOptions = {
+  /** When false, local `events.json` seed rows are omitted (backend-only catalog). */
+  includeStaticSeed?: boolean;
+};
+
+function resolveIncludeStatic(options?: CatalogMergeOptions): boolean {
+  if (options?.includeStaticSeed !== undefined) {
+    return options.includeStaticSeed;
+  }
+  return !isCircleApiConfigured();
+}
 
 export function getStaticEvents(): MeetEvent[] {
   return staticList;
@@ -12,10 +25,14 @@ export function getStaticEvents(): MeetEvent[] {
 export function mergeEventCatalog(
   hosted: MeetEvent[],
   remoteRows: MeetEvent[] = [],
+  options?: CatalogMergeOptions,
 ): MeetEvent[] {
+  const includeStatic = resolveIncludeStatic(options);
   const byId = new Map<string, MeetEvent>();
-  for (const e of staticList) {
-    byId.set(e.id, { ...e });
+  if (includeStatic) {
+    for (const e of staticList) {
+      byId.set(e.id, { ...e });
+    }
   }
   for (const r of remoteRows) {
     byId.set(r.id, { ...r });
@@ -30,8 +47,9 @@ export function getEventFromCatalog(
   id: string,
   hosted: MeetEvent[],
   remoteRows: MeetEvent[] = [],
+  options?: CatalogMergeOptions,
 ): MeetEvent | null {
-  const merged = mergeEventCatalog(hosted, remoteRows);
+  const merged = mergeEventCatalog(hosted, remoteRows, options);
   return merged.find((e) => e.id === id) ?? null;
 }
 
@@ -46,8 +64,9 @@ export function listEventsMerged(
     publicOnly?: boolean;
   },
   remoteRows: MeetEvent[] = [],
+  catalogOptions?: CatalogMergeOptions,
 ): MeetEvent[] {
-  let list = mergeEventCatalog(hosted, remoteRows);
+  let list = mergeEventCatalog(hosted, remoteRows, catalogOptions);
   list = list.filter((e) => !e.cancelledAt);
   if (filters?.publicOnly) {
     list = list.filter((e) => (e.listingVisibility ?? "public") === "public");

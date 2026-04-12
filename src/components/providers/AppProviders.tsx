@@ -5,11 +5,13 @@ import { MotionProviders } from "@/components/providers/MotionProviders";
 import { CustomCursor } from "@/components/providers/CustomCursor";
 import { UiPrefsEffects } from "@/components/providers/UiPrefsEffects";
 import { CircleCatalogSync } from "@/components/providers/CircleCatalogSync";
+import { CircleHostedEventsSync } from "@/components/providers/CircleHostedEventsSync";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <MotionProviders>
       <CircleCatalogSync />
+      <CircleHostedEventsSync />
       <UiPrefsEffects />
       <CustomCursor />
       {children}

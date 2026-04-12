@@ -93,6 +93,8 @@ type SessionState = {
   toggleSaved: (eventId: string) => void;
   setHostDraft: (d: HostDraft | null) => void;
   publishHostedEvent: (event: MeetEvent) => void;
+  /** Replace or insert rows returned from `GET /events/my` (same ids win from API). */
+  syncHostedEventsFromApi: (apiRows: MeetEvent[]) => void;
   updateHostedEvent: (id: string, patch: Partial<MeetEvent>) => void;
   deleteHostedEvent: (id: string) => void;
   removeGuestBooking: (bookingId: string) => void;
@@ -292,6 +294,12 @@ export const useSessionStore = create<SessionState>()(
         set({
           hostedEvents: [...get().hostedEvents, event],
           hostDraft: null,
+        }),
+      syncHostedEventsFromApi: (apiRows) =>
+        set((s) => {
+          const apiIds = new Set(apiRows.map((e) => e.id));
+          const keepLocal = s.hostedEvents.filter((e) => !apiIds.has(e.id));
+          return { hostedEvents: [...keepLocal, ...apiRows] };
         }),
       updateHostedEvent: (id, patch) =>
         set({
