@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { GrowCircleWordmark } from "@/components/brand/GrowCircleWordmark";
 import { Container } from "@/components/layout/Container";
 
 const cols = [
@@ -38,7 +39,13 @@ export function SiteFooter() {
       <Container>
         <div className="grid gap-10 md:grid-cols-4">
           <div>
-            <p className="text-lg font-semibold text-primary">ConnectSphere</p>
+            <Link
+              href="/"
+              className="inline-block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              aria-label="Grow Circle home"
+            >
+              <GrowCircleWordmark alt="" className="h-10 max-w-[220px] sm:h-11" />
+            </Link>
             <p className="mt-2 max-w-xs text-sm text-black">
               Curated social discovery: real meets, real people — clear, calm,
               and built for continuity.
@@ -63,7 +70,7 @@ export function SiteFooter() {
           ))}
         </div>
         <p className="mt-12 text-center text-xs text-black">
-          © {new Date().getFullYear()} ConnectSphere. Mock prototype — no real
+          © {new Date().getFullYear()} Grow Circle. Mock prototype — no real
           bookings or payments.
         </p>
       </Container>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { GrowCircleWordmark } from "@/components/brand/GrowCircleWordmark";
 import { AuthSplitLayout } from "@/components/auth/AuthSplitLayout";
 
 export default function AuthLayout({
@@ -21,9 +22,10 @@ export default function AuthLayout({
           <div className="mx-auto flex h-10 max-w-6xl items-center">
             <Link
               href="/"
-              className="text-lg font-semibold tracking-tight text-primary"
+              className="inline-flex shrink-0 items-center"
+              aria-label="Grow Circle home"
             >
-              ConnectSphere
+              <GrowCircleWordmark alt="" className="h-9 max-w-[200px] sm:h-10" />
             </Link>
           </div>
         </header>

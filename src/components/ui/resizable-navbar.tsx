@@ -277,6 +277,7 @@ export const NavbarLogo = ({
       )}
     >
       <GrowCircleWordmark
+        alt=""
         className={cn("h-8 sm:h-9 md:h-10", wordmarkClassName)}
       />
     </Link>

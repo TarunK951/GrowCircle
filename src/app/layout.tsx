@@ -14,11 +14,16 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: {
-    default: "ConnectSphere — Social discovery",
-    template: "%s · ConnectSphere",
+    default: "Grow Circle — Social discovery",
+    template: "%s · Grow Circle",
   },
   description:
-    "Discover curated meets, host your own, and connect with real people — ConnectSphere.",
+    "Discover curated meets, host your own, and connect with real people — Grow Circle.",
+  icons: {
+    icon: [{ url: "/brand-grow-circle-logo.png", type: "image/png" }],
+    apple: [{ url: "/brand-grow-circle-logo.png", type: "image/png" }],
+    shortcut: "/brand-grow-circle-logo.png",
+  },
 };
 
 export default function RootLayout({
