@@ -15,7 +15,7 @@ type RemoteState =
   | undefined;
 
 /**
- * Resolves an event from the local catalog (seed + Circle + hosted), or fetches
+ * Resolves an event from the catalog (Circle + hosted), or fetches
  * by id from the Circle API when configured.
  */
 export function useResolvedEvent(id: string): {

@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { forgotPasswordMock } from "@/lib/mockApi";
+import { submitForgotPasswordRequest } from "@/lib/contactRequest";
 
 const schema = z.object({
   email: z.string().email(),
@@ -31,8 +31,14 @@ export default function ForgotPasswordPage() {
       <form
         className="mt-6 space-y-4"
         onSubmit={handleSubmit(async (data) => {
-          await forgotPasswordMock(data.email);
-          toast.success("If that email exists, you will hear from us (mock).");
+          try {
+            await submitForgotPasswordRequest(data.email);
+            toast.success(
+              "If that email is on file, you will receive instructions shortly.",
+            );
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Request failed.");
+          }
         })}
       >
         <div>

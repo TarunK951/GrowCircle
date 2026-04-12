@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { Container } from "@/components/layout/Container";
 import { MarketingPageIntro } from "@/components/layout/MarketingPageIntro";
-import { sendContactForm } from "@/lib/mockApi";
+import { submitContactForm } from "@/lib/contactRequest";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -34,9 +34,15 @@ export default function ContactPage() {
       <form
         className="liquid-glass-surface mt-10 max-w-lg space-y-5"
         onSubmit={handleSubmit(async (data) => {
-          await sendContactForm(data);
-          toast.success("Message sent (mock).");
-          reset();
+          try {
+            await submitContactForm(data);
+            toast.success("Message sent.");
+            reset();
+          } catch (e) {
+            toast.error(
+              e instanceof Error ? e.message : "Could not send message.",
+            );
+          }
         })}
       >
         <div>

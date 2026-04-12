@@ -14,7 +14,7 @@ import { isCircleApiConfigured } from "@/lib/circle/config";
 import { getMediaUploadUrl, uploadToPresignedUrl } from "@/lib/circle/mediaApi";
 import { circleEventToMeetEvent } from "@/lib/circle/mappers";
 import { generateShareToken } from "@/lib/eventsCatalog";
-import type { City, MeetEvent, PreJoinQuestion } from "@/lib/types";
+import type { City, PreJoinQuestion } from "@/lib/types";
 import {
   selectAccessToken,
   selectIsAuthenticated,
@@ -173,9 +173,15 @@ export function HostWizard() {
         }),
       );
 
-      if (isCircleApiConfigured() && accessToken) {
-        setPublishing(true);
-        try {
+      if (!isCircleApiConfigured() || !accessToken) {
+        toast.error(
+          "Publishing requires the Circle API. Set NEXT_PUBLIC_CIRCLE_API_BASE in .env.local and sign in.",
+        );
+        return;
+      }
+
+      setPublishing(true);
+      try {
           const location =
             [draft.venueName, draft.addressLine]
               .map((s) => s.trim())
@@ -266,49 +272,13 @@ export function HostWizard() {
           });
           toast.success("Meet published — manage it under Bookings.");
           router.push("/bookings");
-        } catch (e) {
-          toast.error(
-            e instanceof Error ? e.message : "Could not publish to Circle API",
-          );
-        } finally {
-          setPublishing(false);
-        }
-        return;
+      } catch (e) {
+        toast.error(
+          e instanceof Error ? e.message : "Could not publish to Circle API",
+        );
+      } finally {
+        setPublishing(false);
       }
-
-      const ev: MeetEvent = {
-        id: `evt_u_${Math.random().toString(36).slice(2, 11)}`,
-        title: draft.title.trim() || "Untitled meet",
-        description: draft.description.trim() || "—",
-        cityId: draft.cityId,
-        startsAt: startsAtIso,
-        hostUserId: user.id,
-        capacity: Math.max(4, draft.capacity),
-        category: primaryCategory,
-        categories: cats,
-        image,
-        priceCents: Math.max(0, draft.priceCents),
-        venueName: draft.venueName.trim() || undefined,
-        addressLine: draft.addressLine.trim() || undefined,
-        joinMode: draft.joinMode,
-        listingVisibility: draft.listingVisibility,
-        shareToken: generateShareToken(),
-        spotsTaken: 0,
-        moreAbout: draft.moreAbout.trim() || undefined,
-        whatsIncluded: whatsIncluded.length ? whatsIncluded : undefined,
-        guestSuggestions: guestSuggestions.length ? guestSuggestions : undefined,
-        allowedAndNotes: draft.allowedAndNotes.trim() || undefined,
-        houseRules:
-          dos.length || donts.length
-            ? { dos, donts }
-            : undefined,
-        faqs: faqs.length ? faqs : undefined,
-        preJoinQuestions: preJoinQuestions.length ? preJoinQuestions : undefined,
-      };
-
-      publishHostedEvent(ev);
-      toast.success("Meet published (mock) — manage it under Bookings.");
-      router.push("/bookings");
     })();
   };
 
@@ -454,7 +424,7 @@ export function HostWizard() {
                 }
               />
               <p className="mt-1 text-xs text-muted">
-                e.g. 2500 = ₹25 (amount in paise; mock — no real charge).
+                e.g. 2500 = ₹25 (amount in paise; charged via Razorpay when paid).
               </p>
             </div>
           </div>
@@ -1058,11 +1028,7 @@ export function HostWizard() {
             disabled={publishing}
             className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow-md shadow-primary/20 transition hover:bg-primary/92 disabled:opacity-60"
           >
-            {publishing
-              ? "Publishing…"
-              : isCircleApiConfigured() && accessToken
-                ? "Publish"
-                : "Publish (mock)"}
+            {publishing ? "Publishing…" : "Publish"}
           </button>
         )}
       </div>

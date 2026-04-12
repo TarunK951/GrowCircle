@@ -1,39 +1,18 @@
 import { eventMatchesCategoryFilter } from "@/lib/eventCategories";
-import { isCircleApiConfigured } from "@/lib/circle/config";
 import type { MeetEvent } from "@/lib/types";
-import eventsData from "@/data/events.json";
-
-const staticList = eventsData as MeetEvent[];
 
 export type CatalogMergeOptions = {
-  /** When false, local `events.json` seed rows are omitted (backend-only catalog). */
+  /** @deprecated Static JSON seed removed; option ignored. */
   includeStaticSeed?: boolean;
 };
 
-function resolveIncludeStatic(options?: CatalogMergeOptions): boolean {
-  if (options?.includeStaticSeed !== undefined) {
-    return options.includeStaticSeed;
-  }
-  return !isCircleApiConfigured();
-}
-
-export function getStaticEvents(): MeetEvent[] {
-  return staticList;
-}
-
-/** Merge seed events, Circle API rows, and user-published meets (hosted wins on id clash). */
+/** Merge Circle API rows and user-published meets (hosted wins on id clash). */
 export function mergeEventCatalog(
   hosted: MeetEvent[],
   remoteRows: MeetEvent[] = [],
-  options?: CatalogMergeOptions,
+  _options?: CatalogMergeOptions,
 ): MeetEvent[] {
-  const includeStatic = resolveIncludeStatic(options);
   const byId = new Map<string, MeetEvent>();
-  if (includeStatic) {
-    for (const e of staticList) {
-      byId.set(e.id, { ...e });
-    }
-  }
   for (const r of remoteRows) {
     byId.set(r.id, { ...r });
   }

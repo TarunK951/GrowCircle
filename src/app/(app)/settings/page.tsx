@@ -70,7 +70,7 @@ export default function SettingsPage() {
       </div>
       <div className="mt-8 space-y-5 rounded-2xl border border-neutral-200 bg-white/80 p-6 shadow-sm">
         <p className="text-xs font-bold uppercase tracking-wider text-neutral-900">
-          Notifications (mock)
+          Notifications
         </p>
         {row("Weekly digest email", uiPrefs.weeklyDigestEmail, (v) =>
           setUiPrefs({ weeklyDigestEmail: v }),

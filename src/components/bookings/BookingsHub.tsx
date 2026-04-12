@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import {
   acceptWaitlistOffer,
   cancelApplication,
+  cancelEventAsHost,
+  deleteEvent,
   generateCheckinOtp,
   getPayment,
   getWaitlistPosition,
@@ -539,8 +541,6 @@ export function BookingsHub() {
   const bookings = useSessionStore((s) => s.bookings);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
-  const cancelBooking = useSessionStore((s) => s.cancelBooking);
-  const refundBooking = useSessionStore((s) => s.refundBooking);
   const updateHostedEvent = useSessionStore((s) => s.updateHostedEvent);
   const deleteHostedEvent = useSessionStore((s) => s.deleteHostedEvent);
   const approveBooking = useSessionStore((s) => s.approveBooking);
@@ -571,29 +571,8 @@ export function BookingsHub() {
     return catalog.filter((e) => e.hostUserId === user.id);
   }, [catalog, user]);
 
-  const myBookings = useMemo(() => {
-    if (!user) return [];
-    return bookings.filter((b) => b.userId === user.id);
-  }, [bookings, user]);
-
-  const mockGuestBookings = useMemo(() => {
-    return myBookings.filter((b) => {
-      const ev = getEventFromCatalog(
-        b.eventId,
-        hostedEvents,
-        circleCatalogEvents,
-      );
-      if (ev?.cityId === "circle") return false;
-      return true;
-    });
-  }, [myBookings, hostedEvents, circleCatalogEvents]);
-
   const showCircleGuest =
     isCircleApiConfigured() && Boolean(accessToken) && user;
-
-  /** Hide zustand-only demo bookings when using Circle API + token. */
-  const hideLocalGuestRows =
-    isCircleApiConfigured() && Boolean(accessToken);
 
   return (
     <div className="text-neutral-900">
@@ -665,12 +644,6 @@ export function BookingsHub() {
             </div>
           )}
 
-          {!hideLocalGuestRows && mockGuestBookings.length > 0 && (
-            <p className="text-xs font-bold uppercase tracking-wider text-neutral-900">
-              Local demo bookings
-            </p>
-          )}
-
           <ul
             className={cn(
               "flex flex-col",
@@ -679,122 +652,29 @@ export function BookingsHub() {
           >
           {!circleLoading &&
             circleApps.length === 0 &&
-            mockGuestBookings.length === 0 &&
-            !showCircleGuest && (
-            <li className="text-sm font-medium text-neutral-900">
-              No bookings yet.
-            </li>
-          )}
-          {!circleLoading &&
-            !hideLocalGuestRows &&
-            showCircleGuest &&
-            circleApps.length === 0 &&
-            mockGuestBookings.length === 0 && (
+            !showCircleGuest &&
+            !isCircleApiConfigured() && (
               <li className="text-sm font-medium text-neutral-700">
-                No demo bookings — explore meets to join one.
+                Set{" "}
+                <code className="rounded bg-neutral-100 px-1 text-xs">
+                  NEXT_PUBLIC_CIRCLE_API_BASE
+                </code>{" "}
+                and sign in to load bookings from the server.
               </li>
             )}
-          {!hideLocalGuestRows &&
-            mockGuestBookings.map((b) => {
-            const ev = getEventFromCatalog(
-              b.eventId,
-              hostedEvents,
-              circleCatalogEvents,
-            );
-            if (!ev) return null;
-            const origin =
-              typeof window !== "undefined" ? window.location.origin : "";
-            const shareUrl = `${origin}/event/${ev.id}?booking=${b.id}`;
-            return (
-              <li
-                key={b.id}
-                className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-stretch">
-                  <div className="relative h-36 w-full shrink-0 bg-neutral-100 sm:w-40 md:w-44">
-                    <Image
-                      src={ev.image}
-                      alt=""
-                      fill
-                      sizes="(max-width:640px) 100vw, 176px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <div
-                    className={cn(
-                      "flex min-w-0 flex-1 flex-col justify-between gap-4 p-4 sm:p-5",
-                      compactBookingCards && "gap-3 p-3 sm:p-4",
-                    )}
-                  >
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <BookingStatusBadge status={b.status} />
-                        {b.refundedAt && (
-                          <span className="text-xs font-semibold text-neutral-700">
-                            Refunded (demo)
-                          </span>
-                        )}
-                      </div>
-                      <Link
-                        href={`/event/${ev.id}`}
-                        className="mt-2 block font-onest text-lg font-semibold text-neutral-900 hover:text-primary hover:underline"
-                      >
-                        {ev.title}
-                      </Link>
-                      <p className="mt-1 text-sm font-medium text-neutral-800">
-                        {new Date(b.createdAt).toLocaleString()}
-                      </p>
-                      {(b.status === "confirmed" || b.status === "attended") &&
-                        b.attendanceCode && (
-                          <p className="mt-3 font-mono text-sm tracking-wider text-neutral-900">
-                            Check-in code:{" "}
-                            <span className="font-semibold">
-                              {b.attendanceCode}
-                            </span>
-                            <span className="ml-2 text-xs font-sans text-neutral-800">
-                              (show host at arrival)
-                            </span>
-                          </p>
-                        )}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-xs font-semibold text-neutral-900 hover:bg-neutral-100"
-                        onClick={() => copyText("Share link", shareUrl)}
-                      >
-                        Share booking
-                      </button>
-                      {(b.status === "pending" || b.status === "confirmed") && (
-                        <>
-                          <button
-                            type="button"
-                            className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-xs font-semibold text-neutral-900 hover:bg-neutral-100"
-                            onClick={() => {
-                              cancelBooking(b.id);
-                              toast.success("Booking cancelled (mock).");
-                            }}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            className="rounded-full border border-neutral-300 bg-white px-4 py-2 text-xs font-semibold text-neutral-900 hover:bg-neutral-100"
-                            onClick={() => {
-                              refundBooking(b.id);
-                              toast.success("Refund recorded (mock).");
-                            }}
-                          >
-                            Refund
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
+          {!circleLoading &&
+            circleApps.length === 0 &&
+            !showCircleGuest &&
+            isCircleApiConfigured() && (
+              <li className="text-sm font-medium text-neutral-700">
+                Sign in to see your Circle applications and bookings.
               </li>
-            );
-          })}
+            )}
+          {!circleLoading && showCircleGuest && circleApps.length === 0 && (
+              <li className="text-sm font-medium text-neutral-700">
+                No applications yet — explore meets to join one.
+              </li>
+            )}
         </ul>
         </div>
       )}
@@ -992,13 +872,33 @@ function HostMeetCard({
                   if (
                     typeof window !== "undefined" &&
                     window.confirm(
-                      "Cancel this meet? It will be hidden from Explore; guests can still open the link (mock).",
+                      "Cancel this meet? It will be marked cancelled for guests.",
                     )
                   ) {
-                    updateHostedEvent(ev.id, {
-                      cancelledAt: new Date().toISOString(),
-                    });
-                    toast.success("Meet cancelled (mock).");
+                    void (async () => {
+                      if (showCircleHostPanel && accessToken) {
+                        try {
+                          await cancelEventAsHost(accessToken, ev.id);
+                          updateHostedEvent(ev.id, {
+                            cancelledAt: new Date().toISOString(),
+                          });
+                          toast.success("Meet cancelled.");
+                        } catch (e) {
+                          toast.error(
+                            e instanceof CircleApiError
+                              ? e.message
+                              : e instanceof Error
+                                ? e.message
+                                : "Could not cancel meet",
+                          );
+                        }
+                        return;
+                      }
+                      updateHostedEvent(ev.id, {
+                        cancelledAt: new Date().toISOString(),
+                      });
+                      toast.success("Meet cancelled.");
+                    })();
                   }
                 }}
               >
@@ -1013,11 +913,29 @@ function HostMeetCard({
                   if (
                     typeof window !== "undefined" &&
                     window.confirm(
-                      "Delete this meet and its guest list (mock)?",
+                      "Delete this meet and remove it from your hosting list?",
                     )
                   ) {
-                    deleteHostedEvent(ev.id);
-                    toast.success("Meet removed.");
+                    void (async () => {
+                      if (showCircleHostPanel && accessToken) {
+                        try {
+                          await deleteEvent(accessToken, ev.id);
+                          deleteHostedEvent(ev.id);
+                          toast.success("Meet removed.");
+                        } catch (e) {
+                          toast.error(
+                            e instanceof CircleApiError
+                              ? e.message
+                              : e instanceof Error
+                                ? e.message
+                                : "Could not delete meet",
+                          );
+                        }
+                        return;
+                      }
+                      deleteHostedEvent(ev.id);
+                      toast.success("Meet removed.");
+                    })();
                   }
                 }}
               >
@@ -1032,8 +950,8 @@ function HostMeetCard({
         <div className="space-y-4 border-t border-neutral-200 bg-neutral-50/50 px-4 py-5 sm:px-5">
           {!canEditMeet && !showCircleHostPanel && (
             <p className="text-xs font-medium text-neutral-800">
-              Demo seed meet — publish your own from Host a meet for full edit
-              and delete controls.
+              You can view this meet; only the host can change listing or cancel
+              it on Circle.
             </p>
           )}
 

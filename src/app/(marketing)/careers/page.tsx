@@ -16,8 +16,8 @@ export const metadata: Metadata = {
     "Join ConnectSphere—help people find real-life connection through curated meets and a calm, thoughtful product.",
 };
 
-export default function CareersPage() {
-  const c = getCareersContent();
+export default async function CareersPage() {
+  const c = await getCareersContent();
 
   return (
     <>

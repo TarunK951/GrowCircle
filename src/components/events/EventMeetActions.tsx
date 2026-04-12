@@ -260,9 +260,9 @@ export function JoinMeetButton({ event }: { event: MeetEvent }) {
       return;
     }
     if (result.booking?.status === "pending") {
-      toast.success("Request sent — the host will review (mock).");
+      toast.success("Request sent — the host will review.");
     } else {
-      toast.success("You’re in — mock booking confirmed.");
+      toast.success("You’re in — booking confirmed.");
     }
     router.push("/bookings");
   };
