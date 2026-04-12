@@ -11,7 +11,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { GoogleGlyph } from "@/components/auth/GoogleGlyph";
 import { CirclePhoneAuth } from "@/components/auth/CirclePhoneAuth";
 import { isCircleApiConfigured } from "@/lib/circle/config";
-import { loginMock, signupMock } from "@/lib/mockApi";
+import type { User } from "@/lib/types";
 import { useSessionStore } from "@/stores/session-store";
 
 const loginSchema = z.object({
@@ -28,11 +28,46 @@ const signupSchema = z.object({
 type LoginValues = z.infer<typeof loginSchema>;
 type SignupValues = z.infer<typeof signupSchema>;
 
+async function loginWithApi(email: string, password: string): Promise<User> {
+  const res = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = (await res.json().catch(() => ({}))) as {
+    user?: User;
+    error?: string;
+  };
+  if (!res.ok) {
+    throw new Error(data.error || "Could not sign in.");
+  }
+  if (!data.user) throw new Error("Could not sign in.");
+  return data.user;
+}
+
+async function registerWithApi(input: SignupValues): Promise<User> {
+  const res = await fetch("/api/auth/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const data = (await res.json().catch(() => ({}))) as {
+    user?: User;
+    error?: string;
+  };
+  if (!res.ok) {
+    throw new Error(data.error || "Could not create account.");
+  }
+  if (!data.user) throw new Error("Could not create account.");
+  return data.user;
+}
+
 const inputClass =
   "w-full rounded-xl border border-neutral-200/90 bg-neutral-100/90 px-3.5 py-2.5 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-neutral-300 focus:bg-white focus:ring-2 focus:ring-neutral-950/10";
 
 /**
- * Single form for /login and /signup — layout + hero live in auth layout; only fields swap.
+ * Single form for /login and /signup — split layout in auth shell; fields swap by route.
+ * Email/password use `/api/auth/login` and `/api/auth/register` when Circle API is off.
  */
 export function UnifiedAuthForm() {
   const pathname = usePathname();
@@ -74,19 +109,23 @@ export function UnifiedAuthForm() {
     try {
       if (mode === "login") {
         const d = data as LoginValues;
-        const user = await loginMock(d.email, d.password);
+        const user = await loginWithApi(d.email, d.password);
         loginSession(user);
         toast.success("Signed in");
         router.push(returnUrl);
         return;
       }
       const d = data as SignupValues;
-      const user = await signupMock(d);
+      const user = await registerWithApi(d);
       loginSession(user);
       toast.success("Welcome to ConnectSphere");
       router.push("/onboarding");
-    } catch {
-      toast.error("Something went wrong. Please try again.");
+    } catch (e) {
+      const msg =
+        e instanceof Error
+          ? e.message
+          : "Something went wrong. Please try again.";
+      toast.error(msg);
     }
   });
 
@@ -239,7 +278,7 @@ export function UnifiedAuthForm() {
           <div className="w-full border-t border-neutral-200" />
         </div>
         <div className="relative flex justify-center text-xs">
-          <span className="bg-canvas px-3 text-neutral-400">Or Continue with</span>
+          <span className="bg-white px-3 text-neutral-400">Or Continue with</span>
         </div>
       </div>
 
