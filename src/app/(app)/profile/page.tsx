@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { ShieldCheck } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ShieldCheck, Smartphone } from "lucide-react";
 import { getMyProfile, updateMyProfile } from "@/lib/circle/api";
 import { CircleApiError } from "@/lib/circle/client";
 import { isCircleApiConfigured } from "@/lib/circle/config";
 import { circleUsernameSchema } from "@/lib/auth/circleUsernameSchema";
+import { ageFromIsoDate } from "@/lib/date/ageFromDob";
 import { circleProfileToUser } from "@/lib/circle/mappers";
 import {
   selectAccessToken,
@@ -21,11 +22,19 @@ import {
 import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
 
-const schema = z.object({
+const circleFormSchema = z.object({
   name: circleUsernameSchema,
+  dob: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Choose your date of birth (YYYY-MM-DD)"),
 });
 
-type Form = z.infer<typeof schema>;
+const localFormSchema = z.object({
+  name: z.string().trim().min(2, "Name is required"),
+});
+
+type CircleForm = z.infer<typeof circleFormSchema>;
+type LocalForm = z.infer<typeof localFormSchema>;
 
 export default function ProfilePage() {
   const user = useAppSelector(selectUser);
@@ -34,15 +43,40 @@ export default function ProfilePage() {
   const refreshToken = useAppSelector(selectRefreshToken);
   const loginWithCircle = useSessionStore((s) => s.loginWithCircle);
 
+  const circleSync =
+    isCircleApiConfigured() && Boolean(accessToken && refreshToken);
+
+  const [phoneDisplay, setPhoneDisplay] = useState<string | null>(null);
+
+  const resolver = useMemo(
+    () =>
+      zodResolver(circleSync ? circleFormSchema : localFormSchema) as never,
+    [circleSync],
+  );
+
   const {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
-  } = useForm<Form>({
-    resolver: zodResolver(schema),
-    defaultValues: { name: user?.name ?? "" },
+  } = useForm<CircleForm | LocalForm>({
+    resolver,
+    defaultValues: { name: user?.name ?? "", ...(circleSync ? { dob: "" } : {}) },
   });
+
+  const allValues = watch();
+  const dobWatch =
+    circleSync && allValues && typeof allValues === "object" && "dob" in allValues
+      ? String((allValues as CircleForm).dob ?? "")
+      : "";
+  const computedAge = useMemo(
+    () =>
+      dobWatch && /^\d{4}-\d{2}-\d{2}$/.test(dobWatch)
+        ? ageFromIsoDate(dobWatch)
+        : null,
+    [dobWatch],
+  );
 
   useEffect(() => {
     if (!isCircleApiConfigured() || !accessToken || !refreshToken) return;
@@ -53,7 +87,14 @@ export default function ProfilePage() {
         if (cancelled) return;
         const u = circleProfileToUser(profile);
         loginWithCircle(u, { accessToken, refreshToken });
-        reset({ name: u.name });
+        setPhoneDisplay(profile.phone);
+        const dobStr = profile.dob?.trim() ?? "";
+        const dob =
+          /^\d{4}-\d{2}-\d{2}/.test(dobStr) ? dobStr.slice(0, 10) : "";
+        reset({
+          name: profile.username?.trim() || u.name,
+          ...(circleSync ? { dob } : {}),
+        } as CircleForm & LocalForm);
       } catch (e) {
         if (!cancelled && e instanceof CircleApiError) {
           toast.error(e.message);
@@ -63,38 +104,61 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [accessToken, refreshToken, loginWithCircle, reset]);
-
-  const circleSync =
-    isCircleApiConfigured() && Boolean(accessToken && refreshToken);
+  }, [accessToken, refreshToken, loginWithCircle, reset, circleSync]);
 
   return (
-    <div className="mx-auto min-h-0 max-w-2xl text-neutral-900">
-      <div className="border-b border-neutral-200 pb-8">
+    <div className="mx-auto w-full max-w-3xl text-neutral-900">
+      <div className="mb-8">
+        <Link
+          href="/dashboard"
+          className="mb-6 inline-flex items-center gap-1 text-sm font-medium text-neutral-600 transition hover:text-neutral-900"
+        >
+          <ChevronLeft className="h-4 w-4" aria-hidden />
+          Dashboard
+        </Link>
         <h1 className="font-onest text-3xl font-semibold tracking-tight text-neutral-900">
           Profile
         </h1>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-900">
-          Update how you appear to hosts and guests.
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-neutral-600">
+          How you appear across Grow Circle.{" "}
           {circleSync
-            ? " Display name is saved to your Circle account."
-            : " Email changes may require support when using a connected account."}
+            ? "Updates sync to your Circle account."
+            : "Sign in with Circle to unlock full profile fields."}
         </p>
       </div>
 
-      <div className="mt-10 flex flex-col gap-8 sm:flex-row sm:items-start">
-        <div className="flex shrink-0 flex-col items-center gap-3 sm:w-40">
-          <div className="relative h-28 w-28 overflow-hidden rounded-2xl border-2 border-neutral-200 bg-neutral-100 shadow-sm">
+      <div
+        className="mb-8 flex gap-3 rounded-2xl border border-amber-200/90 bg-amber-50/90 p-4 text-sm text-amber-950 shadow-sm"
+        role="status"
+      >
+        <AlertTriangle
+          className="mt-0.5 h-5 w-5 shrink-0 text-amber-700"
+          aria-hidden
+        />
+        <div>
+          <p className="font-semibold text-amber-950">Visible to others</p>
+          <p className="mt-1 text-amber-950/90">
+            Your display name can show on meets, bookings, and messages. You may
+            change these details anytime — choose what you&apos;re comfortable
+            sharing publicly. Date of birth is used for age eligibility on
+            meets; keep it accurate.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,220px)_1fr] lg:items-start">
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-neutral-200/80 bg-linear-to-b from-white to-neutral-50/80 p-6 shadow-sm lg:sticky lg:top-24">
+          <div className="relative h-32 w-32 overflow-hidden rounded-2xl border-2 border-neutral-200 bg-neutral-100 shadow-inner">
             {user?.avatar ? (
               <Image
                 src={user.avatar}
                 alt=""
                 fill
                 className="object-cover"
-                sizes="112px"
+                sizes="128px"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-2xl font-semibold text-neutral-900">
+              <div className="flex h-full w-full items-center justify-center text-3xl font-semibold text-neutral-700">
                 {(user?.name ?? "?").slice(0, 1).toUpperCase()}
               </div>
             )}
@@ -112,7 +176,7 @@ export default function ProfilePage() {
           {!user?.verified && (
             <Link
               href="/verify-profile"
-              className="text-center text-sm font-semibold text-primary underline-offset-4 hover:underline"
+              className="text-center text-sm font-semibold text-violet-800 underline-offset-4 hover:underline"
             >
               Verify profile
             </Link>
@@ -120,73 +184,175 @@ export default function ProfilePage() {
         </div>
 
         <form
-          className="min-w-0 flex-1 space-y-6 rounded-2xl border border-neutral-200 bg-neutral-50/80 p-6 sm:p-8"
+          key={circleSync ? "circle" : "local"}
+          className="space-y-8 rounded-2xl border border-neutral-200/90 bg-white p-6 shadow-sm sm:p-8"
           onSubmit={handleSubmit(async (data) => {
             if (circleSync) {
+              const d = data as CircleForm;
               try {
                 const profile = await updateMyProfile(accessToken!, {
-                  username: data.name.trim(),
+                  username: d.name.trim(),
+                  dob: d.dob,
                 });
                 const u = circleProfileToUser(profile);
                 loginWithCircle(u, {
                   accessToken: accessToken!,
                   refreshToken: refreshToken!,
                 });
+                setPhoneDisplay(profile.phone);
                 toast.success("Profile updated");
               } catch (e) {
-                toast.error(
+                const msg =
                   e instanceof CircleApiError
                     ? e.message
                     : e instanceof Error
                       ? e.message
-                      : "Could not update profile",
-                );
+                      : "Could not update profile";
+                if (
+                  typeof msg === "string" &&
+                  /dob|birth|date/i.test(msg)
+                ) {
+                  try {
+                    const profile = await updateMyProfile(accessToken!, {
+                      username: d.name.trim(),
+                    });
+                    const u = circleProfileToUser(profile);
+                    loginWithCircle(u, {
+                      accessToken: accessToken!,
+                      refreshToken: refreshToken!,
+                    });
+                    toast.message(
+                      "Display name saved. Date of birth could not be updated — your API may only allow it during signup.",
+                    );
+                  } catch (e2) {
+                    toast.error(
+                      e2 instanceof CircleApiError
+                        ? e2.message
+                        : "Could not update profile",
+                    );
+                  }
+                } else {
+                  toast.error(msg);
+                }
               }
               return;
             }
-            updateProfile({ name: data.name });
+            updateProfile({ name: (data as LocalForm).name });
             toast.success("Profile updated");
           })}
         >
           <div>
-            <label
-              htmlFor="profile-name"
-              className="text-sm font-semibold text-neutral-900"
-            >
-              Display name
-            </label>
-            <input
-              id="profile-name"
-              className="mt-2 w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
-              {...register("name")}
-              autoComplete="username"
-            />
-            <p className="mt-1.5 text-xs text-neutral-600">
-              Letters and numbers only — no spaces or symbols.
+            <h2 className="text-base font-semibold text-neutral-900">
+              Public profile
+            </h2>
+            <p className="mt-1 text-xs text-neutral-500">
+              Shown on cards, RSVPs, and host tools.
             </p>
-            {errors.name && (
-              <p className="mt-2 text-xs font-medium text-red-600">
-                {errors.name.message}
+          </div>
+
+          <div className="space-y-5">
+            <div>
+              <label
+                htmlFor="profile-name"
+                className="text-sm font-semibold text-neutral-900"
+              >
+                Display name
+              </label>
+              <input
+                id="profile-name"
+                className="mt-2 w-full rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white focus:ring-2 focus:ring-neutral-900/10"
+                {...register("name")}
+                autoComplete="username"
+              />
+              <p className="mt-1.5 text-xs text-neutral-600">
+                Letters and numbers only — no spaces or symbols.
               </p>
+              {errors.name && (
+                <p className="mt-2 text-xs font-medium text-red-600">
+                  {(errors as { name?: { message?: string } }).name?.message}
+                </p>
+              )}
+            </div>
+
+            {circleSync && (
+              <div>
+                <label
+                  htmlFor="profile-dob"
+                  className="text-sm font-semibold text-neutral-900"
+                >
+                  Date of birth
+                </label>
+                <input
+                  id="profile-dob"
+                  type="date"
+                  className="mt-2 w-full max-w-xs rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-neutral-900 focus:bg-white focus:ring-2 focus:ring-neutral-900/10"
+                  {...register("dob" as const)}
+                />
+                {computedAge != null && (
+                  <p className="mt-2 text-sm text-neutral-600">
+                    Age shown on meets:{" "}
+                    <span className="font-semibold text-neutral-900">
+                      {computedAge}
+                    </span>
+                  </p>
+                )}
+                {(errors as { dob?: { message?: string } }).dob && (
+                  <p className="mt-2 text-xs font-medium text-red-600">
+                    {(errors as { dob?: { message?: string } }).dob?.message}
+                  </p>
+                )}
+              </div>
             )}
           </div>
-          <div>
-            <p className="text-sm font-semibold text-neutral-900">Email</p>
-            <p className="mt-2 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900">
-              {user?.email ?? "—"}
+
+          <div className="border-t border-neutral-200 pt-8">
+            <h2 className="text-base font-semibold text-neutral-900">
+              Contact
+            </h2>
+            <p className="mt-1 text-xs text-neutral-500">
+              Email and phone are used for account security and notifications.
             </p>
-            <p className="mt-2 text-xs text-neutral-900">
-              {circleSync
-                ? "Managed by your Circle account. Contact support to change it."
-                : "Contact support to change email when using a connected account."}
-            </p>
+            <dl className="mt-5 space-y-4">
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+                  Email
+                </dt>
+                <dd className="mt-1.5 rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3 text-sm text-neutral-900">
+                  {user?.email ?? "—"}
+                </dd>
+                <p className="mt-2 text-xs text-neutral-600">
+                  {circleSync
+                    ? "Managed by your Circle account. Contact support to change it."
+                    : "Contact support to change email when using a connected account."}
+                </p>
+              </div>
+              {circleSync && (
+                <div>
+                  <dt className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-neutral-500">
+                    <Smartphone className="h-3.5 w-3.5" aria-hidden />
+                    Phone
+                  </dt>
+                  <dd className="mt-1.5 rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3 text-sm text-neutral-900">
+                    {phoneDisplay && phoneDisplay.length > 0
+                      ? phoneDisplay
+                      : "Not linked"}
+                  </dd>
+                  <p className="mt-2 text-xs text-neutral-600">
+                    {phoneDisplay && phoneDisplay.length > 0
+                      ? "Linked via phone OTP sign-in."
+                      : "Link a number by signing in with phone OTP from the login page (same account)."}
+                  </p>
+                </div>
+              )}
+            </dl>
           </div>
+
           <button
             type="submit"
             disabled={isSubmitting}
-            className="rounded-xl bg-neutral-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50"
+            className="w-full rounded-xl bg-neutral-900 px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50 sm:w-auto"
           >
-            Save changes
+            {isSubmitting ? "Saving…" : "Save changes"}
           </button>
         </form>
       </div>

@@ -9,6 +9,7 @@ import type {
   MeetEvent,
   User,
 } from "@/lib/types";
+import { mergeHostedEventPreservingLocalCover } from "@/lib/events/mergeHostedFromApi";
 import {
   generateAttendanceCode,
   getEventFromCatalog,
@@ -452,9 +453,13 @@ export const useSessionStore = create<SessionState>()(
         }),
       syncHostedEventsFromApi: (apiRows) =>
         set((s) => {
+          const prevById = new Map(s.hostedEvents.map((e) => [e.id, e]));
           const apiIds = new Set(apiRows.map((e) => e.id));
+          const merged = apiRows.map((row) =>
+            mergeHostedEventPreservingLocalCover(prevById.get(row.id), row),
+          );
           const keepLocal = s.hostedEvents.filter((e) => !apiIds.has(e.id));
-          return { hostedEvents: [...keepLocal, ...apiRows] };
+          return { hostedEvents: [...keepLocal, ...merged] };
         }),
       updateHostedEvent: (id, patch) =>
         set({

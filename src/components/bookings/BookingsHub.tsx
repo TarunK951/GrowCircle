@@ -399,7 +399,7 @@ function CircleGuestApplicationCard({
         accessToken={accessToken}
       />
       <div className="flex flex-col sm:flex-row sm:items-stretch">
-        <div className="relative h-36 w-full shrink-0 bg-neutral-100 sm:w-40 md:w-44">
+        <div className="relative h-44 w-full shrink-0 bg-neutral-100 sm:h-auto sm:w-40 md:w-44">
           <Image
             src={image}
             alt=""
@@ -815,7 +815,7 @@ function HostMeetCard({
   return (
     <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-stretch">
-        <div className="relative h-36 w-full shrink-0 bg-neutral-100 sm:w-40 md:w-44">
+        <div className="relative h-44 w-full shrink-0 bg-neutral-100 sm:h-auto sm:w-40 md:w-44">
           <Image
             src={ev.image}
             alt=""

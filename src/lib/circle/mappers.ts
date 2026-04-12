@@ -4,6 +4,10 @@ import type { MeetEvent, PreJoinQuestion, User } from "@/lib/types";
 const DEFAULT_AVATAR =
   "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=128&h=128&fit=crop";
 
+/** Shown when Circle omits `cover_image_url` — used to detect “weak” API rows during hosted sync. */
+export const DEFAULT_MEET_EVENT_COVER_URL =
+  "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80";
+
 function priceStringToCents(price: string | undefined): number {
   if (!price) return 0;
   const n = Number.parseFloat(price);
@@ -44,8 +48,7 @@ export function circleEventToMeetEvent(
     api.host?.id ?? opts?.defaultHostUserId ?? "unknown_host";
   const priceCents = priceStringToCents(api.price);
   const image =
-    api.cover_image_url?.trim() ||
-    "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80";
+    api.cover_image_url?.trim() || DEFAULT_MEET_EVENT_COVER_URL;
 
   let preJoin: PreJoinQuestion[] | undefined;
   if (api.questions?.length) {

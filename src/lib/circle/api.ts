@@ -181,6 +181,8 @@ export async function updateMyProfile(
     username: string;
     email: string;
     avatar_url: string;
+    /** ISO date `YYYY-MM-DD` — sent when backend supports it on §2.2 */
+    dob: string;
   }>,
 ): Promise<CircleProfile> {
   const raw = await circleRequest<unknown>("/users/me", {
