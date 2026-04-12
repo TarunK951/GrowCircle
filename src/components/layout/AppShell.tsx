@@ -6,8 +6,14 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { logoutApi } from "@/lib/circle/api";
-import { getUnreadNotificationCount } from "@/lib/circle/notificationsApi";
 import { isCircleApiConfigured } from "@/lib/circle/config";
+import {
+  selectAccessToken,
+  selectRefreshToken,
+  selectUser,
+} from "@/lib/store/authSlice";
+import { useUnreadNotificationCountQuery } from "@/lib/store/circleApi";
+import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
 import {
   LayoutDashboard,
@@ -60,11 +66,14 @@ function shellNavActive(pathname: string, href: string, aliases?: string[]) {
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const user = useSessionStore((s) => s.user);
+  const user = useAppSelector(selectUser);
   const logout = useSessionStore((s) => s.logout);
-  const accessToken = useSessionStore((s) => s.accessToken);
-  const refreshToken = useSessionStore((s) => s.refreshToken);
-  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const accessToken = useAppSelector(selectAccessToken);
+  const refreshToken = useAppSelector(selectRefreshToken);
+  const { data: unreadNotifCount = 0, refetch: refetchUnread } =
+    useUnreadNotificationCountQuery(undefined, {
+      skip: !accessToken || !isCircleApiConfigured(),
+    });
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -90,20 +99,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    const load = () => {
-      if (!accessToken || !isCircleApiConfigured()) {
-        setUnreadNotifCount(0);
-        return;
-      }
-      void getUnreadNotificationCount(accessToken)
-        .then((d) => setUnreadNotifCount(d.count))
-        .catch(() => setUnreadNotifCount(0));
+    const onRefresh = () => {
+      void refetchUnread();
     };
-    load();
-    const onRefresh = () => load();
     window.addEventListener("circle-unread-refresh", onRefresh);
     return () => window.removeEventListener("circle-unread-refresh", onRefresh);
-  }, [pathname, accessToken]);
+  }, [refetchUnread]);
 
   return (
     <div className="flex min-h-0 flex-1">

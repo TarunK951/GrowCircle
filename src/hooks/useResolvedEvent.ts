@@ -5,6 +5,8 @@ import { getEventById } from "@/lib/circle/api";
 import { isCircleApiConfigured } from "@/lib/circle/config";
 import { circleEventToMeetEvent } from "@/lib/circle/mappers";
 import { getEventFromCatalog } from "@/lib/eventsCatalog";
+import { selectAccessToken } from "@/lib/store/authSlice";
+import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
 import type { MeetEvent } from "@/lib/types";
 
@@ -22,7 +24,7 @@ export function useResolvedEvent(id: string): {
 } {
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
-  const accessToken = useSessionStore((s) => s.accessToken);
+  const accessToken = useAppSelector(selectAccessToken);
   const upsertCircleCatalogEvent = useSessionStore(
     (s) => s.upsertCircleCatalogEvent,
   );

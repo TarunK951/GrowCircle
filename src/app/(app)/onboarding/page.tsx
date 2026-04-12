@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import citiesData from "@/data/cities.json";
 import type { City } from "@/lib/types";
+import { selectUser } from "@/lib/store/authSlice";
+import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
 
 const cities = (citiesData as City[]).filter((c) => c.id !== "circle");
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const user = useSessionStore((s) => s.user);
+  const user = useAppSelector(selectUser);
   const updateProfile = useSessionStore((s) => s.updateProfile);
   const [cityId, setCityId] = useState(user?.cityId ?? "blr");
   const [interests, setInterests] = useState(

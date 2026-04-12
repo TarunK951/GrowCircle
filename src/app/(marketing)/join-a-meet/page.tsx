@@ -6,11 +6,12 @@ import { useRouter } from "next/navigation";
 import { Container } from "@/components/layout/Container";
 import { MarketingPageIntro } from "@/components/layout/MarketingPageIntro";
 import { PrimaryButton } from "@/components/ui/MarketingButton";
-import { useSessionStore } from "@/stores/session-store";
+import { selectIsAuthenticated } from "@/lib/store/authSlice";
+import { useAppSelector } from "@/lib/store/hooks";
 
 export default function JoinAMeetPage() {
   const router = useRouter();
-  const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
 
   useEffect(() => {
     if (isAuthenticated) {

@@ -14,7 +14,8 @@ import {
   MobileNavToggle,
   MobileNavMenu,
 } from "@/components/ui/resizable-navbar";
-import { useSessionStore } from "@/stores/session-store";
+import { selectIsAuthenticated } from "@/lib/store/authSlice";
+import { useAppSelector } from "@/lib/store/hooks";
 import { cn } from "@/lib/utils";
 
 type NavLink = {
@@ -48,7 +49,7 @@ const glassHome = "nav-liquid-glass-hero";
 export function MarketingNav() {
   const pathname = usePathname();
   const isHome = pathname === "/";
-  const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = links.map((l) => {

@@ -3,6 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
+import { selectUser } from "@/lib/store/authSlice";
+import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
 import { mergeEventCatalog } from "@/lib/eventsCatalog";
 import { hostLabelForEvent } from "@/lib/hostName";
@@ -43,7 +45,7 @@ function HistoryBadge({ label }: { label: string }) {
 }
 
 export default function HistoryPage() {
-  const user = useSessionStore((s) => s.user);
+  const user = useAppSelector(selectUser);
   const bookings = useSessionStore((s) => s.bookings);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);

@@ -9,10 +9,11 @@ import type {
   CircleReportRow,
   CircleReportTargetType,
 } from "@/lib/circle/types";
-import { useSessionStore } from "@/stores/session-store";
+import { selectAccessToken } from "@/lib/store/authSlice";
+import { useAppSelector } from "@/lib/store/hooks";
 
 export default function ReportsPage() {
-  const accessToken = useSessionStore((s) => s.accessToken);
+  const accessToken = useAppSelector(selectAccessToken);
   const [rows, setRows] = useState<CircleReportRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitBusy, setSubmitBusy] = useState(false);

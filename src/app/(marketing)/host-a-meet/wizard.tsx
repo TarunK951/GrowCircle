@@ -16,6 +16,13 @@ import { circleEventToMeetEvent } from "@/lib/circle/mappers";
 import { generateShareToken } from "@/lib/eventsCatalog";
 import type { City, MeetEvent, PreJoinQuestion } from "@/lib/types";
 import {
+  selectAccessToken,
+  selectIsAuthenticated,
+  selectUser,
+} from "@/lib/store/authSlice";
+import { useAppSelector } from "@/lib/store/hooks";
+import { store } from "@/lib/store/store";
+import {
   initialHostDraft,
   useSessionStore,
   type HostDraft,
@@ -74,9 +81,9 @@ function validateDraft(d: HostDraft): string | null {
 
 export function HostWizard() {
   const router = useRouter();
-  const user = useSessionStore((s) => s.user);
-  const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
-  const accessToken = useSessionStore((s) => s.accessToken);
+  const user = useAppSelector(selectUser);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const accessToken = useAppSelector(selectAccessToken);
   const publishHostedEvent = useSessionStore((s) => s.publishHostedEvent);
   const [publishing, setPublishing] = useState(false);
   const [step, setStep] = useState(0);
@@ -90,7 +97,7 @@ export function HostWizard() {
       return;
     }
     const circleUpload =
-      isCircleApiConfigured() && useSessionStore.getState().accessToken;
+      isCircleApiConfigured() && store.getState().auth.accessToken;
     const maxBytes = circleUpload ? MAX_IMAGE_BYTES_CIRCLE : MAX_IMAGE_BYTES;
     if (file.size > maxBytes) {
       toast.error(

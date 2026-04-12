@@ -13,6 +13,8 @@ export type PreJoinQuestion = {
   id: string;
   prompt: string;
   options: string[];
+  /** From Circle API `multi_select`; answers submitted as JSON string array. */
+  allowMultiple?: boolean;
 };
 
 export type MeetEvent = {

@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
+import { selectUser } from "@/lib/store/authSlice";
+import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
 import { isMeetInactive, mergeEventCatalog } from "@/lib/eventsCatalog";
 import { hostLabelForEvent } from "@/lib/hostName";
@@ -13,12 +15,7 @@ export default function SavedPage() {
   const savedIds = useSessionStore((s) => s.savedEventIds);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
-  const sessionUser = useSessionStore((s) => s.user);
-  const seedDemoSavedIfEmpty = useSessionStore((s) => s.seedDemoSavedIfEmpty);
-
-  useEffect(() => {
-    seedDemoSavedIfEmpty();
-  }, [seedDemoSavedIfEmpty]);
+  const sessionUser = useAppSelector(selectUser);
 
   const cities = citiesData as City[];
   const cityById = Object.fromEntries(cities.map((c) => [c.id, c.name]));

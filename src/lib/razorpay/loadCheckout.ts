@@ -3,36 +3,61 @@ import type { CircleRazorpayOrderPayload } from "@/lib/circle/types";
 /**
  * Merge camelCase and snake_case Razorpay order fields from the API into the shape
  * the checkout helpers expect (`orderId`, `amount` as number, etc.).
+ *
+ * Handles common backend variants: `order_id`, `razorpay_order_id`, string amounts,
+ * and nested `payment` objects (including `payment.id` under a nested `payment` key).
  */
 export function normalizeRazorpayOrderPayload(
   raw: CircleRazorpayOrderPayload | Record<string, unknown> | null | undefined,
 ): CircleRazorpayOrderPayload | undefined {
   if (raw == null || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
-  const orderIdRaw = r.orderId ?? r.order_id;
+  const orderIdRaw =
+    r.orderId ??
+    r.order_id ??
+    r.razorpay_order_id ??
+    r.razorpayOrderId;
   const orderId =
     typeof orderIdRaw === "string" && orderIdRaw.length > 0
       ? orderIdRaw
       : undefined;
 
   let amount: number | undefined;
-  if (typeof r.amount === "number" && Number.isFinite(r.amount)) {
-    amount = r.amount;
-  } else if (typeof r.amount === "string") {
-    const n = Number.parseFloat(r.amount);
+  const amountRaw =
+    r.amount !== undefined && r.amount !== null
+      ? r.amount
+      : r.amount_due;
+  if (typeof amountRaw === "number" && Number.isFinite(amountRaw)) {
+    amount = amountRaw;
+  } else if (typeof amountRaw === "string") {
+    const n = Number.parseFloat(amountRaw);
     if (Number.isFinite(n)) amount = n;
   }
 
+  const currencyRaw = r.currency ?? r.currency_code;
   const currency =
-    typeof r.currency === "string" && r.currency.length > 0
-      ? r.currency
+    typeof currencyRaw === "string" && currencyRaw.length > 0
+      ? currencyRaw
       : "INR";
-  const key = typeof r.key === "string" ? r.key : undefined;
+
+  const keyRaw = r.key ?? r.key_id ?? r.razorpay_key_id;
+  const key = typeof keyRaw === "string" && keyRaw.length > 0 ? keyRaw : undefined;
 
   let payment: CircleRazorpayOrderPayload["payment"];
   const pm = r.payment;
   if (pm && typeof pm === "object") {
-    const id = (pm as { id?: unknown }).id;
+    const pmObj = pm as Record<string, unknown>;
+    const nestedPay = pmObj.payment;
+    const idFromNested =
+      typeof nestedPay === "object" &&
+      nestedPay !== null &&
+      typeof (nestedPay as { id?: unknown }).id === "string"
+        ? (nestedPay as { id: string }).id
+        : undefined;
+    const id =
+      (typeof pmObj.id === "string" && pmObj.id.length > 0
+        ? pmObj.id
+        : undefined) ?? idFromNested;
     if (typeof id === "string" && id.length > 0) payment = { id };
   }
 

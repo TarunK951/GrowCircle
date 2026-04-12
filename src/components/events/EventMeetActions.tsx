@@ -15,11 +15,17 @@ import {
   openRazorpayFromPayload,
 } from "@/lib/razorpay/loadCheckout";
 import type { MeetEvent, PreJoinQuestion } from "@/lib/types";
+import {
+  selectAccessToken,
+  selectIsAuthenticated,
+  selectUser,
+} from "@/lib/store/authSlice";
+import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
 
 export function SaveEventButton({ eventId }: { eventId: string }) {
   const router = useRouter();
-  const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const saved = useSessionStore((s) => s.savedEventIds.includes(eventId));
   const toggleSaved = useSessionStore((s) => s.toggleSaved);
 
@@ -55,6 +61,7 @@ function mapRemoteQuestionsToPreJoin(
         q.options && q.options.length >= 2
           ? q.options
           : ["Option A", "Option B"],
+      allowMultiple: q.question_type === "multi_select",
     }));
 }
 
@@ -83,7 +90,18 @@ function PreJoinModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     for (const q of questions) {
-      if (!answers[q.id]?.trim()) {
+      if (q.allowMultiple) {
+        try {
+          const arr = JSON.parse(answers[q.id] || "[]") as unknown;
+          if (!Array.isArray(arr) || arr.length === 0) {
+            toast.error("Select at least one option where multiple choice is allowed.");
+            return;
+          }
+        } catch {
+          toast.error("Please answer every question.");
+          return;
+        }
+      } else if (!answers[q.id]?.trim()) {
         toast.error("Please answer every question.");
         return;
       }
@@ -124,22 +142,68 @@ function PreJoinModal({
                 {q.prompt}
               </legend>
               <div className="space-y-2">
-                {q.options.map((opt) => (
-                  <label
-                    key={opt}
-                    className="flex cursor-pointer items-center gap-3 rounded-lg border border-primary/10 bg-white/80 px-3 py-2 text-sm has-[:checked]:border-primary/30 has-[:checked]:bg-primary/[0.06]"
-                  >
-                    <input
-                      type="radio"
-                      name={q.id}
-                      value={opt}
-                      checked={answers[q.id] === opt}
-                      onChange={() => setAnswer(q.id, opt)}
-                      className="h-4 w-4 shrink-0 border-primary/30 text-primary"
-                    />
-                    <span>{opt}</span>
-                  </label>
-                ))}
+                {q.allowMultiple
+                  ? q.options.map((opt) => {
+                      let selected = false;
+                      try {
+                        const parsed = JSON.parse(answers[q.id] || "[]") as unknown;
+                        selected =
+                          Array.isArray(parsed) && parsed.includes(opt);
+                      } catch {
+                        selected = false;
+                      }
+                      return (
+                        <label
+                          key={opt}
+                          className="flex cursor-pointer items-center gap-3 rounded-lg border border-primary/10 bg-white/80 px-3 py-2 text-sm has-[:checked]:border-primary/30 has-[:checked]:bg-primary/[0.06]"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={(e) => {
+                              let next: string[] = [];
+                              try {
+                                const parsed = JSON.parse(
+                                  answers[q.id] || "[]",
+                                ) as unknown;
+                                next = Array.isArray(parsed)
+                                  ? [...(parsed as string[])]
+                                  : [];
+                              } catch {
+                                next = [];
+                              }
+                              if (e.target.checked) {
+                                if (!next.includes(opt)) next = [...next, opt];
+                              } else {
+                                next = next.filter((x) => x !== opt);
+                              }
+                              setAnswer(
+                                q.id,
+                                JSON.stringify([...next].sort()),
+                              );
+                            }}
+                            className="h-4 w-4 shrink-0 rounded border-primary/30 text-primary"
+                          />
+                          <span>{opt}</span>
+                        </label>
+                      );
+                    })
+                  : q.options.map((opt) => (
+                      <label
+                        key={opt}
+                        className="flex cursor-pointer items-center gap-3 rounded-lg border border-primary/10 bg-white/80 px-3 py-2 text-sm has-[:checked]:border-primary/30 has-[:checked]:bg-primary/[0.06]"
+                      >
+                        <input
+                          type="radio"
+                          name={q.id}
+                          value={opt}
+                          checked={answers[q.id] === opt}
+                          onChange={() => setAnswer(q.id, opt)}
+                          className="h-4 w-4 shrink-0 border-primary/30 text-primary"
+                        />
+                        <span>{opt}</span>
+                      </label>
+                    ))}
               </div>
             </fieldset>
           ))}
@@ -167,9 +231,9 @@ function PreJoinModal({
 
 export function JoinMeetButton({ event }: { event: MeetEvent }) {
   const router = useRouter();
-  const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
-  const user = useSessionStore((s) => s.user);
-  const accessToken = useSessionStore((s) => s.accessToken);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const user = useAppSelector(selectUser);
+  const accessToken = useAppSelector(selectAccessToken);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
   const tryJoinEvent = useSessionStore((s) => s.tryJoinEvent);
@@ -220,6 +284,7 @@ export function JoinMeetButton({ event }: { event: MeetEvent }) {
     }
     setJoinBusy(true);
     try {
+      /** `answer` is plain text for single-select; for `multi_select` it is a JSON stringified string[] (see PreJoinModal). */
       const answers = Object.entries(preJoinAnswers).map(
         ([question_id, answer]) => ({
           question_id,

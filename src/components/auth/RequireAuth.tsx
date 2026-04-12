@@ -2,12 +2,15 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { useSessionStore } from "@/stores/session-store";
+import {
+  selectIsAuthenticated,
+} from "@/lib/store/authSlice";
+import { useAppSelector } from "@/lib/store/hooks";
 
 export function RequireAuth({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
 
   useEffect(() => {
     if (!isAuthenticated) {

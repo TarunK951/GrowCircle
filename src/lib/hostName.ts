@@ -1,15 +1,11 @@
-import usersSeed from "@/data/users.seed.json";
 import type { MeetEvent, User } from "@/lib/types";
 
-const nameByUserId = Object.fromEntries(
-  (usersSeed as User[]).map((u) => [u.id, u.name]),
-);
-
-export function hostNameForUserId(id: string): string | undefined {
-  return nameByUserId[id];
+/** Legacy helper — no local seed lookup; prefer `event.hostUsername`. */
+export function hostNameForUserId(_id: string): string | undefined {
+  return undefined;
 }
 
-/** Card / list label: current user as host, API username, then seed lookup. */
+/** Card / list label: current user as host, API username, then "Host". */
 export function hostLabelForEvent(
   event: MeetEvent,
   currentUser: User | null | undefined,

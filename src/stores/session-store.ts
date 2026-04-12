@@ -11,12 +11,18 @@ import type {
 } from "@/lib/types";
 import {
   generateAttendanceCode,
-  generateShareToken,
   getEventFromCatalog,
 } from "@/lib/eventsCatalog";
 import { emptySocialConnections } from "@/lib/socialLinks";
+import { clearAuthState, setCircleAuth, setLocalUser, updateUser } from "@/lib/store/authSlice";
+import { circleApi } from "@/lib/store/circleApi";
+import { store } from "@/lib/store/store";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+
+function authUser() {
+  return store.getState().auth.user;
+}
 
 export type HostDraft = {
   title: string;
@@ -63,8 +69,6 @@ const defaultUiPrefs: UiPrefs = {
 };
 
 type SessionState = {
-  user: User | null;
-  isAuthenticated: boolean;
   bookings: Booking[];
   hostedEvents: MeetEvent[];
   savedEventIds: string[];
@@ -77,9 +81,6 @@ type SessionState = {
   toggleSocialConnection: (platformId: string) => void;
   notificationsRead: Record<string, boolean>;
   hostDraft: HostDraft | null;
-  /** Circle API JWTs (client-side; optional when using mock auth). */
-  accessToken: string | null;
-  refreshToken: string | null;
   /** Public events fetched from Circle API (merged into explore / detail). */
   circleCatalogEvents: MeetEvent[];
   setCircleCatalogEvents: (events: MeetEvent[]) => void;
@@ -115,10 +116,6 @@ type SessionState = {
   resetNotificationsRead: () => void;
   chatExtras: Record<string, ChatMessage[]>;
   appendChatMessage: (threadId: string, msg: ChatMessage) => void;
-  /** One-time demo rows for Bookings / hosting UI testing (id prefix b_demo_). */
-  seedDemoBookingData: () => void;
-  /** Seed Saved with sample event ids when empty (demo). */
-  seedDemoSavedIfEmpty: () => void;
   /** Reviews you posted about guests (as host). */
   guestReviewsWritten: GuestReviewWritten[];
   /** Reviews from guests about you (as host). */
@@ -129,7 +126,6 @@ type SessionState = {
   addAttendeeMeetReview: (
     r: Omit<AttendeeMeetReview, "id" | "createdAt">,
   ) => { ok: true } | { ok: false; reason: "duplicate" | "invalid" };
-  seedDemoReviewsIfEmpty: () => void;
 };
 
 const initialHostDraft = (): HostDraft => ({
@@ -196,8 +192,6 @@ function makeBookingBase(
 export const useSessionStore = create<SessionState>()(
   persist(
     (set, get) => ({
-      user: null,
-      isAuthenticated: false,
       bookings: [],
       hostedEvents: [],
       savedEventIds: [],
@@ -224,8 +218,6 @@ export const useSessionStore = create<SessionState>()(
       notificationsRead: {},
       hostDraft: null,
       chatExtras: {},
-      accessToken: null,
-      refreshToken: null,
       circleCatalogEvents: [],
       setCircleCatalogEvents: (events) => set({ circleCatalogEvents: events }),
       upsertCircleCatalogEvent: (event) =>
@@ -233,42 +225,44 @@ export const useSessionStore = create<SessionState>()(
           const rest = s.circleCatalogEvents.filter((e) => e.id !== event.id);
           return { circleCatalogEvents: [...rest, event] };
         }),
-      login: (user) => set({ user, isAuthenticated: true }),
-      loginWithCircle: (user, tokens) =>
-        set({
-          user,
-          isAuthenticated: true,
-          accessToken: tokens.accessToken,
-          refreshToken: tokens.refreshToken,
-        }),
-      logout: () =>
+      login: (user) => {
+        store.dispatch(setLocalUser(user));
+      },
+      loginWithCircle: (user, tokens) => {
+        store.dispatch(
+          setCircleAuth({
+            user,
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+          }),
+        );
+      },
+      logout: () => {
+        store.dispatch(clearAuthState());
+        store.dispatch(circleApi.util.resetApiState());
         set((s) => ({
-          user: null,
-          isAuthenticated: false,
           bookings: [],
           hostedEvents: [],
           savedEventIds: [],
           chatExtras: {},
-          accessToken: null,
-          refreshToken: null,
           uiPrefs: s.uiPrefs,
           socialConnections: s.socialConnections,
           guestReviewsWritten: [],
           hostReviewsReceived: [],
-        })),
+          attendeeMeetReviews: [],
+        }));
+      },
       updateProfile: (partial) => {
-        const u = get().user;
-        if (!u) return;
-        set({ user: { ...u, ...partial } });
+        if (!authUser()) return;
+        store.dispatch(updateUser(partial));
       },
       setVerified: (v) => {
-        const u = get().user;
-        if (!u) return;
-        set({ user: { ...u, verified: v } });
+        if (!authUser()) return;
+        store.dispatch(updateUser({ verified: v }));
       },
       addBooking: (b) => set({ bookings: [...get().bookings, b] }),
       tryJoinEvent: (event, preJoinAnswers) => {
-        const user = get().user;
+        const user = authUser();
         if (!user) return { ok: false, reason: "Not signed in" };
         const bookings = get().bookings;
         if (bookings.some((b) => b.userId === user.id && b.eventId === event.id)) {
@@ -280,12 +274,45 @@ export const useSessionStore = create<SessionState>()(
         const qs = event.preJoinQuestions ?? [];
         if (qs.length > 0) {
           for (const q of qs) {
-            const ans = preJoinAnswers?.[q.id]?.trim();
-            if (!ans || !q.options.includes(ans)) {
-              return {
-                ok: false,
-                reason: "Please answer all pre-join questions with valid choices.",
-              };
+            const raw = preJoinAnswers?.[q.id];
+            if (q.allowMultiple) {
+              try {
+                const arr = JSON.parse(raw || "[]") as unknown;
+                if (!Array.isArray(arr) || arr.length === 0) {
+                  return {
+                    ok: false,
+                    reason:
+                      "Please answer all pre-join questions with valid choices.",
+                  };
+                }
+                for (const x of arr) {
+                  if (
+                    typeof x !== "string" ||
+                    !q.options.includes(x)
+                  ) {
+                    return {
+                      ok: false,
+                      reason:
+                        "Please answer all pre-join questions with valid choices.",
+                    };
+                  }
+                }
+              } catch {
+                return {
+                  ok: false,
+                  reason:
+                    "Please answer all pre-join questions with valid choices.",
+                };
+              }
+            } else {
+              const ans = raw?.trim();
+              if (!ans || !q.options.includes(ans)) {
+                return {
+                  ok: false,
+                  reason:
+                    "Please answer all pre-join questions with valid choices.",
+                };
+              }
             }
           }
         }
@@ -437,86 +464,6 @@ export const useSessionStore = create<SessionState>()(
           },
         });
       },
-      seedDemoBookingData: () => {
-        const user = get().user;
-        if (!user) return;
-        if (get().bookings.some((b) => b.id === "b_demo_evt1")) return;
-
-        const demoEventId = "evt_demo_u_host";
-        const startsAt = new Date(Date.now() + 10 * 864e5).toISOString();
-        const demoHosted: MeetEvent = {
-          id: demoEventId,
-          title: "Coffee & sketch — demo hosting",
-          description:
-            "Sunday morning doodling. Sample row for testing host tools.",
-          cityId: "blr",
-          startsAt,
-          hostUserId: user.id,
-          capacity: 12,
-          category: "Culture",
-          image:
-            "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=1200&auto=format&fit=crop&q=80",
-          priceCents: 500,
-          venueName: "Demo Café",
-          joinMode: "invite",
-          listingVisibility: "public",
-          shareToken: generateShareToken(),
-          spotsTaken: 0,
-        };
-
-        const now = new Date().toISOString();
-        const extra: Booking[] = [];
-
-        if (
-          !get().bookings.some(
-            (b) => b.userId === user.id && b.eventId === "evt_1",
-          )
-        ) {
-          extra.push({
-            id: "b_demo_evt1",
-            userId: user.id,
-            eventId: "evt_1",
-            status: "confirmed",
-            createdAt: now,
-            attendanceCode: "482916",
-          });
-        }
-        if (
-          !get().bookings.some(
-            (b) => b.userId === user.id && b.eventId === "evt_2",
-          )
-        ) {
-          extra.push({
-            id: "b_demo_evt2",
-            userId: user.id,
-            eventId: "evt_2",
-            status: "pending",
-            createdAt: now,
-          });
-        }
-        extra.push({
-          id: "b_demo_host_pending",
-          userId: "u_host_2",
-          eventId: demoEventId,
-          status: "pending",
-          createdAt: now,
-        });
-
-        const hosted = get().hostedEvents.some((e) => e.id === demoEventId)
-          ? get().hostedEvents
-          : [...get().hostedEvents, demoHosted];
-
-        set({
-          hostedEvents: hosted,
-          bookings: [...get().bookings, ...extra],
-        });
-      },
-      seedDemoSavedIfEmpty: () => {
-        if (get().savedEventIds.length > 0) return;
-        set({
-          savedEventIds: ["evt_1", "evt_2", "evt_3"],
-        });
-      },
       guestReviewsWritten: [],
       hostReviewsReceived: [],
       attendeeMeetReviews: [],
@@ -530,6 +477,7 @@ export const useSessionStore = create<SessionState>()(
       },
       addAttendeeMeetReview: (r) => {
         const state = get();
+        const u = authUser();
         if (
           state.attendeeMeetReviews.some((x) => x.bookingId === r.bookingId)
         ) {
@@ -538,7 +486,8 @@ export const useSessionStore = create<SessionState>()(
         const booking = state.bookings.find((b) => b.id === r.bookingId);
         if (
           !booking ||
-          booking.userId !== state.user?.id ||
+          !u ||
+          booking.userId !== u.id ||
           booking.status !== "attended"
         ) {
           return { ok: false, reason: "invalid" };
@@ -553,38 +502,23 @@ export const useSessionStore = create<SessionState>()(
         });
         return { ok: true };
       },
-      seedDemoReviewsIfEmpty: () => {
-        if (
-          get().hostReviewsReceived.length > 0 ||
-          get().guestReviewsWritten.length > 0 ||
-          get().attendeeMeetReviews.length > 0
-        ) {
-          return;
-        }
-        const now = new Date().toISOString();
-        const received: HostReviewReceived[] = [
-          {
-            id: "hr_demo_1",
-            createdAt: now,
-            reviewerName: "Alex M.",
-            eventTitle: "Weekend sketch walk",
-            rating: 5,
-            comment: "Great host — clear directions and welcoming group.",
-          },
-          {
-            id: "hr_demo_2",
-            createdAt: now,
-            reviewerName: "Jordan K.",
-            eventTitle: "Coffee & sketch — demo hosting",
-            rating: 4,
-            comment: "Fun meet, would join again.",
-          },
-        ];
-        set({ hostReviewsReceived: received });
-      },
     }),
     {
       name: "connectsphere-session",
+      partialize: (state) => ({
+        bookings: state.bookings,
+        hostedEvents: state.hostedEvents,
+        savedEventIds: state.savedEventIds,
+        uiPrefs: state.uiPrefs,
+        socialConnections: state.socialConnections,
+        notificationsRead: state.notificationsRead,
+        hostDraft: state.hostDraft,
+        chatExtras: state.chatExtras,
+        circleCatalogEvents: state.circleCatalogEvents,
+        guestReviewsWritten: state.guestReviewsWritten,
+        hostReviewsReceived: state.hostReviewsReceived,
+        attendeeMeetReviews: state.attendeeMeetReviews,
+      }),
       merge: (persisted, current) => {
         const p = persisted as Partial<SessionState> | undefined;
         return {
@@ -596,8 +530,6 @@ export const useSessionStore = create<SessionState>()(
             ...p?.socialConnections,
           },
           circleCatalogEvents: p?.circleCatalogEvents ?? current.circleCatalogEvents,
-          accessToken: p?.accessToken ?? current.accessToken,
-          refreshToken: p?.refreshToken ?? current.refreshToken,
           guestReviewsWritten: p?.guestReviewsWritten ?? current.guestReviewsWritten,
           hostReviewsReceived: p?.hostReviewsReceived ?? current.hostReviewsReceived,
           attendeeMeetReviews:

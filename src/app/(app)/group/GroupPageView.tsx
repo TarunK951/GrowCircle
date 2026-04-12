@@ -1,13 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MessageCircle } from "lucide-react";
-import usersSeed from "@/data/users.seed.json";
 import citiesData from "@/data/cities.json";
 import { useResolvedEvent } from "@/hooks/useResolvedEvent";
-import type { City, User } from "@/lib/types";
+import type { City } from "@/lib/types";
 
 const icebreakers = [
   "What’s one thing you’re excited about this month?",
@@ -24,16 +22,9 @@ export function GroupPageView({ id }: { id: string }) {
   }
   if (!event) notFound();
 
-  const seed = usersSeed as User[];
-  const host = seed.find((u) => u.id === event.hostUserId);
   const cities = citiesData as City[];
   const city = cities.find((c) => c.id === event.cityId);
-
-  const roster: User[] = [
-    ...(host ? [host] : []),
-    ...seed.filter((u) => u.id !== host?.id),
-  ];
-  const displayMembers = roster.slice(0, 5);
+  const hostLabel = event.hostUsername?.trim() || "Host";
 
   return (
     <div>
@@ -49,34 +40,18 @@ export function GroupPageView({ id }: { id: string }) {
       </p>
 
       <section className="mt-10">
+        <h2 className="text-lg font-semibold text-neutral-900">Host</h2>
+        <p className="mt-2 text-sm text-neutral-800">
+          <span className="font-medium">@{hostLabel}</span>
+        </p>
+      </section>
+
+      <section className="mt-10">
         <h2 className="text-lg font-semibold text-neutral-900">Who&apos;s coming</h2>
-        <ul className="mt-4 space-y-3">
-          {displayMembers.map((u) => (
-            <li
-              key={u.id}
-              className="flex items-center gap-3 rounded-[var(--radius-section)] border border-primary/10 bg-white/60 px-4 py-3"
-            >
-              <Image
-                src={u.avatar}
-                alt=""
-                width={44}
-                height={44}
-                className="rounded-full object-cover"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="font-medium text-neutral-900">{u.name}</p>
-                <p className="text-xs text-neutral-900">
-                  {u.interests.slice(0, 2).join(" · ") || "Member"}
-                </p>
-              </div>
-              {u.verified && (
-                <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                  Verified
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-700">
+          Confirmed attendee names and profiles are managed in the Circle app
+          flow. As a guest, check your ticket and notifications for updates.
+        </p>
       </section>
 
       <section className="mt-10">
@@ -100,7 +75,7 @@ export function GroupPageView({ id }: { id: string }) {
           className="inline-flex items-center gap-2 text-sm font-semibold text-primary"
         >
           <MessageCircle className="h-4 w-4" aria-hidden />
-          Open chat
+          Messages
         </Link>
       </div>
     </div>

@@ -12,6 +12,12 @@ import { getMyProfile, updateMyProfile } from "@/lib/circle/api";
 import { CircleApiError } from "@/lib/circle/client";
 import { isCircleApiConfigured } from "@/lib/circle/config";
 import { circleProfileToUser } from "@/lib/circle/mappers";
+import {
+  selectAccessToken,
+  selectRefreshToken,
+  selectUser,
+} from "@/lib/store/authSlice";
+import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
 
 const schema = z.object({
@@ -21,10 +27,10 @@ const schema = z.object({
 type Form = z.infer<typeof schema>;
 
 export default function ProfilePage() {
-  const user = useSessionStore((s) => s.user);
+  const user = useAppSelector(selectUser);
   const updateProfile = useSessionStore((s) => s.updateProfile);
-  const accessToken = useSessionStore((s) => s.accessToken);
-  const refreshToken = useSessionStore((s) => s.refreshToken);
+  const accessToken = useAppSelector(selectAccessToken);
+  const refreshToken = useAppSelector(selectRefreshToken);
   const loginWithCircle = useSessionStore((s) => s.loginWithCircle);
 
   const {

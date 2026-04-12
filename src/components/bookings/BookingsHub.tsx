@@ -1,14 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
   acceptWaitlistOffer,
   cancelApplication,
   generateCheckinOtp,
-  getMyApplications,
   getPayment,
   getWaitlistPosition,
 } from "@/lib/circle/api";
@@ -29,6 +28,9 @@ import {
 } from "@/lib/razorpay/loadCheckout";
 import { lookupUser } from "@/lib/userLookup";
 import { cn } from "@/lib/utils";
+import { selectAccessToken, selectUser } from "@/lib/store/authSlice";
+import { useMyApplicationsQuery } from "@/lib/store/circleApi";
+import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
 import type { Booking, MeetEvent } from "@/lib/types";
 
@@ -201,7 +203,7 @@ function CircleGuestApplicationCard({
   onRefresh: () => void;
   compactBookingCards: boolean;
 }) {
-  const user = useSessionStore((s) => s.user);
+  const user = useAppSelector(selectUser);
   const eventId = app.event?.id ?? "";
   const ev = eventId
     ? getEventFromCatalog(eventId, hostedEvents, circleCatalogEvents)
@@ -532,8 +534,8 @@ function CircleGuestApplicationCard({
 }
 
 export function BookingsHub() {
-  const user = useSessionStore((s) => s.user);
-  const accessToken = useSessionStore((s) => s.accessToken);
+  const user = useAppSelector(selectUser);
+  const accessToken = useAppSelector(selectAccessToken);
   const bookings = useSessionStore((s) => s.bookings);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
@@ -551,29 +553,13 @@ export function BookingsHub() {
   const [tab, setTab] = useState<Tab>("guest");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [codeInputs, setCodeInputs] = useState<Record<string, string>>({});
-  const [circleApps, setCircleApps] = useState<CircleMyApplication[]>([]);
-  const [circleLoading, setCircleLoading] = useState(false);
-
-  const loadCircleApps = useCallback(async () => {
-    if (!accessToken || !isCircleApiConfigured()) return;
-    setCircleLoading(true);
-    try {
-      const data = await getMyApplications(accessToken);
-      setCircleApps(Array.isArray(data) ? data : []);
-    } catch (e) {
-      toast.error(
-        e instanceof CircleApiError
-          ? e.message
-          : "Could not load Circle applications",
-      );
-    } finally {
-      setCircleLoading(false);
-    }
-  }, [accessToken]);
-
-  useEffect(() => {
-    void loadCircleApps();
-  }, [loadCircleApps]);
+  const {
+    data: circleApps = [],
+    isLoading: circleLoading,
+    refetch: refetchCircleApps,
+  } = useMyApplicationsQuery(undefined, {
+    skip: !accessToken || !isCircleApiConfigured(),
+  });
 
   const catalog = useMemo(
     () => mergeEventCatalog(hostedEvents, circleCatalogEvents),
@@ -604,6 +590,10 @@ export function BookingsHub() {
 
   const showCircleGuest =
     isCircleApiConfigured() && Boolean(accessToken) && user;
+
+  /** Hide zustand-only demo bookings when using Circle API + token. */
+  const hideLocalGuestRows =
+    isCircleApiConfigured() && Boolean(accessToken);
 
   return (
     <div className="text-neutral-900">
@@ -667,7 +657,7 @@ export function BookingsHub() {
                     accessToken={accessToken!}
                     hostedEvents={hostedEvents}
                     circleCatalogEvents={circleCatalogEvents}
-                    onRefresh={() => void loadCircleApps()}
+                    onRefresh={() => void refetchCircleApps()}
                     compactBookingCards={compactBookingCards}
                   />
                 ))}
@@ -675,9 +665,9 @@ export function BookingsHub() {
             </div>
           )}
 
-          {showCircleGuest && mockGuestBookings.length > 0 && (
+          {!hideLocalGuestRows && mockGuestBookings.length > 0 && (
             <p className="text-xs font-bold uppercase tracking-wider text-neutral-900">
-              Demo and local bookings
+              Local demo bookings
             </p>
           )}
 
@@ -696,6 +686,7 @@ export function BookingsHub() {
             </li>
           )}
           {!circleLoading &&
+            !hideLocalGuestRows &&
             showCircleGuest &&
             circleApps.length === 0 &&
             mockGuestBookings.length === 0 && (
@@ -703,7 +694,8 @@ export function BookingsHub() {
                 No demo bookings — explore meets to join one.
               </li>
             )}
-          {mockGuestBookings.map((b) => {
+          {!hideLocalGuestRows &&
+            mockGuestBookings.map((b) => {
             const ev = getEventFromCatalog(
               b.eventId,
               hostedEvents,
@@ -910,7 +902,7 @@ function HostMeetCard({
   removeGuestBooking: (id: string) => void;
   markAttendance: (id: string, code: string) => boolean;
 }) {
-  const user = useSessionStore((s) => s.user);
+  const user = useAppSelector(selectUser);
   const compactBookingCards = useSessionStore(
     (s) => s.uiPrefs.compactBookingCards,
   );

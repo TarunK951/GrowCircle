@@ -5,6 +5,8 @@ import { EventMeetDetail } from "@/components/events/EventMeetDetail";
 import { useResolvedEvent } from "@/hooks/useResolvedEvent";
 import { resolveEventDetail } from "@/lib/eventDetail";
 import { hostLabelForEvent } from "@/lib/hostName";
+import { selectUser } from "@/lib/store/authSlice";
+import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
 import { formatInrFromCents } from "@/lib/formatCurrency";
 import citiesData from "@/data/cities.json";
@@ -24,7 +26,7 @@ function seatCountForEvent(
 export function EventDetailView({ id }: { id: string }) {
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const bookings = useSessionStore((s) => s.bookings);
-  const user = useSessionStore((s) => s.user);
+  const user = useAppSelector(selectUser);
 
   const { event, loading } = useResolvedEvent(id);
 

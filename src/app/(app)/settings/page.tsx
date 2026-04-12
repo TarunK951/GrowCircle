@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { toast } from "sonner";
+import { getHealth } from "@/lib/circle/healthApi";
+import { isCircleApiConfigured } from "@/lib/circle/config";
 import { useSessionStore } from "@/stores/session-store";
 
 export default function SettingsPage() {
@@ -33,6 +35,28 @@ export default function SettingsPage() {
       <p className="mt-2 text-neutral-900">
         Local preferences — not synced to a server.
       </p>
+      {process.env.NODE_ENV === "development" && isCircleApiConfigured() && (
+        <div className="mt-6 rounded-2xl border border-dashed border-neutral-300 bg-neutral-50/80 p-5 text-sm text-neutral-800">
+          <p className="text-xs font-bold uppercase tracking-wider text-neutral-900">
+            Developer
+          </p>
+          <button
+            type="button"
+            className="mt-3 rounded-full border border-neutral-300 bg-white px-4 py-2 text-xs font-semibold text-neutral-900 hover:bg-neutral-50"
+            onClick={() => {
+              void getHealth()
+                .then((h) =>
+                  toast.success(
+                    typeof h.status === "string" ? h.status : "Backend reachable",
+                  ),
+                )
+                .catch(() => toast.error("Health check failed"));
+            }}
+          >
+            Ping Circle backend (GET /health)
+          </button>
+        </div>
+      )}
       <div className="mt-6 rounded-2xl border border-neutral-200 bg-white/80 p-5 shadow-sm">
         <p className="text-xs font-bold uppercase tracking-wider text-neutral-900">
           Safety

@@ -5,6 +5,8 @@ import { CalendarX2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { formatInrDateTime } from "@/lib/formatCurrency";
 import { getEventFromCatalog } from "@/lib/eventsCatalog";
+import { selectUser } from "@/lib/store/authSlice";
+import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
 import { cn } from "@/lib/utils";
 
@@ -140,24 +142,18 @@ const tabs: { id: TabId; label: string }[] = [
 ];
 
 export default function ReviewsPage() {
-  const user = useSessionStore((s) => s.user);
+  const user = useAppSelector(selectUser);
   const bookings = useSessionStore((s) => s.bookings);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
   const attendeeMeetReviews = useSessionStore((s) => s.attendeeMeetReviews);
   const received = useSessionStore((s) => s.hostReviewsReceived);
   const addAttendeeMeetReview = useSessionStore((s) => s.addAttendeeMeetReview);
-  const seedDemoReviewsIfEmpty = useSessionStore((s) => s.seedDemoReviewsIfEmpty);
-
   const [tab, setTab] = useState<TabId>("about");
 
   const [meetBookingId, setMeetBookingId] = useState("");
   const [meetRating, setMeetRating] = useState(0);
   const [meetComment, setMeetComment] = useState("");
-
-  useEffect(() => {
-    seedDemoReviewsIfEmpty();
-  }, [seedDemoReviewsIfEmpty]);
 
   const reviewableAttended = useMemo(() => {
     if (!user) return [];

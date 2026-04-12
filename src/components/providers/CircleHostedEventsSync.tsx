@@ -1,38 +1,31 @@
 "use client";
 
 import { useEffect } from "react";
-import { getMyHostedEvents } from "@/lib/circle/api";
-import { CircleApiError } from "@/lib/circle/client";
 import { isCircleApiConfigured } from "@/lib/circle/config";
-import { circleEventToMeetEvent } from "@/lib/circle/mappers";
+import { useHostedEventsQuery } from "@/lib/store/circleApi";
+import { selectAccessToken } from "@/lib/store/authSlice";
+import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
 
 /**
  * Keeps `hostedEvents` aligned with `GET /events/my` when the user is signed in
- * with Circle tokens.
+ * with Circle tokens (RTK Query + zustand bridge).
  */
 export function CircleHostedEventsSync() {
-  const accessToken = useSessionStore((s) => s.accessToken);
+  const accessToken = useAppSelector(selectAccessToken);
   const syncHostedEventsFromApi = useSessionStore(
     (s) => s.syncHostedEventsFromApi,
   );
 
+  const { data } = useHostedEventsQuery(undefined, {
+    skip: !isCircleApiConfigured() || !accessToken,
+  });
+
   useEffect(() => {
     if (!isCircleApiConfigured() || !accessToken) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const rows = await getMyHostedEvents(accessToken);
-        if (cancelled) return;
-        syncHostedEventsFromApi(rows.map(circleEventToMeetEvent));
-      } catch (e) {
-        if (e instanceof CircleApiError && e.status === 401) return;
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken, syncHostedEventsFromApi]);
+    if (data === undefined) return;
+    syncHostedEventsFromApi(data);
+  }, [accessToken, data, syncHostedEventsFromApi]);
 
   return null;
 }

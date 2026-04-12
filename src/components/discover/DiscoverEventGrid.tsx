@@ -6,6 +6,8 @@ import { EventCard } from "@/components/events/EventCard";
 import { Reveal } from "@/components/providers/Reveal";
 import { hostLabelForEvent } from "@/lib/hostName";
 import { listEventsMerged } from "@/lib/eventsCatalog";
+import { selectUser } from "@/lib/store/authSlice";
+import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
 import citiesData from "@/data/cities.json";
 import type { City } from "@/lib/types";
@@ -13,7 +15,7 @@ import type { City } from "@/lib/types";
 export function DiscoverEventGrid() {
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
-  const user = useSessionStore((s) => s.user);
+  const user = useAppSelector(selectUser);
   const sp = useSearchParams();
   const city = sp.get("city") ?? "";
   const category = sp.get("category") ?? "all";

@@ -6,32 +6,33 @@ import {
   refreshCircleAccessToken,
 } from "@/lib/circle/sessionBridge";
 import { isCircleApiConfigured } from "@/lib/circle/config";
+import { applyTokenRefresh, selectAccessToken } from "@/lib/store/authSlice";
+import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
+import { store } from "@/lib/store/store";
 import { useSessionStore } from "@/stores/session-store";
 
 const REFRESH_INTERVAL_MS = 20 * 60 * 1000;
 
 /**
- * Wires refresh-token rotation into the session store and periodically refreshes
+ * Wires refresh-token rotation into Redux auth and periodically refreshes
  * access tokens while the user is signed in with Circle.
  */
 export function CircleSessionBridge() {
-  const accessToken = useSessionStore((s) => s.accessToken);
+  const dispatch = useAppDispatch();
+  const accessToken = useAppSelector(selectAccessToken);
 
   useEffect(() => {
     configureCircleSession({
       getSession: () => {
-        const s = useSessionStore.getState();
-        return { user: s.user, refreshToken: s.refreshToken };
+        const s = store.getState();
+        return { user: s.auth.user, refreshToken: s.auth.refreshToken };
       },
       applyTokens: (t) => {
-        const s = useSessionStore.getState();
-        if (s.user) {
-          s.loginWithCircle(s.user, t);
-        }
+        dispatch(applyTokenRefresh(t));
       },
       onRefreshFailed: () => useSessionStore.getState().logout(),
     });
-  }, []);
+  }, [dispatch]);
 
   useEffect(() => {
     if (!isCircleApiConfigured() || !accessToken) return;

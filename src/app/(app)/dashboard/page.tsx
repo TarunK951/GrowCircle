@@ -7,6 +7,8 @@ import { isCircleApiConfigured } from "@/lib/circle/config";
 import type { CircleMyApplication } from "@/lib/circle/types";
 import { mergeEventCatalog } from "@/lib/eventsCatalog";
 import { cn } from "@/lib/utils";
+import { selectAccessToken, selectUser } from "@/lib/store/authSlice";
+import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
 import type { MeetEvent } from "@/lib/types";
 
@@ -30,11 +32,11 @@ function humanizeStatus(s: string) {
 
 export default function DashboardPage() {
   const [tab, setTab] = useState<DashboardTab>("bookings");
-  const user = useSessionStore((s) => s.user);
+  const user = useAppSelector(selectUser);
   const bookings = useSessionStore((s) => s.bookings);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
-  const accessToken = useSessionStore((s) => s.accessToken);
+  const accessToken = useAppSelector(selectAccessToken);
 
   const [circleApps, setCircleApps] = useState<CircleMyApplication[] | null>(
     null,

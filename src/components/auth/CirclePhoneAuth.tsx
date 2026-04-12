@@ -15,6 +15,7 @@ import {
 } from "@/lib/circle/api";
 import { getCircleGoogleAuthUrl } from "@/lib/circle/config";
 import { circleProfileToUser } from "@/lib/circle/mappers";
+import { store } from "@/lib/store/store";
 import { useSessionStore } from "@/stores/session-store";
 
 const phoneSchema = z
@@ -116,8 +117,7 @@ export function CirclePhoneAuth() {
       toast.error(parsed.error.issues[0]?.message ?? "Check the form");
       return;
     }
-    const accessToken = useSessionStore.getState().accessToken;
-    const refreshToken = useSessionStore.getState().refreshToken;
+    const { accessToken, refreshToken } = store.getState().auth;
     if (!accessToken || !refreshToken) {
       toast.error("Session expired — start again");
       setStep("phone");

@@ -53,6 +53,7 @@ export function circleEventToMeetEvent(api: CircleEvent): MeetEvent {
           q.options && q.options.length >= 2
             ? q.options
             : ["Option A", "Option B"],
+        allowMultiple: q.question_type === "multi_select",
       }));
     if (rows.length) preJoin = rows;
   }
