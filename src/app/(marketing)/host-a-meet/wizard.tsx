@@ -236,7 +236,7 @@ export function HostWizard() {
       }
       if (!token) {
         toast.error(
-          "Sign in with Circle to publish — use Phone OTP or Google. App-only email/password sign-in does not receive API tokens.",
+          "Sign in with Circle to publish — use Phone OTP. App-only email/password sign-in does not receive API tokens.",
         );
         router.push("/login?returnUrl=/host-a-meet");
         return;

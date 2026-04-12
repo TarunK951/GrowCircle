@@ -5,12 +5,12 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { z } from "zod";
-import { GoogleGlyph } from "@/components/auth/GoogleGlyph";
 import {
   loginWithEmailPasswordApi,
   registerWithEmailPasswordApi,
 } from "@/lib/auth/emailPasswordClient";
 import { Eye, EyeOff, Mail, Smartphone } from "lucide-react";
+import { GoogleGlyph } from "@/components/auth/GoogleGlyph";
 import { cn } from "@/lib/utils";
 import {
   completeProfile,
@@ -21,7 +21,10 @@ import {
 } from "@/lib/circle/api";
 import { formatCircleError } from "@/lib/circle/client";
 import { normalizedEmailSchema } from "@/lib/auth/apiSchemas";
-import { getCircleGoogleAuthUrl, isCircleApiConfigured } from "@/lib/circle/config";
+import {
+  getCircleGoogleAuthUrl,
+  isCircleApiConfigured,
+} from "@/lib/circle/config";
 import { circleProfileToUser } from "@/lib/circle/mappers";
 import { store } from "@/lib/store/store";
 import { useSessionStore } from "@/stores/session-store";
@@ -75,8 +78,8 @@ function maskNationalPhone(digits: string): string {
 
 type Step = "phone" | "otp" | "profile";
 
-/** Phone OTP, Google (Circle API), or app-local email + password (`/api/auth/*`). */
-type AuthChannel = "phone" | "google" | "email";
+/** Phone OTP (Circle API) or app-local email + password (`/api/auth/*`). */
+type AuthChannel = "phone" | "email";
 
 export function CirclePhoneAuth() {
   const pathname = usePathname();
@@ -320,7 +323,7 @@ export function CirclePhoneAuth() {
         loginSession(user);
         if (isCircleApiConfigured()) {
           toast.message(
-            "Signed in for this app only. To publish meets or use Circle APIs, sign in with Phone OTP or Google.",
+            "Signed in for this app only. To publish meets or use Circle APIs, sign in with Phone OTP.",
             { duration: 6500 },
           );
         }
@@ -341,7 +344,7 @@ export function CirclePhoneAuth() {
       loginSession(user);
       if (isCircleApiConfigured()) {
         toast.message(
-          "Account created locally. To host with Circle, sign in with Phone OTP or Google after onboarding.",
+          "Account created locally. To host with Circle, sign in with Phone OTP after onboarding.",
           { duration: 6500 },
         );
       }
@@ -354,11 +357,6 @@ export function CirclePhoneAuth() {
     }
   };
 
-  const googleUrl = useMemo(
-    () => getCircleGoogleAuthUrl(returnUrl),
-    [returnUrl],
-  );
-
   const showChannelTabs = step === "phone";
 
   const subtitle = (() => {
@@ -367,9 +365,6 @@ export function CirclePhoneAuth() {
     }
     if (step === "otp") {
       return `Enter the code we sent to +${DEFAULT_CC} ${maskNationalPhone(phoneNational)}.`;
-    }
-    if (authChannel === "google") {
-      return "Sign in with your Google account via our server (Circle API).";
     }
     if (authChannel === "email") {
       return mode === "signup"
@@ -387,11 +382,31 @@ export function CirclePhoneAuth() {
       <p className="mt-2 text-sm text-neutral-500">{subtitle}</p>
 
       {showChannelTabs && (
-        <div
-          className="mt-6 grid grid-cols-3 gap-1 rounded-2xl border border-neutral-200/90 bg-neutral-100/70 p-1"
-          role="tablist"
-          aria-label="Sign-in method: phone, Google, or email"
-        >
+        <>
+          <a
+            href={getCircleGoogleAuthUrl(returnUrl)}
+            className="mt-6 flex w-full items-center justify-center gap-2.5 rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-800 shadow-sm transition hover:bg-neutral-50"
+          >
+            <GoogleGlyph className="h-5 w-5 shrink-0" aria-hidden />
+            Continue with Google
+          </a>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-neutral-200" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-white px-3 text-neutral-400">
+                Or phone or email
+              </span>
+            </div>
+          </div>
+
+          <div
+            className="grid grid-cols-2 gap-1 rounded-2xl border border-neutral-200/90 bg-neutral-100/70 p-1"
+            role="tablist"
+            aria-label="Sign-in method: phone or email"
+          >
           <button
             type="button"
             role="tab"
@@ -410,21 +425,6 @@ export function CirclePhoneAuth() {
           <button
             type="button"
             role="tab"
-            aria-selected={authChannel === "google"}
-            className={cn(
-              "flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-1 py-2 text-xs font-semibold transition sm:gap-2 sm:text-sm",
-              authChannel === "google"
-                ? "bg-white text-neutral-950 shadow-sm"
-                : "text-neutral-500 hover:text-neutral-800",
-            )}
-            onClick={() => setAuthChannel("google")}
-          >
-            <GoogleGlyph className="h-4 w-4 shrink-0" aria-hidden />
-            Google
-          </button>
-          <button
-            type="button"
-            role="tab"
             aria-selected={authChannel === "email"}
             className={cn(
               "flex min-h-11 items-center justify-center gap-1.5 rounded-xl px-1 py-2 text-xs font-semibold transition sm:gap-2 sm:text-sm",
@@ -438,6 +438,7 @@ export function CirclePhoneAuth() {
             Email
           </button>
         </div>
+        </>
       )}
 
       {authChannel === "phone" && step === "phone" && (
@@ -477,36 +478,6 @@ export function CirclePhoneAuth() {
             className="w-full rounded-xl bg-neutral-950 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-900 disabled:opacity-60"
           >
             {busy ? "Sending…" : "Send code"}
-          </button>
-        </div>
-      )}
-
-      {authChannel === "google" && step === "phone" && (
-        <div className="mt-8 space-y-4">
-          <p className="text-sm leading-relaxed text-neutral-600">
-            You’ll choose a Google account on the next screen. We’ll bring you
-            back here signed in.
-          </p>
-          <p className="rounded-xl border border-amber-200/90 bg-amber-50/90 px-3.5 py-3 text-xs leading-relaxed text-amber-950">
-            If you see{" "}
-            <span className="font-semibold">Error 400: redirect_uri_mismatch</span>
-            , Google’s OAuth client must list the exact callback URL your Circle
-            backend sends (often{" "}
-            <code className="rounded bg-amber-100/80 px-1 py-0.5 text-[0.7rem]">
-              …/api/auth/google/callback
-            </code>{" "}
-            on the server).             Fix it in Google Cloud Console or use{" "}
-            <span className="font-semibold">Phone OTP</span> to sign in instead.
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              window.location.assign(googleUrl);
-            }}
-            className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-neutral-200 bg-white py-3.5 text-sm font-semibold text-neutral-900 shadow-sm transition hover:bg-neutral-50"
-          >
-            <GoogleGlyph className="h-5 w-5 shrink-0" />
-            Continue with Google
           </button>
         </div>
       )}

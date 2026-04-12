@@ -4,28 +4,51 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { getMyProfile } from "@/lib/circle/api";
+import { getMyProfile, mapAuthUserToProfile } from "@/lib/circle/api";
 import { formatCircleError } from "@/lib/circle/client";
-import {
-  getGoogleOAuthCallbackUrl,
-} from "@/lib/circle/config";
+import { getGoogleOAuthCallbackUrl } from "@/lib/circle/config";
 import { circleProfileToUser } from "@/lib/circle/mappers";
+import type { CircleAuthUser } from "@/lib/circle/types";
 import { useSessionStore } from "@/stores/session-store";
+
+const DEFAULT_GOOGLE_SUCCESS_PATH = "/";
+
+function pickTokensFromRecord(o: Record<string, unknown>): {
+  accessToken: string | null;
+  refreshToken: string | null;
+} {
+  const accessToken =
+    (typeof o.accessToken === "string" && o.accessToken) ||
+    (typeof o.access_token === "string" && o.access_token) ||
+    null;
+  const refreshToken =
+    (typeof o.refreshToken === "string" && o.refreshToken) ||
+    (typeof o.refresh_token === "string" && o.refresh_token) ||
+    null;
+  return { accessToken, refreshToken };
+}
 
 function parseOAuthTokensFromWindow(): {
   accessToken: string | null;
   refreshToken: string | null;
-  returnUrl: string;
   oauthError: string | null;
   oauthErrorDescription: string | null;
+  /** Google sends this when the redirect URI is registered to this origin; Circle must exchange it. */
+  authorizationCode: string | null;
+  /** When backend passes full envelope in `data`, use this user for login if profile fetch fails. */
+  authUserFallback: CircleAuthUser | null;
+  /** Backend JSON envelope explicitly failed (`success: false`). */
+  apiFailureMessage: string | null;
 } {
   if (typeof window === "undefined") {
     return {
       accessToken: null,
       refreshToken: null,
-      returnUrl: "/dashboard",
       oauthError: null,
       oauthErrorDescription: null,
+      authorizationCode: null,
+      authUserFallback: null,
+      apiFailureMessage: null,
     };
   }
   const q = new URLSearchParams(window.location.search);
@@ -41,20 +64,62 @@ function parseOAuthTokensFromWindow(): {
   };
   let accessToken = pick("accessToken", "access_token");
   let refreshToken = pick("refreshToken", "refresh_token");
+  let authUserFallback: CircleAuthUser | null = null;
   const dataParam = pick("data");
   if ((!accessToken || !refreshToken) && dataParam) {
     try {
       const decoded = JSON.parse(
         dataParam.startsWith("{") ? dataParam : atob(dataParam),
       ) as Record<string, unknown>;
-      const at =
-        (typeof decoded.accessToken === "string" && decoded.accessToken) ||
-        (typeof decoded.access_token === "string" && decoded.access_token);
-      const rt =
-        (typeof decoded.refreshToken === "string" && decoded.refreshToken) ||
-        (typeof decoded.refresh_token === "string" && decoded.refresh_token);
-      if (typeof at === "string") accessToken = at;
-      if (typeof rt === "string") refreshToken = rt;
+      if (decoded.success === false) {
+        return {
+          accessToken: null,
+          refreshToken: null,
+          oauthError: null,
+          oauthErrorDescription: null,
+          authorizationCode: pick("code"),
+          authUserFallback: null,
+          apiFailureMessage:
+            typeof decoded.message === "string"
+              ? decoded.message
+              : "Sign-in failed",
+        };
+      }
+      const inner =
+        decoded.success === true &&
+        decoded.data !== null &&
+        typeof decoded.data === "object"
+          ? (decoded.data as Record<string, unknown>)
+          : decoded;
+      const fromInner = pickTokensFromRecord(inner);
+      const fromRoot = pickTokensFromRecord(decoded);
+      if (!accessToken) accessToken = fromInner.accessToken ?? fromRoot.accessToken;
+      if (!refreshToken) refreshToken = fromInner.refreshToken ?? fromRoot.refreshToken;
+      const u = inner.user;
+      if (u && typeof u === "object" && u !== null) {
+        const raw = u as Record<string, unknown>;
+        const id = typeof raw.id === "string" ? raw.id : null;
+        const phone = typeof raw.phone === "string" ? raw.phone : "";
+        if (id) {
+          authUserFallback = {
+            id,
+            phone,
+            username:
+              typeof raw.username === "string" || raw.username === null
+                ? raw.username
+                : undefined,
+            email:
+              typeof raw.email === "string" || raw.email === null
+                ? raw.email
+                : undefined,
+            verification_tier:
+              typeof raw.verification_tier === "number"
+                ? raw.verification_tier
+                : undefined,
+            is_profile_complete: raw.is_profile_complete === true,
+          };
+        }
+      }
     } catch {
       /* ignore */
     }
@@ -62,15 +127,18 @@ function parseOAuthTokensFromWindow(): {
   return {
     accessToken,
     refreshToken,
-    returnUrl: pick("returnUrl") ?? "/dashboard",
     oauthError: pick("error"),
     oauthErrorDescription: pick("error_description"),
+    authorizationCode: pick("code"),
+    authUserFallback,
+    apiFailureMessage: null,
   };
 }
 
 /**
  * OAuth return URL — backend redirects here after Google consent.
- * Tokens may be in **query** or **hash** (`accessToken`/`refreshToken` or snake_case).
+ * When `success` is true, tokens load from query/hash or from a JSON `data` envelope; we call
+ * `GET /users/me` with the access token, persist the session, then redirect to `/`.
  */
 function GoogleCallbackInner() {
   const router = useRouter();
@@ -81,10 +149,17 @@ function GoogleCallbackInner() {
     const {
       accessToken,
       refreshToken,
-      returnUrl,
       oauthError,
       oauthErrorDescription,
+      authorizationCode,
+      authUserFallback,
+      apiFailureMessage,
     } = parseOAuthTokensFromWindow();
+
+    if (apiFailureMessage) {
+      setError(`api_failed:${apiFailureMessage}`);
+      return;
+    }
 
     if (oauthError) {
       setError(
@@ -97,6 +172,15 @@ function GoogleCallbackInner() {
     }
 
     if (!accessToken || !refreshToken) {
+      if (authorizationCode) {
+        const apiCallback = new URL(
+          "/api/auth/google/callback",
+          window.location.origin,
+        );
+        apiCallback.search = window.location.search;
+        window.location.replace(apiCallback.toString());
+        return;
+      }
       setError("missing_tokens");
       return;
     }
@@ -104,16 +188,21 @@ function GoogleCallbackInner() {
     let cancelled = false;
     void (async () => {
       try {
-        const profile = await getMyProfile(accessToken);
+        let profile;
+        try {
+          profile = await getMyProfile(accessToken);
+        } catch (e) {
+          if (authUserFallback) {
+            profile = mapAuthUserToProfile(authUserFallback);
+          } else {
+            throw e;
+          }
+        }
         if (cancelled) return;
         const user = circleProfileToUser(profile);
         loginWithCircle(user, { accessToken, refreshToken });
         toast.success("Signed in with Google");
-        const safe =
-          returnUrl.startsWith("/") && !returnUrl.startsWith("//")
-            ? returnUrl
-            : "/dashboard";
-        router.replace(safe);
+        router.replace(DEFAULT_GOOGLE_SUCCESS_PATH);
       } catch (e) {
         if (!cancelled) setError(`profile:${formatCircleError(e)}`);
       }
@@ -127,6 +216,23 @@ function GoogleCallbackInner() {
   const registeredCallback =
     getGoogleOAuthCallbackUrl() ??
     "(set NEXT_PUBLIC_APP_URL to show your app callback URL)";
+
+  if (error?.startsWith("api_failed:")) {
+    const msg = error.slice("api_failed:".length).trim();
+    return (
+      <div className="mx-auto max-w-md px-4 py-16 text-center text-neutral-900">
+        <p className="text-sm font-medium">
+          {msg || "Sign-in failed. Please try again."}
+        </p>
+        <Link
+          href="/login"
+          className="mt-6 inline-block text-sm font-semibold text-violet-800 underline"
+        >
+          Back to login
+        </Link>
+      </div>
+    );
+  }
 
   if (error?.startsWith("oauth_denied:")) {
     const parts = error.split(":");
