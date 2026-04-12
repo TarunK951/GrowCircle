@@ -1,6 +1,7 @@
 "use client";
 
 import type {
+  AttendeeMeetReview,
   Booking,
   ChatMessage,
   GuestReviewWritten,
@@ -122,7 +123,12 @@ type SessionState = {
   guestReviewsWritten: GuestReviewWritten[];
   /** Reviews from guests about you (as host). */
   hostReviewsReceived: HostReviewReceived[];
+  /** Reviews you posted about a meet (as guest — tied to an attended booking). */
+  attendeeMeetReviews: AttendeeMeetReview[];
   addGuestReviewWritten: (r: Omit<GuestReviewWritten, "id" | "createdAt">) => void;
+  addAttendeeMeetReview: (
+    r: Omit<AttendeeMeetReview, "id" | "createdAt">,
+  ) => { ok: true } | { ok: false; reason: "duplicate" | "invalid" };
   seedDemoReviewsIfEmpty: () => void;
 };
 
@@ -513,6 +519,7 @@ export const useSessionStore = create<SessionState>()(
       },
       guestReviewsWritten: [],
       hostReviewsReceived: [],
+      attendeeMeetReviews: [],
       addGuestReviewWritten: (r) => {
         const row: GuestReviewWritten = {
           ...r,
@@ -521,10 +528,36 @@ export const useSessionStore = create<SessionState>()(
         };
         set({ guestReviewsWritten: [row, ...get().guestReviewsWritten] });
       },
+      addAttendeeMeetReview: (r) => {
+        const state = get();
+        if (
+          state.attendeeMeetReviews.some((x) => x.bookingId === r.bookingId)
+        ) {
+          return { ok: false, reason: "duplicate" };
+        }
+        const booking = state.bookings.find((b) => b.id === r.bookingId);
+        if (
+          !booking ||
+          booking.userId !== state.user?.id ||
+          booking.status !== "attended"
+        ) {
+          return { ok: false, reason: "invalid" };
+        }
+        const row: AttendeeMeetReview = {
+          ...r,
+          id: `amr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          createdAt: new Date().toISOString(),
+        };
+        set({
+          attendeeMeetReviews: [row, ...get().attendeeMeetReviews],
+        });
+        return { ok: true };
+      },
       seedDemoReviewsIfEmpty: () => {
         if (
           get().hostReviewsReceived.length > 0 ||
-          get().guestReviewsWritten.length > 0
+          get().guestReviewsWritten.length > 0 ||
+          get().attendeeMeetReviews.length > 0
         ) {
           return;
         }
@@ -567,6 +600,8 @@ export const useSessionStore = create<SessionState>()(
           refreshToken: p?.refreshToken ?? current.refreshToken,
           guestReviewsWritten: p?.guestReviewsWritten ?? current.guestReviewsWritten,
           hostReviewsReceived: p?.hostReviewsReceived ?? current.hostReviewsReceived,
+          attendeeMeetReviews:
+            p?.attendeeMeetReviews ?? current.attendeeMeetReviews,
         };
       },
     },

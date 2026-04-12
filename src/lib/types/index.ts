@@ -201,6 +201,18 @@ export type GuestReviewWritten = {
   comment: string;
 };
 
+/** Review you left as an attendee — only allowed for bookings marked `attended`. */
+export type AttendeeMeetReview = {
+  id: string;
+  createdAt: string;
+  bookingId: string;
+  eventId: string;
+  eventTitle: string;
+  /** 1–5 */
+  rating: number;
+  comment: string;
+};
+
 export type HostReviewReceived = {
   id: string;
   createdAt: string;
