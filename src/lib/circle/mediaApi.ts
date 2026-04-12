@@ -1,3 +1,4 @@
+/** §14 Media — presigned S3 upload URLs (`/media/upload-url`, `DELETE /media`). */
 import { circleRequest } from "@/lib/circle/client";
 import type {
   CircleMediaDeleteBody,

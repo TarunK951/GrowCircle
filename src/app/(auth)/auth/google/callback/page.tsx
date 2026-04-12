@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { getMyProfile } from "@/lib/circle/api";
+import { formatCircleError } from "@/lib/circle/client";
 import {
   getGoogleOAuthCallbackUrl,
 } from "@/lib/circle/config";
@@ -113,8 +114,8 @@ function GoogleCallbackInner() {
             ? returnUrl
             : "/dashboard";
         router.replace(safe);
-      } catch {
-        if (!cancelled) setError("profile");
+      } catch (e) {
+        if (!cancelled) setError(`profile:${formatCircleError(e)}`);
       }
     })();
 
@@ -184,12 +185,13 @@ function GoogleCallbackInner() {
     );
   }
 
-  if (error === "profile") {
+  if (error?.startsWith("profile:")) {
+    const detail = error.slice("profile:".length).trim();
     return (
       <div className="mx-auto max-w-md px-4 py-16 text-center text-neutral-900">
         <p className="text-sm font-medium">
-          Signed in but could not load your profile. Try again from the login
-          page.
+          Signed in but could not load your profile
+          {detail ? `: ${detail}` : ""}.
         </p>
         <Link
           href="/login"

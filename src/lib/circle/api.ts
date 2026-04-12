@@ -1,3 +1,7 @@
+/**
+ * Circle HTTP paths align with API doc sections noted inline (auth §1, users §2, events §3, …).
+ * `applicationsApi.ts` covers §5–8; `mediaApi.ts` §14; `settlementsApi` / `adminApi` as labeled there.
+ */
 import { CircleApiError, circleRequest, circleRequestBlob } from "@/lib/circle/client";
 import { getCircleApiBase } from "@/lib/circle/config";
 import type {
@@ -11,16 +15,76 @@ import type {
   VerifyOtpData,
 } from "@/lib/circle/types";
 
-/** §1.1 */
+function pickStr(obj: Record<string, unknown>, ...keys: string[]): string | undefined {
+  for (const k of keys) {
+    const v = obj[k];
+    if (typeof v === "string" && v.length > 0) return v;
+  }
+  return undefined;
+}
+
+/** Backend may return camelCase (per API doc) or snake_case. */
+function normalizeTokenPair(raw: unknown): { accessToken: string; refreshToken: string } {
+  if (!raw || typeof raw !== "object") {
+    throw new CircleApiError("Invalid token response", 500, raw);
+  }
+  const o = raw as Record<string, unknown>;
+  const accessToken = pickStr(o, "accessToken", "access_token");
+  const refreshToken = pickStr(o, "refreshToken", "refresh_token");
+  if (!accessToken || !refreshToken) {
+    throw new CircleApiError("Missing access or refresh token in auth response", 500, raw);
+  }
+  return { accessToken, refreshToken };
+}
+
+function normalizeVerifyOtpData(raw: unknown): VerifyOtpData {
+  if (!raw || typeof raw !== "object") {
+    throw new CircleApiError("Invalid verify response", 500, raw);
+  }
+  const o = raw as Record<string, unknown>;
+  const tokens = normalizeTokenPair(o);
+  const userObj = o.user;
+  if (!userObj || typeof userObj !== "object") {
+    throw new CircleApiError("Missing user in verify response", 500, raw);
+  }
+  const u = userObj as Record<string, unknown>;
+  const id = pickStr(u, "id");
+  const phone = pickStr(u, "phone");
+  if (!id || !phone) {
+    throw new CircleApiError("Invalid user in verify response", 500, raw);
+  }
+  const isProfileComplete =
+    o.isProfileComplete === true ||
+    o.is_profile_complete === true ||
+    u.is_profile_complete === true;
+  const user: CircleAuthUser = {
+    id,
+    phone,
+    username:
+      typeof u.username === "string" || u.username === null ? u.username : undefined,
+    email: typeof u.email === "string" || u.email === null ? u.email : undefined,
+    verification_tier: typeof u.verification_tier === "number" ? u.verification_tier : undefined,
+    is_profile_complete: u.is_profile_complete === true,
+  };
+  return {
+    ...tokens,
+    isNewUser: o.isNewUser === true || o.is_new_user === true,
+    isProfileComplete,
+    user,
+  };
+}
+
+/** §1.1 — body must include `phone` (E.164). Email-only OTP is not supported by the API. */
 export function sendOtp(phone: string) {
   return circleRequest<unknown>("/auth/send-otp", { body: { phone } });
 }
 
-/** §1.2 */
-export function verifyOtp(phone: string, otp: string) {
-  return circleRequest<VerifyOtpData>("/auth/verify-otp", {
+/** §1.2 — `phone` + `otp` (same identifiers as §1.1). */
+export async function verifyOtp(phone: string, otp: string): Promise<VerifyOtpData> {
+  const raw = await circleRequest<unknown>("/auth/verify-otp", {
     body: { phone, otp },
   });
+  return normalizeVerifyOtpData(raw);
 }
 
 /** §1.3 */
@@ -35,11 +99,11 @@ export function completeProfile(
 }
 
 /** §1.4 */
-export function refreshTokens(refreshToken: string) {
-  return circleRequest<{ accessToken: string; refreshToken: string }>(
-    "/auth/refresh-token",
-    { body: { refreshToken } },
-  );
+export async function refreshTokens(refreshToken: string) {
+  const raw = await circleRequest<unknown>("/auth/refresh-token", {
+    body: { refreshToken },
+  });
+  return normalizeTokenPair(raw);
 }
 
 /** §1.5 */

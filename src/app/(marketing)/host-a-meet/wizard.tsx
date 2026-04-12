@@ -8,9 +8,15 @@ import { EVENT_CATEGORY_PRESETS } from "@/lib/eventCategories";
 import {
   addEventQuestion,
   createEvent,
+  getMyProfile,
   publishEvent,
 } from "@/lib/circle/api";
+import { CircleApiError, formatCircleError } from "@/lib/circle/client";
 import { isCircleApiConfigured } from "@/lib/circle/config";
+import {
+  ensureCircleAccessToken,
+  refreshCircleAccessToken,
+} from "@/lib/circle/sessionBridge";
 import { getMediaUploadUrl, uploadToPresignedUrl } from "@/lib/circle/mediaApi";
 import { circleEventToMeetEvent } from "@/lib/circle/mappers";
 import { generateShareToken } from "@/lib/eventsCatalog";
@@ -220,13 +226,46 @@ export function HostWizard() {
       // Publishing uses Circle HTTP API + bearer token (see `src/lib/circle/config.ts`).
       if (!isCircleApiConfigured()) {
         toast.error(
-          "Circle API URL is not set. Add NEXT_PUBLIC_CIRCLE_API_BASE to .env.local, restart the dev server, then try again.",
+          "Circle auth is disabled or API URL is missing. Set NEXT_PUBLIC_USE_CIRCLE_AUTH (not false) and NEXT_PUBLIC_CIRCLE_API_BASE in .env.local, then restart the dev server.",
         );
         return;
       }
-      if (!accessToken) {
-        toast.error("Sign in with Circle to publish (access token missing).");
+      let token = accessToken;
+      if (!token) {
+        token = await ensureCircleAccessToken();
+      }
+      if (!token) {
+        toast.error(
+          "Sign in with Circle to publish — use Phone OTP or Google. Gmail-only sign-in does not receive API tokens.",
+        );
         router.push("/login?returnUrl=/host-a-meet");
+        return;
+      }
+
+      try {
+        let me;
+        try {
+          me = await getMyProfile(token);
+        } catch (e) {
+          if (e instanceof CircleApiError && e.status === 401) {
+            await refreshCircleAccessToken();
+            const next = store.getState().auth.accessToken;
+            if (!next) throw e;
+            token = next;
+            me = await getMyProfile(token);
+          } else {
+            throw e;
+          }
+        }
+        if (me.is_profile_complete !== true) {
+          toast.error("Complete your profile before hosting a meet.");
+          router.push(
+            `/login?returnUrl=${encodeURIComponent("/host-a-meet")}&circleProfile=1`,
+          );
+          return;
+        }
+      } catch (e) {
+        toast.error(formatCircleError(e));
         return;
       }
 
@@ -248,7 +287,7 @@ export function HostWizard() {
                 ? "webp"
                 : "jpg";
             const { uploadUrl, fileUrl } = await getMediaUploadUrl(
-              accessToken,
+              token,
               {
                 fileName: `event-cover-${Date.now()}-${resolvedUrls.length}.${ext}`,
                 fileType: mime || "image/jpeg",
@@ -269,7 +308,7 @@ export function HostWizard() {
         const coverUrl = resolvedUrls[0] ?? DEFAULT_COVER;
         const additionalImages = resolvedUrls.slice(1);
 
-        const created = await createEvent(accessToken, {
+        const created = await createEvent(token, {
           title: draft.title.trim() || "Untitled meet",
           description: draft.description.trim() || "—",
           max_capacity: Math.max(4, draft.capacity),
@@ -285,7 +324,7 @@ export function HostWizard() {
           const row = draft.preJoinQuestions[i];
           const opts = row.options.map((o) => o.trim()).filter(Boolean);
           if (opts.length < 2) continue;
-          await addEventQuestion(accessToken, created.id, {
+          await addEventQuestion(token, created.id, {
             question_text: row.prompt.trim(),
             question_type: "single_select",
             options: opts.slice(0, 6),
@@ -294,7 +333,7 @@ export function HostWizard() {
           });
         }
 
-        const published = await publishEvent(accessToken, created.id);
+        const published = await publishEvent(token, created.id);
         const ev = circleEventToMeetEvent(published);
         publishHostedEvent({
           ...ev,
@@ -323,9 +362,7 @@ export function HostWizard() {
         toast.success("Meet published — manage it under Bookings.");
         router.push("/bookings");
       } catch (e) {
-        toast.error(
-          e instanceof Error ? e.message : "Could not publish to Circle API",
-        );
+        toast.error(formatCircleError(e));
       } finally {
         setPublishing(false);
       }

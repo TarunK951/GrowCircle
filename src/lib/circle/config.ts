@@ -22,13 +22,23 @@ export function getCircleApiBase(): string {
   return base;
 }
 
+/**
+ * When `true` (default), the app uses Circle phone/Google auth and HTTP API features.
+ * Set `NEXT_PUBLIC_USE_CIRCLE_AUTH=false` to use the legacy email/password forms in
+ * `UnifiedAuthForm` instead (local `/api/auth/login` routes).
+ */
 export function isCircleApiConfigured(): boolean {
-  return true;
+  return process.env.NEXT_PUBLIC_USE_CIRCLE_AUTH !== "false";
 }
 
 /**
- * Public site origin for OAuth redirect registration (server and docs).
+ * Public site origin for OAuth token handoff after the **backend** finishes Google OAuth.
  * Set `NEXT_PUBLIC_APP_URL=https://your-domain.com` in production so the callback URL is stable.
+ *
+ * **Google Cloud “Authorized redirect URIs”** must include whatever `redirect_uri` the **Circle
+ * backend** sends to Google — typically `{BACKEND_ORIGIN}/api/auth/google/callback` (see API
+ * doc §1.7), **not** this app URL. This app receives tokens at `${NEXT_PUBLIC_APP_URL}/auth/google/callback`
+ * (no `/api`) after the backend redirects here.
  */
 export function getPublicAppBaseUrl(): string | null {
   const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();

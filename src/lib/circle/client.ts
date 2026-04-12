@@ -12,6 +12,15 @@ export class CircleApiError extends Error {
   }
 }
 
+/** User-facing message for toasts (API `message` first; omits noisy status for typical 4xx). */
+export function formatCircleError(error: unknown): string {
+  if (error instanceof CircleApiError) {
+    return error.message.trim() || `Request failed (${error.status})`;
+  }
+  if (error instanceof Error) return error.message;
+  return "Something went wrong. Please try again.";
+}
+
 type RequestOpts = {
   method?: string;
   body?: unknown;
