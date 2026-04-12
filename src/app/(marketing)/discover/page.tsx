@@ -12,8 +12,9 @@ type DiscoverPageProps = Readonly<{
   searchParams: Promise<{
     city?: string;
     category?: string;
-    dateFrom?: string;
-    dateTo?: string;
+    /** YYYY-MM-DD */
+    date?: string;
+    search?: string;
   }>;
 }>;
 
@@ -30,7 +31,7 @@ export default async function DiscoverPage(props: DiscoverPageProps) {
           className="max-w-3xl"
           eyebrow="Explore"
           title="Discover meets"
-          description="Browse circles by city, interest, and date. Narrow the list with the filters below, then open a meet to learn more."
+          description="Search by keyword, pick a city with landmark photos, filter by interest and a single date. On smaller screens, open Filters for the full panel."
         />
       </Reveal>
 
@@ -38,13 +39,13 @@ export default async function DiscoverPage(props: DiscoverPageProps) {
         key={[
           sp.city ?? "",
           sp.category ?? "all",
-          sp.dateFrom ?? "",
-          sp.dateTo ?? "",
+          sp.date ?? "",
+          sp.search ?? "",
         ].join("|")}
         initialCity={sp.city ?? ""}
         initialCategory={sp.category ?? "all"}
-        initialDateFrom={sp.dateFrom ?? ""}
-        initialDateTo={sp.dateTo ?? ""}
+        initialDate={sp.date ?? ""}
+        initialSearch={sp.search ?? ""}
         cities={cityOptions}
         categories={categories}
       />

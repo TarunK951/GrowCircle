@@ -1,4 +1,7 @@
-import { eventMatchesCategoryFilter } from "@/lib/eventCategories";
+import {
+  eventCategoryLabels,
+  eventMatchesCategoryFilter,
+} from "@/lib/eventCategories";
 import type { MeetEvent } from "@/lib/types";
 
 export type CatalogMergeOptions = {
@@ -37,6 +40,10 @@ export function listEventsMerged(
   filters?: {
     cityId?: string;
     category?: string;
+    /** YYYY-MM-DD — events whose start falls on that calendar day (local). */
+    date?: string;
+    /** Case-insensitive match on title, description, or category labels. */
+    search?: string;
     dateFrom?: string;
     dateTo?: string;
     /** When true, only events visible on explore. */
@@ -56,13 +63,31 @@ export function listEventsMerged(
       eventMatchesCategoryFilter(e, filters.category!),
     );
   }
-  if (filters?.dateFrom) {
-    const from = new Date(filters.dateFrom + "T00:00:00");
-    list = list.filter((e) => new Date(e.startsAt) >= from);
+  if (filters?.date) {
+    const d = filters.date;
+    const start = new Date(`${d}T00:00:00`);
+    const end = new Date(`${d}T23:59:59.999`);
+    list = list.filter((e) => {
+      const t = new Date(e.startsAt);
+      return t >= start && t <= end;
+    });
+  } else {
+    if (filters?.dateFrom) {
+      const from = new Date(filters.dateFrom + "T00:00:00");
+      list = list.filter((e) => new Date(e.startsAt) >= from);
+    }
+    if (filters?.dateTo) {
+      const to = new Date(filters.dateTo + "T23:59:59.999");
+      list = list.filter((e) => new Date(e.startsAt) <= to);
+    }
   }
-  if (filters?.dateTo) {
-    const to = new Date(filters.dateTo + "T23:59:59.999");
-    list = list.filter((e) => new Date(e.startsAt) <= to);
+  const q = filters?.search?.trim().toLowerCase();
+  if (q) {
+    list = list.filter((e) => {
+      if (e.title.toLowerCase().includes(q)) return true;
+      if (e.description.toLowerCase().includes(q)) return true;
+      return eventCategoryLabels(e).some((c) => c.toLowerCase().includes(q));
+    });
   }
   return list;
 }

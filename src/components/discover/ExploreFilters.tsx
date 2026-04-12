@@ -2,25 +2,296 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronDown } from "lucide-react";
+import { Calendar, ChevronDown, MapPin, Search, SlidersHorizontal } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { CityPickerModal } from "./CityPickerModal";
+import type { CityOption } from "./filterTypes";
 
-export type CityOption = { id: string; name: string };
+const fieldBtn =
+  "liquid-glass-field liquid-glass-field-sm flex w-full min-h-11 items-center justify-between gap-2";
 
-const fieldBtn = "liquid-glass-field liquid-glass-field-sm";
+const labelCls =
+  "mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-zinc-700 dark:text-zinc-300";
+
+function useBodyLock(locked: boolean) {
+  useEffect(() => {
+    if (!locked) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [locked]);
+}
+
+function CategorySelect({
+  category,
+  setCategory,
+  categories,
+  open,
+  setOpen,
+  native,
+}: {
+  category: string;
+  setCategory: (v: string) => void;
+  categories: string[];
+  open: boolean;
+  setOpen: (v: boolean) => void;
+  /** Native select avoids overflow clipping inside drawers. */
+  native?: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    if (open) document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open, setOpen]);
+
+  const categoryLabel =
+    !category || category === "all" ? "All categories" : category;
+
+  if (native) {
+    return (
+      <div className="relative min-w-0">
+        <span className={labelCls}>Category</span>
+        <select
+          id="explore-filter-category-native"
+          value={category === "all" ? "all" : category}
+          onChange={(e) => setCategory(e.target.value)}
+          className={cn(
+            fieldBtn,
+            "cursor-pointer appearance-none bg-transparent pr-8",
+          )}
+          aria-label="Category"
+        >
+          <option value="all">All categories</option>
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={ref}
+      className={cn("relative min-w-0", open && "z-[130]")}
+    >
+      <span className={labelCls}>Category</span>
+      <button
+        type="button"
+        id="explore-filter-category"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className={cn(
+          fieldBtn,
+          open && "liquid-glass-field-open",
+        )}
+        onClick={() => setOpen(!open)}
+      >
+        <span className="min-w-0 truncate text-left">{categoryLabel}</span>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-zinc-500 transition-transform duration-200",
+            open && "rotate-180",
+          )}
+          aria-hidden
+        />
+      </button>
+      {open && (
+        <ul
+          className="liquid-glass-menu absolute left-0 right-0 top-full z-[140] mt-1.5 max-h-56 overflow-auto rounded-xl p-1.5 text-sm shadow-lg ring-1 ring-black/5"
+          role="listbox"
+          aria-labelledby="explore-filter-category"
+        >
+          <li role="presentation">
+            <button
+              type="button"
+              role="option"
+              aria-selected={category === "all"}
+              className="liquid-glass-option"
+              onClick={() => {
+                setCategory("all");
+                setOpen(false);
+              }}
+            >
+              All categories
+            </button>
+          </li>
+          {categories.map((cat) => (
+            <li key={cat} role="presentation">
+              <button
+                type="button"
+                role="option"
+                aria-selected={category === cat}
+                className="liquid-glass-option"
+                onClick={() => {
+                  setCategory(cat);
+                  setOpen(false);
+                }}
+              >
+                {cat}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+type FilterFieldsProps = {
+  city: string;
+  setCity: (v: string) => void;
+  category: string;
+  setCategory: (v: string) => void;
+  date: string;
+  setDate: (v: string) => void;
+  search: string;
+  setSearch: (v: string) => void;
+  cities: CityOption[];
+  categories: string[];
+  onOpenCityModal: () => void;
+  categoryMenuOpen: boolean;
+  setCategoryMenuOpen: (v: boolean) => void;
+  /** When true, stack fields vertically (drawer) */
+  compact?: boolean;
+  /** Hide search (drawer: search is pinned above on mobile) */
+  showSearch?: boolean;
+  /** Native category select in drawer (no overflow clip) */
+  nativeCategory?: boolean;
+};
+
+function FilterFields({
+  city,
+  setCity,
+  category,
+  setCategory,
+  date,
+  setDate,
+  search,
+  setSearch,
+  cities,
+  categories,
+  onOpenCityModal,
+  categoryMenuOpen,
+  setCategoryMenuOpen,
+  compact,
+  showSearch = true,
+  nativeCategory = false,
+}: FilterFieldsProps) {
+  const cityLabel = !city
+    ? "All cities"
+    : (cities.find((c) => c.id === city)?.name ?? "All cities");
+
+  return (
+    <div
+      className={cn(
+        "flex flex-col gap-5",
+        !compact && "lg:gap-6",
+      )}
+    >
+      {showSearch ? (
+        <div className="w-full min-w-0">
+          <span className={labelCls}>Search</span>
+          <div className="relative">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
+              aria-hidden
+            />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search meets by title, topic, or keyword…"
+              className="liquid-glass-field liquid-glass-field-sm w-full min-h-11 rounded-xl py-2.5 pl-10 pr-3 text-sm text-foreground placeholder:text-zinc-400"
+              autoComplete="off"
+              aria-label="Search meets"
+            />
+          </div>
+        </div>
+      ) : null}
+
+      <div
+        className={cn(
+          "grid min-w-0 gap-5",
+          compact
+            ? "grid-cols-1"
+            : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 lg:items-end lg:gap-6",
+        )}
+      >
+        <div className="relative min-w-0">
+          <span className={labelCls}>City</span>
+          <button
+            type="button"
+            className={cn(fieldBtn, "justify-between")}
+            onClick={onOpenCityModal}
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+              <span className="truncate text-left">{cityLabel}</span>
+            </span>
+            <ChevronDown className="h-4 w-4 shrink-0 text-zinc-500" />
+          </button>
+        </div>
+
+        <CategorySelect
+          category={category}
+          setCategory={setCategory}
+          categories={categories}
+          open={categoryMenuOpen}
+          setOpen={setCategoryMenuOpen}
+          native={nativeCategory}
+        />
+
+        <div className="relative min-w-0 sm:col-span-2 lg:col-span-1">
+          <span className={labelCls}>Date</span>
+          <div className="relative">
+            <Calendar
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400"
+              aria-hidden
+            />
+            <input
+              id="explore-date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className={cn(
+                "liquid-glass-field liquid-glass-field-sm w-full min-h-11 rounded-xl py-2.5 pl-10 pr-3 text-sm",
+                "[color-scheme:light] dark:[color-scheme:dark]",
+              )}
+              aria-label="Filter by meet date"
+            />
+          </div>
+          <p className="mt-1.5 text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">
+            Show meets happening on this day. Clear the field to see all dates.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function ExploreFilters({
   initialCity = "",
   initialCategory = "all",
-  initialDateFrom = "",
-  initialDateTo = "",
+  initialDate = "",
+  initialSearch = "",
   cities,
   categories,
 }: {
   initialCity?: string;
   initialCategory?: string;
-  initialDateFrom?: string;
-  initialDateTo?: string;
+  /** YYYY-MM-DD */
+  initialDate?: string;
+  initialSearch?: string;
   cities: CityOption[];
   categories: string[];
 }) {
@@ -28,16 +299,20 @@ export function ExploreFilters({
   const pathname = usePathname();
   const [city, setCity] = useState(initialCity);
   const [category, setCategory] = useState(initialCategory);
-  const [dateFrom, setDateFrom] = useState(initialDateFrom);
-  const [dateTo, setDateTo] = useState(initialDateTo);
-  const [open, setOpen] = useState<"city" | "category" | null>(null);
+  const [date, setDate] = useState(initialDate);
+  const [search, setSearch] = useState(initialSearch);
+  const [cityModalOpen, setCityModalOpen] = useState(false);
+  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
   const toolbarRef = useRef<HTMLDivElement>(null);
-  const dateFromRef = useRef<HTMLInputElement>(null);
-  const dateToRef = useRef<HTMLInputElement>(null);
+
+  useBodyLock(cityModalOpen || filterDrawerOpen);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
-      if (!toolbarRef.current?.contains(e.target as Node)) setOpen(null);
+      if (!toolbarRef.current?.contains(e.target as Node)) {
+        setCategoryMenuOpen(false);
+      }
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
@@ -45,217 +320,206 @@ export function ExploreFilters({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(null);
+      if (e.key === "Escape") {
+        setCategoryMenuOpen(false);
+        setCityModalOpen(false);
+        setFilterDrawerOpen(false);
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
+  const geoHintDone = useRef(false);
+
+  /** IP-based city suggestion (only when URL had no city; runs once). */
+  useEffect(() => {
+    if (initialCity || geoHintDone.current) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/geo/hint");
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as {
+          suggestedCityId: string | null;
+          cityLabel: string | null;
+        };
+        geoHintDone.current = true;
+        if (
+          data.suggestedCityId &&
+          cities.some((c) => c.id === data.suggestedCityId)
+        ) {
+          setCity(data.suggestedCityId);
+          if (data.cityLabel) {
+            toast.message(`Suggested city: ${data.cityLabel}`, {
+              description: "Apply filters to search here, or pick another city.",
+            });
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialCity, cities]);
+
   const apply = useCallback(() => {
     const p = new URLSearchParams();
     if (city) p.set("city", city);
     if (category && category !== "all") p.set("category", category);
-    if (dateFrom) p.set("dateFrom", dateFrom);
-    if (dateTo) p.set("dateTo", dateTo);
+    if (date) p.set("date", date);
+    if (search.trim()) p.set("search", search.trim());
     const q = p.toString();
     router.push(q ? `${pathname}?${q}` : pathname);
-    setOpen(null);
-  }, [router, pathname, city, category, dateFrom, dateTo]);
+    setCategoryMenuOpen(false);
+    setFilterDrawerOpen(false);
+  }, [router, pathname, city, category, date, search]);
 
-  const cityLabel = !city
-    ? "All cities"
-    : (cities.find((c) => c.id === city)?.name ?? "All cities");
+  const activeFilterCount =
+    (city ? 1 : 0) +
+    (category && category !== "all" ? 1 : 0) +
+    (date ? 1 : 0) +
+    (search.trim() ? 1 : 0);
 
-  const categoryLabel =
-    !category || category === "all" ? "All" : category;
-
-  const labelCls =
-    "mb-2 block text-xs font-semibold uppercase tracking-[0.1em] text-zinc-800 dark:text-zinc-200";
+  const filterFieldsProps: FilterFieldsProps = {
+    city,
+    setCity,
+    category,
+    setCategory,
+    date,
+    setDate,
+    search,
+    setSearch,
+    cities,
+    categories,
+    onOpenCityModal: () => {
+      setCityModalOpen(true);
+      setCategoryMenuOpen(false);
+    },
+    categoryMenuOpen,
+    setCategoryMenuOpen,
+  };
 
   return (
-    <div
-      ref={toolbarRef}
-      className="liquid-glass liquid-glass-toolbar mt-10"
-      aria-label="Filter meets"
-    >
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch lg:gap-8">
-        <div className="grid min-w-0 flex-1 grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
-          <div className="relative min-w-0">
-          <span className={labelCls}>City</span>
+    <>
+      <CityPickerModal
+        open={cityModalOpen}
+        onClose={() => setCityModalOpen(false)}
+        cities={cities}
+        selectedId={city}
+        onSelect={setCity}
+      />
+
+      {/* Mobile / tablet: search + filters trigger */}
+      <div className="mt-10 lg:hidden">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search meets…"
+              className="liquid-glass-field liquid-glass-field-sm w-full min-h-11 rounded-xl py-2.5 pl-10 pr-3 text-sm"
+              aria-label="Search meets"
+            />
+          </div>
           <button
             type="button"
-            id="explore-filter-city"
-            aria-haspopup="listbox"
-            aria-expanded={open === "city"}
-            className={cn(
-              fieldBtn,
-              "w-full",
-              open === "city" && "liquid-glass-field-open",
-            )}
-            onClick={() =>
-              setOpen((o) => (o === "city" ? null : "city"))
-            }
+            onClick={() => {
+              setFilterDrawerOpen(true);
+              setCategoryMenuOpen(false);
+            }}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white/90 px-4 py-2.5 text-sm font-semibold text-zinc-900 shadow-sm transition hover:bg-zinc-50 dark:border-white/15 dark:bg-zinc-900/80 dark:text-zinc-100 dark:hover:bg-zinc-800"
           >
-            <span className="truncate text-left">{cityLabel}</span>
-            <ChevronDown
-              className={cn(
-                "h-3.5 w-3.5 shrink-0 text-zinc-500 transition-transform duration-200 sm:h-4 sm:w-4",
-                open === "city" && "rotate-180",
-              )}
-              aria-hidden
-            />
-          </button>
-          {open === "city" && (
-            <ul
-              className="liquid-glass-menu absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-auto p-1.5 text-sm"
-              role="listbox"
-              aria-labelledby="explore-filter-city"
-            >
-              <li role="presentation">
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={city === ""}
-                  className="liquid-glass-option"
-                  onClick={() => {
-                    setCity("");
-                    setOpen(null);
-                  }}
-                >
-                  All cities
-                </button>
-              </li>
-              {cities.map((c) => (
-                <li key={c.id} role="presentation">
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={city === c.id}
-                    className="liquid-glass-option"
-                    onClick={() => {
-                      setCity(c.id);
-                      setOpen(null);
-                    }}
-                  >
-                    {c.name}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          </div>
-
-          <div className="relative min-w-0">
-          <span className={labelCls}>Category</span>
-          <button
-            type="button"
-            id="explore-filter-category"
-            aria-haspopup="listbox"
-            aria-expanded={open === "category"}
-            className={cn(
-              fieldBtn,
-              "w-full",
-              open === "category" && "liquid-glass-field-open",
+            <SlidersHorizontal className="h-4 w-4" />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">
+                {activeFilterCount}
+              </span>
             )}
-            onClick={() =>
-              setOpen((o) => (o === "category" ? null : "category"))
-            }
-          >
-            <span className="truncate text-left">{categoryLabel}</span>
-            <ChevronDown
-              className={cn(
-                "h-3.5 w-3.5 shrink-0 text-zinc-500 transition-transform duration-200 sm:h-4 sm:w-4",
-                open === "category" && "rotate-180",
-              )}
-              aria-hidden
-            />
           </button>
-          {open === "category" && (
-            <ul
-              className="liquid-glass-menu absolute left-0 right-0 top-full z-50 mt-1 max-h-56 overflow-auto p-1.5 text-sm"
-              role="listbox"
-              aria-labelledby="explore-filter-category"
-            >
-              <li role="presentation">
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={category === "all"}
-                  className="liquid-glass-option"
-                  onClick={() => {
-                    setCategory("all");
-                    setOpen(null);
-                  }}
-                >
-                  All
-                </button>
-              </li>
-              {categories.map((cat) => (
-                <li key={cat} role="presentation">
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={category === cat}
-                    className="liquid-glass-option"
-                    onClick={() => {
-                      setCategory(cat);
-                      setOpen(null);
-                    }}
-                  >
-                    {cat}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          </div>
-
-          <div className="min-w-0 sm:col-span-2 lg:col-span-1">
-          <span className={labelCls}>Dates</span>
-          <div className="explore-filters-strip liquid-glass-date-compact w-full max-w-full">
-            <div className="min-w-0 flex-1">
-              <input
-                ref={dateFromRef}
-                id="explore-date-from"
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                aria-label="Start date"
-                className="w-full"
-              />
-            </div>
-            <span
-              className="shrink-0 px-1 text-xs font-medium tabular-nums text-zinc-400 sm:px-1.5"
-              aria-hidden
-            >
-              –
-            </span>
-            <div className="min-w-0 flex-1">
-              <input
-                ref={dateToRef}
-                id="explore-date-to"
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                aria-label="End date"
-                className="w-full"
-              />
-            </div>
-          </div>
-          </div>
         </div>
 
-        <div className="flex min-w-0 shrink-0 flex-col justify-end border-t border-zinc-200/80 pt-5 dark:border-white/10 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
-          <button
-            type="button"
-            onClick={apply}
-            aria-label="Apply filters"
-            className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/25 transition hover:bg-primary/92 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-canvas active:scale-[0.98] lg:min-w-30"
-          >
-            Apply
-          </button>
+        {filterDrawerOpen && (
+          <div className="fixed inset-0 z-[500] lg:hidden">
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/45 backdrop-blur-[1px]"
+              aria-label="Close filters"
+              onClick={() => setFilterDrawerOpen(false)}
+            />
+            <div className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-zinc-200/80 bg-[var(--background)] shadow-2xl dark:border-white/10">
+              <div className="flex items-center justify-between border-b border-zinc-200/80 px-4 py-3 dark:border-white/10">
+                <p className="font-onest text-base font-semibold">Filters</p>
+                <button
+                  type="button"
+                  className="rounded-full px-3 py-1.5 text-sm font-medium text-primary"
+                  onClick={() => setFilterDrawerOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                <FilterFields
+                  {...filterFieldsProps}
+                  compact
+                  showSearch={false}
+                  nativeCategory
+                />
+              </div>
+              <div className="border-t border-zinc-200/80 p-4 dark:border-white/10">
+                <button
+                  type="button"
+                  onClick={apply}
+                  className="w-full rounded-full bg-primary py-3 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/25 transition hover:bg-primary/92"
+                >
+                  Apply filters
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop filter card */}
+      <div
+        ref={toolbarRef}
+        className="liquid-glass liquid-glass-toolbar mt-6 hidden lg:mt-10 lg:block"
+        aria-label="Filter meets"
+      >
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch">
+          <div className="min-w-0 flex-1 space-y-6">
+            <FilterFields {...filterFieldsProps} />
+          </div>
+          <div className="flex shrink-0 flex-col justify-end border-t border-zinc-200/80 pt-6 dark:border-white/10 lg:w-44 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+            <button
+              type="button"
+              onClick={apply}
+              aria-label="Apply filters"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/25 transition hover:bg-primary/92 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              Apply
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Mobile: apply bar when drawer closed — quick apply from search only */}
+      <div className="mt-4 flex justify-end lg:hidden">
+        <button
+          type="button"
+          onClick={apply}
+          className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/25"
+        >
+          Apply
+        </button>
+      </div>
+    </>
   );
 }
+
+export type { CityOption } from "./filterTypes";

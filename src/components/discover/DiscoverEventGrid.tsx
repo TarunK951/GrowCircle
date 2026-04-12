@@ -19,8 +19,8 @@ export function DiscoverEventGrid() {
   const sp = useSearchParams();
   const city = sp.get("city") ?? "";
   const category = sp.get("category") ?? "all";
-  const dateFrom = sp.get("dateFrom") ?? "";
-  const dateTo = sp.get("dateTo") ?? "";
+  const date = sp.get("date") ?? "";
+  const search = sp.get("search") ?? "";
 
   const events = useMemo(
     () =>
@@ -29,17 +29,31 @@ export function DiscoverEventGrid() {
         {
           cityId: city || undefined,
           category: category || undefined,
-          dateFrom: dateFrom || undefined,
-          dateTo: dateTo || undefined,
+          date: date || undefined,
+          search: search || undefined,
           publicOnly: true,
         },
         circleCatalogEvents,
       ),
-    [hostedEvents, circleCatalogEvents, city, category, dateFrom, dateTo],
+    [hostedEvents, circleCatalogEvents, city, category, date, search],
   );
 
   const cities = citiesData as City[];
   const cityById = Object.fromEntries(cities.map((c) => [c.id, c.name]));
+
+  if (events.length === 0) {
+    return (
+      <div className="mt-10 rounded-2xl border border-dashed border-primary/20 bg-primary/5 px-6 py-12 text-center">
+        <p className="font-onest text-base font-semibold text-foreground">
+          No meets match these filters
+        </p>
+        <p className="mt-2 text-sm text-muted">
+          Try clearing the date, widening the city, or searching with a
+          different keyword.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
