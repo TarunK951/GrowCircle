@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Star } from "lucide-react";
+import { CalendarX2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { formatInrDateTime } from "@/lib/formatCurrency";
 import { getEventFromCatalog } from "@/lib/eventsCatalog";
@@ -33,6 +33,63 @@ function StarsDisplay({
           strokeWidth={1.5}
         />
       ))}
+    </div>
+  );
+}
+
+function EmptyNoMeetsAttended({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col items-center rounded-2xl border border-dashed border-neutral-200 bg-linear-to-b from-neutral-50 to-white px-6 py-12 text-center shadow-sm",
+        className,
+      )}
+      role="status"
+      aria-live="polite"
+    >
+      <div
+        className="mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-neutral-100 text-neutral-400 shadow-inner ring-1 ring-neutral-200/80"
+        aria-hidden
+      >
+        <CalendarX2 className="h-10 w-10" strokeWidth={1.35} />
+      </div>
+      <p className="font-onest text-lg font-semibold tracking-tight text-neutral-900">
+        No meets attended
+      </p>
+      <p className="mt-2 max-w-md text-sm leading-relaxed text-neutral-600">
+        You don&apos;t have any attended meets to review yet. Book a meet, show
+        up, and after the host marks you as{" "}
+        <span className="font-semibold text-neutral-800">attended</span>, it will
+        appear in the list above so you can leave a review.
+      </p>
+    </div>
+  );
+}
+
+function EmptyNoGuestReviewsPosted({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "flex flex-col items-center rounded-2xl border border-dashed border-neutral-200 bg-linear-to-b from-neutral-50 to-white px-6 py-10 text-center shadow-sm",
+        className,
+      )}
+      role="status"
+      aria-live="polite"
+    >
+      <div
+        className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-neutral-100 text-neutral-400 ring-1 ring-neutral-200/80"
+        aria-hidden
+      >
+        <Star className="h-8 w-8" strokeWidth={1.35} />
+      </div>
+      <p className="font-onest text-base font-semibold text-neutral-900">
+        No guest reviews yet
+      </p>
+      <p className="mt-2 max-w-sm text-sm text-neutral-600">
+        When you review a meet under{" "}
+        <span className="font-semibold text-neutral-800">Review as a guest</span>,
+        it will show up here.
+      </p>
     </div>
   );
 }
@@ -74,12 +131,11 @@ function StarInput({
   );
 }
 
-type TabId = "about" | "reviewMeet" | "reviewGuest" | "posted";
+type TabId = "about" | "reviewAsGuest" | "posted";
 
 const tabs: { id: TabId; label: string }[] = [
   { id: "about", label: "About you" },
-  { id: "reviewMeet", label: "Review a meet" },
-  { id: "reviewGuest", label: "Review a guest" },
+  { id: "reviewAsGuest", label: "Review as a guest" },
   { id: "posted", label: "Your reviews" },
 ];
 
@@ -88,10 +144,8 @@ export default function ReviewsPage() {
   const bookings = useSessionStore((s) => s.bookings);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
-  const written = useSessionStore((s) => s.guestReviewsWritten);
   const attendeeMeetReviews = useSessionStore((s) => s.attendeeMeetReviews);
   const received = useSessionStore((s) => s.hostReviewsReceived);
-  const addGuestReviewWritten = useSessionStore((s) => s.addGuestReviewWritten);
   const addAttendeeMeetReview = useSessionStore((s) => s.addAttendeeMeetReview);
   const seedDemoReviewsIfEmpty = useSessionStore((s) => s.seedDemoReviewsIfEmpty);
 
@@ -100,11 +154,6 @@ export default function ReviewsPage() {
   const [meetBookingId, setMeetBookingId] = useState("");
   const [meetRating, setMeetRating] = useState(0);
   const [meetComment, setMeetComment] = useState("");
-
-  const [guestName, setGuestName] = useState("");
-  const [eventTitle, setEventTitle] = useState("");
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState("");
 
   useEffect(() => {
     seedDemoReviewsIfEmpty();
@@ -173,7 +222,7 @@ export default function ReviewsPage() {
     );
     const c = meetComment.trim();
     if (!selected || meetRating < 1 || !c) {
-      toast.error("Choose an attended meet, a rating, and a comment.");
+      toast.error("Select the meet you attended, add a rating, and a comment.");
       return;
     }
     const result = addAttendeeMeetReview({
@@ -191,30 +240,9 @@ export default function ReviewsPage() {
       }
       return;
     }
-    toast.success("Meet review posted");
+    toast.success("Review posted");
     setMeetRating(0);
     setMeetComment("");
-    setTab("posted");
-  };
-
-  const onSubmitHostGuest = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-    const g = guestName.trim();
-    const ev = eventTitle.trim();
-    const c = comment.trim();
-    if (!g || !ev || rating < 1 || !c) return;
-    addGuestReviewWritten({
-      guestName: g,
-      eventTitle: ev,
-      rating,
-      comment: c,
-    });
-    setGuestName("");
-    setEventTitle("");
-    setRating(0);
-    setComment("");
-    toast.success("Review posted");
     setTab("posted");
   };
 
@@ -227,13 +255,13 @@ export default function ReviewsPage() {
           Reviews
         </h1>
         <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-900">
-          Leave feedback on meets you attended, review guests when you host, and
-          see what others say about you.
+          As a guest, review meets you actually attended. See feedback others
+          leave about your hosting.
         </p>
       </div>
 
       <div
-        className="mt-6 grid grid-cols-2 gap-1 rounded-xl border border-neutral-200 bg-neutral-100/80 p-1 sm:grid-cols-4"
+        className="mt-6 grid grid-cols-1 gap-1 rounded-xl border border-neutral-200 bg-neutral-100/80 p-1 sm:grid-cols-3"
         role="tablist"
         aria-label="Reviews sections"
       >
@@ -320,29 +348,20 @@ export default function ReviewsPage() {
           </div>
         )}
 
-        {tab === "reviewMeet" && (
+        {tab === "reviewAsGuest" && (
           <section>
             <h2 className="text-lg font-semibold text-neutral-900">
-              Review a meet you attended
+              Review as a guest
             </h2>
             <p className="mt-1 text-sm text-neutral-900">
-              You can only review meets where your booking is marked{" "}
-              <span className="font-semibold">attended</span> (e.g. after check-in
-              on the booking).
+              You must <span className="font-semibold">choose the meet you attended</span>{" "}
+              from the list below. There is no other way to submit a guest review.
             </p>
 
             {!user ? (
               <p className="mt-6 text-sm text-neutral-600">Sign in to continue.</p>
             ) : !hasAttendedUnreviewed ? (
-              <div className="mt-6 rounded-2xl border border-dashed border-neutral-300 bg-neutral-50/80 px-4 py-8 text-center text-sm text-neutral-800">
-                <p className="font-medium">
-                  No meets available to review right now.
-                </p>
-                <p className="mt-2 text-neutral-600">
-                  After you attend a meet and your booking shows as attended, you
-                  can leave a review here.
-                </p>
-              </div>
+              <EmptyNoMeetsAttended className="mt-6" />
             ) : (
               <form
                 onSubmit={onSubmitGuestMeet}
@@ -353,8 +372,11 @@ export default function ReviewsPage() {
                     className="text-sm font-semibold text-neutral-900"
                     htmlFor="meet-booking"
                   >
-                    Meet
+                    Select meet attended <span className="text-red-600">*</span>
                   </label>
+                  <p className="mt-0.5 text-xs text-neutral-600">
+                    Required — choose the meet you were checked in for.
+                  </p>
                   <select
                     id="meet-booking"
                     value={meetBookingId}
@@ -397,171 +419,50 @@ export default function ReviewsPage() {
                   disabled={meetRating < 1 || !meetComment.trim()}
                   className="rounded-xl bg-neutral-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50"
                 >
-                  Post meet review
+                  Post review
                 </button>
               </form>
             )}
           </section>
         )}
 
-        {tab === "reviewGuest" && (
+        {tab === "posted" && (
           <section>
             <h2 className="text-lg font-semibold text-neutral-900">
-              Review a guest (host)
+              Reviews you posted as a guest
             </h2>
             <p className="mt-1 text-sm text-neutral-900">
-              Saved locally in this browser — for hosts leaving feedback about a
-              guest after a meet.
+              Meets you reviewed after attending (one review per attended
+              booking).
             </p>
-            <form
-              onSubmit={onSubmitHostGuest}
-              className="mt-6 space-y-4 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm"
-            >
-              <div>
-                <label
-                  className="text-sm font-semibold text-neutral-900"
-                  htmlFor="g-name"
-                >
-                  Guest name
-                </label>
-                <input
-                  id="g-name"
-                  value={guestName}
-                  onChange={(e) => setGuestName(e.target.value)}
-                  className="mt-2 w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm text-neutral-900 outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
-                  placeholder="e.g. Sam P."
-                  required
-                />
-              </div>
-              <div>
-                <label
-                  className="text-sm font-semibold text-neutral-900"
-                  htmlFor="g-event"
-                >
-                  Meet / event title
-                </label>
-                <input
-                  id="g-event"
-                  value={eventTitle}
-                  onChange={(e) => setEventTitle(e.target.value)}
-                  className="mt-2 w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm text-neutral-900 outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
-                  placeholder="e.g. Sunday brunch circle"
-                  required
-                />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-neutral-900">Rating</p>
-                <div className="mt-2">
-                  <StarInput value={rating} onChange={setRating} />
-                </div>
-              </div>
-              <div>
-                <label
-                  className="text-sm font-semibold text-neutral-900"
-                  htmlFor="g-comment"
-                >
-                  Comment
-                </label>
-                <textarea
-                  id="g-comment"
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  rows={4}
-                  className="mt-2 w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm text-neutral-900 outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
-                  placeholder="What stood out?"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={!user || rating < 1}
-                className="rounded-xl bg-neutral-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50"
-              >
-                Post review
-              </button>
-            </form>
+            <ul className="mt-4 space-y-4">
+              {attendeeMeetReviews.length === 0 ? (
+                <li className="list-none p-0">
+                  <EmptyNoGuestReviewsPosted />
+                </li>
+              ) : (
+                attendeeMeetReviews.map((r) => (
+                  <li
+                    key={r.id}
+                    className="rounded-xl border border-neutral-200 bg-white px-4 py-4 shadow-sm"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <p className="font-semibold text-neutral-900">
+                        {r.eventTitle}
+                      </p>
+                      <StarsDisplay value={r.rating} />
+                    </div>
+                    <p className="mt-3 text-sm leading-relaxed text-neutral-900">
+                      {r.comment}
+                    </p>
+                    <p className="mt-2 text-xs font-medium text-neutral-900">
+                      {formatInrDateTime(r.createdAt)}
+                    </p>
+                  </li>
+                ))
+              )}
+            </ul>
           </section>
-        )}
-
-        {tab === "posted" && (
-          <div className="space-y-12">
-            <section>
-              <h2 className="text-lg font-semibold text-neutral-900">
-                Meet reviews you posted
-              </h2>
-              <p className="mt-1 text-sm text-neutral-900">
-                Feedback you left as an attendee (after attending).
-              </p>
-              <ul className="mt-4 space-y-4">
-                {attendeeMeetReviews.length === 0 ? (
-                  <li className="rounded-xl border border-dashed border-neutral-300 bg-white px-4 py-6 text-sm font-medium text-neutral-900">
-                    You haven&apos;t posted any meet reviews yet.
-                  </li>
-                ) : (
-                  attendeeMeetReviews.map((r) => (
-                    <li
-                      key={r.id}
-                      className="rounded-xl border border-neutral-200 bg-white px-4 py-4 shadow-sm"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <p className="font-semibold text-neutral-900">
-                          {r.eventTitle}
-                        </p>
-                        <StarsDisplay value={r.rating} />
-                      </div>
-                      <p className="mt-3 text-sm leading-relaxed text-neutral-900">
-                        {r.comment}
-                      </p>
-                      <p className="mt-2 text-xs font-medium text-neutral-900">
-                        {formatInrDateTime(r.createdAt)}
-                      </p>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-semibold text-neutral-900">
-                Guest reviews you posted
-              </h2>
-              <p className="mt-1 text-sm text-neutral-900">
-                Feedback you left as a host about a guest.
-              </p>
-              <ul className="mt-4 space-y-4">
-                {written.length === 0 ? (
-                  <li className="rounded-xl border border-dashed border-neutral-300 bg-white px-4 py-6 text-sm font-medium text-neutral-900">
-                    You haven&apos;t posted any guest reviews yet.
-                  </li>
-                ) : (
-                  written.map((r) => (
-                    <li
-                      key={r.id}
-                      className="rounded-xl border border-neutral-200 bg-white px-4 py-4 shadow-sm"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <p className="font-semibold text-neutral-900">
-                            {r.guestName}
-                          </p>
-                          <p className="text-sm font-medium text-neutral-900">
-                            {r.eventTitle}
-                          </p>
-                        </div>
-                        <StarsDisplay value={r.rating} />
-                      </div>
-                      <p className="mt-3 text-sm leading-relaxed text-neutral-900">
-                        {r.comment}
-                      </p>
-                      <p className="mt-2 text-xs font-medium text-neutral-900">
-                        {formatInrDateTime(r.createdAt)}
-                      </p>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </section>
-          </div>
         )}
       </div>
     </div>
