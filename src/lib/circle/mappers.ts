@@ -8,9 +8,9 @@ const DEFAULT_AVATAR =
 export const DEFAULT_MEET_EVENT_COVER_URL =
   "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80";
 
-function priceStringToCents(price: string | undefined): number {
-  if (!price) return 0;
-  const n = Number.parseFloat(price);
+function priceToCents(price: string | number | undefined): number {
+  if (price === undefined || price === null) return 0;
+  const n = typeof price === "number" ? price : Number.parseFloat(price);
   if (Number.isNaN(n)) return 0;
   return Math.round(n * 100);
 }
@@ -46,9 +46,13 @@ export function circleEventToMeetEvent(
 ): MeetEvent {
   const hostId =
     api.host?.id ?? opts?.defaultHostUserId ?? "unknown_host";
-  const priceCents = priceStringToCents(api.price);
-  const image =
-    api.cover_image_url?.trim() || DEFAULT_MEET_EVENT_COVER_URL;
+  const priceCents = priceToCents(api.price);
+  const imageUrls = (api.image_urls ?? [])
+    .map((url) => url.trim())
+    .filter(Boolean);
+  const cover = api.cover_image_url?.trim() ?? "";
+  const image = cover || imageUrls[0] || "";
+  const additionalImages = imageUrls.filter((url) => url !== image);
 
   let preJoin: PreJoinQuestion[] | undefined;
   if (api.questions?.length) {
@@ -83,6 +87,7 @@ export function circleEventToMeetEvent(
     category: "Social",
     categories: ["Social"],
     image,
+    additionalImages: additionalImages.length > 0 ? additionalImages : undefined,
     priceCents,
     venueName: api.location?.split(",")[0]?.trim() || undefined,
     addressLine: api.location?.trim() || undefined,

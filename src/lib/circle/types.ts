@@ -57,11 +57,12 @@ export type CircleEvent = {
   title: string;
   description?: string;
   max_capacity: number;
-  price: string;
+  price: string | number;
   event_date: string;
   location?: string;
   slug?: string;
   cover_image_url?: string | null;
+  image_urls?: string[];
   status?: string;
   visibility?: string;
   min_age?: number;
@@ -331,14 +332,18 @@ export type CircleCreateBlacklistBody = {
 /** §14 — media */
 export type CircleMediaUploadUrlBody = {
   fileName: string;
-  fileType: string;
-  folder: string;
+  fileType?: string;
+  contentType?: string;
+  folder?: string;
 };
 
 export type CircleMediaUploadUrlData = {
   uploadUrl: string;
-  fileUrl: string;
-  key: string;
+  publicUrl: string;
+  fileKey: string;
+  /** Backward-compat keys returned by older backend builds */
+  fileUrl?: string;
+  key?: string;
 };
 
 export type CircleMediaDeleteBody = {

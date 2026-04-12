@@ -12,7 +12,9 @@ export function AppAuthenticatedBody({
 }) {
   const pathname = usePathname();
   const isBookingsHub =
-    pathname === "/bookings" || pathname === "/my-events";
+    pathname === "/bookings" ||
+    pathname === "/my-events" ||
+    pathname.startsWith("/bookings/host/");
 
   if (isBookingsHub) {
     return (

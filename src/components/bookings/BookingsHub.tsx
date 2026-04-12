@@ -15,7 +15,6 @@ import {
 } from "@/lib/circle/api";
 import { CircleApiError } from "@/lib/circle/client";
 import { isCircleApiConfigured } from "@/lib/circle/config";
-import { CircleHostMeetSection } from "@/components/bookings/CircleHostMeetSection";
 import { TicketModal } from "@/components/bookings/TicketModal";
 import { downloadApplicationInvoice } from "@/lib/circle/invoicesApi";
 import type { CircleMyApplication, CirclePaymentDetails } from "@/lib/circle/types";
@@ -28,14 +27,14 @@ import {
   canOpenRazorpayCheckout,
   openRazorpayFromPayload,
 } from "@/lib/razorpay/loadCheckout";
-import { lookupUser } from "@/lib/userLookup";
-import { CalendarDays, Mic2 } from "lucide-react";
+import { CalendarDays, ImageOff, Mic2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { selectAccessToken, selectUser } from "@/lib/store/authSlice";
 import { useMyApplicationsQuery } from "@/lib/store/circleApi";
 import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
-import type { Booking, MeetEvent } from "@/lib/types";
+import type { MeetEvent } from "@/lib/types";
+import { meetEventGalleryUrls, primaryMeetImage } from "@/lib/events/coverDisplay";
 
 type Tab = "guest" | "host";
 
@@ -53,30 +52,6 @@ function triggerBlobDownload(blob: Blob, filename: string) {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
-}
-
-function statusLabel(s: Booking["status"]) {
-  switch (s) {
-    case "pending":
-      return "Applied";
-    case "confirmed":
-      return "Confirmed";
-    case "attended":
-      return "Attended";
-    case "cancelled":
-      return "Cancelled";
-    default:
-      return s;
-  }
-}
-
-function BookingStatusBadge({ status }: { status: Booking["status"] }) {
-  const label = statusLabel(status);
-  return (
-    <span className="inline-flex shrink-0 rounded-full border border-neutral-900 bg-neutral-900 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
-      {label}
-    </span>
-  );
 }
 
 function humanizeCircleStatus(s: string) {
@@ -153,6 +128,70 @@ function HostBookingsEmptyState() {
   );
 }
 
+function MeetImageFrame({ imageUrl }: { imageUrl: string }) {
+  if (imageUrl.startsWith("data:")) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />;
+  }
+  return (
+    <Image
+      src={imageUrl}
+      alt=""
+      fill
+      sizes="(max-width:640px) 100vw, 176px"
+      className="object-cover"
+      unoptimized={imageUrl.startsWith("http://")}
+    />
+  );
+}
+
+function MeetCover({
+  event,
+  autoRotate = true,
+}: {
+  event: MeetEvent;
+  autoRotate?: boolean;
+}) {
+  const gallery = useMemo(() => meetEventGalleryUrls(event), [event]);
+  const [idx, setIdx] = useState(0);
+  const safeIdx = gallery.length > 0 ? idx % gallery.length : 0;
+
+  useEffect(() => {
+    if (!autoRotate || gallery.length < 2) return;
+    const timer = window.setInterval(() => {
+      setIdx((prev) => (prev + 1) % gallery.length);
+    }, 3000);
+    return () => window.clearInterval(timer);
+  }, [autoRotate, gallery]);
+
+  if (gallery.length === 0) {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-neutral-100 text-neutral-500">
+        <ImageOff className="h-6 w-6" aria-hidden />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <MeetImageFrame imageUrl={gallery[safeIdx] ?? gallery[0]} />
+      {gallery.length > 1 && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
+          {gallery.map((url, dotIdx) => (
+            <span
+              key={`${url}-${dotIdx}`}
+              className={cn(
+                "h-1.5 w-1.5 rounded-full bg-white/70",
+                dotIdx === safeIdx && "w-4 bg-white",
+              )}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 function PaymentDetailsModal({
   paymentId,
   accessToken,
@@ -190,7 +229,7 @@ function PaymentDetailsModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
       <button
         type="button"
         className="absolute inset-0 bg-black/45"
@@ -274,9 +313,7 @@ function CircleGuestApplicationCard({
     : null;
   const title = app.event?.title ?? "Event";
   const hostName = app.event?.host?.username;
-  const image =
-    ev?.image ??
-    "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&auto=format&fit=crop&q=80";
+  const image = ev ? primaryMeetImage(ev) : null;
 
   const [waitInfo, setWaitInfo] = useState<string | null>(null);
   const [otpState, setOtpState] = useState<{
@@ -462,13 +499,13 @@ function CircleGuestApplicationCard({
       />
       <div className="flex flex-col sm:flex-row sm:items-stretch">
         <div className="relative h-44 w-full shrink-0 bg-neutral-100 sm:h-auto sm:w-40 md:w-44">
-          <Image
-            src={image}
-            alt=""
-            fill
-            sizes="(max-width:640px) 100vw, 176px"
-            className="object-cover"
-          />
+          {image ? (
+            <MeetImageFrame imageUrl={image} />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-neutral-500">
+              <ImageOff className="h-6 w-6" aria-hidden />
+            </div>
+          )}
         </div>
         <div
           className={cn(
@@ -600,21 +637,15 @@ function CircleGuestApplicationCard({
 export function BookingsHub() {
   const user = useAppSelector(selectUser);
   const accessToken = useAppSelector(selectAccessToken);
-  const bookings = useSessionStore((s) => s.bookings);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
   const updateHostedEvent = useSessionStore((s) => s.updateHostedEvent);
   const deleteHostedEvent = useSessionStore((s) => s.deleteHostedEvent);
-  const approveBooking = useSessionStore((s) => s.approveBooking);
-  const removeGuestBooking = useSessionStore((s) => s.removeGuestBooking);
-  const markAttendance = useSessionStore((s) => s.markAttendance);
   const compactBookingCards = useSessionStore(
     (s) => s.uiPrefs.compactBookingCards,
   );
 
   const [tab, setTab] = useState<Tab>("guest");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [codeInputs, setCodeInputs] = useState<Record<string, string>>({});
   const {
     data: circleApps = [],
     isLoading: circleLoading,
@@ -747,18 +778,8 @@ export function BookingsHub() {
               event={ev}
               canEditMeet={hostedEvents.some((h) => h.id === ev.id)}
               accessToken={accessToken}
-              expanded={expandedId === ev.id}
-              onToggle={() =>
-                setExpandedId((x) => (x === ev.id ? null : ev.id))
-              }
-              codeInputs={codeInputs}
-              setCodeInputs={setCodeInputs}
-              bookings={bookings}
               updateHostedEvent={updateHostedEvent}
               deleteHostedEvent={deleteHostedEvent}
-              approveBooking={approveBooking}
-              removeGuestBooking={removeGuestBooking}
-              markAttendance={markAttendance}
             />
           ))}
         </div>
@@ -798,74 +819,37 @@ function HostMeetCard({
   event: ev,
   canEditMeet,
   accessToken,
-  expanded,
-  onToggle,
-  codeInputs,
-  setCodeInputs,
-  bookings,
   updateHostedEvent,
   deleteHostedEvent,
-  approveBooking,
-  removeGuestBooking,
-  markAttendance,
 }: {
   event: MeetEvent;
   canEditMeet: boolean;
   accessToken: string | null;
-  expanded: boolean;
-  onToggle: () => void;
-  codeInputs: Record<string, string>;
-  setCodeInputs: React.Dispatch<
-    React.SetStateAction<Record<string, string>>
-  >;
-  bookings: Booking[];
   updateHostedEvent: (id: string, patch: Partial<MeetEvent>) => void;
   deleteHostedEvent: (id: string) => void;
-  approveBooking: (id: string) => void;
-  removeGuestBooking: (id: string) => void;
-  markAttendance: (id: string, code: string) => boolean;
 }) {
   const user = useAppSelector(selectUser);
   const compactBookingCards = useSessionStore(
     (s) => s.uiPrefs.compactBookingCards,
   );
+  const reduceMotionUi = useSessionStore((s) => s.uiPrefs.reduceMotionUi);
   const showCircleHostPanel =
     isCircleApiConfigured() &&
     Boolean(accessToken) &&
     ev.cityId === "circle" &&
     user != null &&
     ev.hostUserId === user.id;
-  const [hostFilter, setHostFilter] = useState<"all" | "pending" | "verified">(
-    "all",
-  );
   const origin =
     typeof window !== "undefined" ? window.location.origin : "";
   const hostShare = ev.shareToken
     ? `${origin}/event/${ev.id}?t=${ev.shareToken}`
     : `${origin}/event/${ev.id}`;
 
-  const eventBookings = bookings.filter((b) => b.eventId === ev.id);
-
-  const filtered = eventBookings.filter((b) => {
-    if (hostFilter === "pending") return b.status === "pending";
-    if (hostFilter === "verified") {
-      const u = lookupUser(b.userId);
-      return u?.verified === true;
-    }
-    return true;
-  });
-
   return (
     <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-stretch">
         <div className="relative h-44 w-full shrink-0 bg-neutral-100 sm:h-auto sm:w-40 md:w-44">
-          <Image
-            src={ev.image}
-            alt=""
-            fill
-            sizes="(max-width:640px) 100vw, 176px"
-            className="object-cover"
-          />
+          <MeetCover event={ev} autoRotate={!reduceMotionUi} />
         </div>
         <div
           className={cn(
@@ -884,14 +868,12 @@ function HostMeetCard({
                 {ev.venueName ? ` · ${ev.venueName}` : ""}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onToggle}
+            <Link
+              href={`/bookings/host/${ev.id}`}
               className="shrink-0 rounded-full border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-900 hover:bg-neutral-100"
-              aria-expanded={expanded}
             >
-              {expanded ? "Hide details" : "Manage"}
-            </button>
+              Manage
+            </Link>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
@@ -989,230 +971,6 @@ function HostMeetCard({
         </div>
       </div>
 
-      {expanded && (
-        <div className="space-y-4 border-t border-neutral-200 bg-neutral-50/50 px-4 py-5 sm:px-5">
-          {!canEditMeet && !showCircleHostPanel && (
-            <p className="text-xs font-medium text-neutral-800">
-              You can view this meet; only the host can change listing or cancel
-              it on Circle.
-            </p>
-          )}
-
-          {canEditMeet && (
-            <>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="text-xs font-semibold text-neutral-900">
-                  Listing
-                  <select
-                    className="liquid-glass-input mt-1 w-full text-sm text-neutral-900"
-                    value={ev.listingVisibility ?? "public"}
-                    onChange={(e) =>
-                      updateHostedEvent(ev.id, {
-                        listingVisibility: e.target.value as
-                          | "public"
-                          | "private",
-                      })
-                    }
-                  >
-                    <option value="public">Public (Explore)</option>
-                    <option value="private">Private (link only)</option>
-                  </select>
-                </label>
-                <label className="text-xs font-semibold text-neutral-900">
-                  Join policy
-                  <select
-                    className="liquid-glass-input mt-1 w-full text-sm text-neutral-900"
-                    value={ev.joinMode ?? "open"}
-                    onChange={(e) =>
-                      updateHostedEvent(ev.id, {
-                        joinMode: e.target.value as "open" | "invite",
-                      })
-                    }
-                  >
-                    <option value="open">Open</option>
-                    <option value="invite">Invite (approve)</option>
-                  </select>
-                </label>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <p className="text-xs font-semibold text-neutral-900">Title</p>
-                  <p className="liquid-glass-input mt-1 w-full text-sm text-neutral-900">
-                    {ev.title}
-                  </p>
-                  <p className="mt-1 text-[10px] text-neutral-500">
-                    Title can&apos;t be changed after publishing.
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-neutral-900">
-                    Date &amp; time
-                  </p>
-                  <p className="liquid-glass-input mt-1 w-full text-sm text-neutral-900">
-                    {new Date(ev.startsAt).toLocaleString(undefined, {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </p>
-                  <p className="mt-1 text-[10px] text-neutral-500">
-                    Schedule can&apos;t be changed here.
-                  </p>
-                </div>
-              </div>
-              <label className="block text-xs font-semibold text-neutral-900">
-                Capacity (max guests)
-                <input
-                  type="number"
-                  min={4}
-                  className="liquid-glass-input mt-1 w-full max-w-xs text-sm text-neutral-900"
-                  defaultValue={ev.capacity}
-                  onBlur={(e) =>
-                    updateHostedEvent(ev.id, {
-                      capacity: Number(e.target.value) || ev.capacity,
-                    })
-                  }
-                />
-              </label>
-            </>
-          )}
-
-          {showCircleHostPanel && accessToken ? (
-            <CircleHostMeetSection
-              eventId={ev.id}
-              accessToken={accessToken}
-              active={expanded}
-            />
-          ) : (
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-neutral-900">
-              Guests
-            </p>
-            <div className="mt-2 flex gap-2">
-              {(["all", "pending", "verified"] as const).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setHostFilter(f)}
-                  className={cn(
-                    "rounded-full px-3 py-1 text-xs font-semibold",
-                    hostFilter === f
-                      ? "bg-neutral-900 text-white"
-                      : "border border-neutral-300 text-neutral-900 hover:bg-neutral-100",
-                  )}
-                >
-                  {f === "all"
-                    ? "All"
-                    : f === "pending"
-                      ? "Applied"
-                      : "Verified"}
-                </button>
-              ))}
-            </div>
-
-            <ul className="mt-3 space-y-2">
-              {filtered.length === 0 && (
-                <li className="text-sm font-medium text-neutral-900">
-                  No guests in this view.
-                </li>
-              )}
-              {filtered.map((b) => {
-                const u = lookupUser(b.userId);
-                const name =
-                  u?.name ?? (b.userId.startsWith("u_") ? "Guest" : b.userId);
-                return (
-                  <li
-                    key={b.id}
-                    className="flex flex-col gap-3 rounded-xl border border-neutral-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="flex min-w-0 items-start gap-3">
-                      <div className="flex min-w-0 flex-1 flex-col gap-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <BookingStatusBadge status={b.status} />
-                          {u?.verified && (
-                            <span className="rounded-full border border-neutral-900 px-2 py-0.5 text-[10px] font-bold uppercase text-neutral-900">
-                              Verified guest
-                            </span>
-                          )}
-                        </div>
-                        <p className="font-semibold text-neutral-900">{name}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {b.status === "pending" && (
-                        <>
-                          <button
-                            type="button"
-                            className="rounded-full bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-white"
-                            onClick={() => {
-                              approveBooking(b.id);
-                              toast.success("Guest approved.");
-                            }}
-                          >
-                            Approve
-                          </button>
-                          <button
-                            type="button"
-                            className="rounded-full border border-neutral-300 px-3 py-1.5 text-xs font-semibold text-neutral-900"
-                            onClick={() => {
-                              removeGuestBooking(b.id);
-                              toast.success("Request removed.");
-                            }}
-                          >
-                            Remove
-                          </button>
-                        </>
-                      )}
-                      {b.status === "confirmed" && (
-                        <div className="flex items-center gap-1">
-                          <input
-                            placeholder="OTP"
-                            className="liquid-glass-input w-24 py-1 text-xs text-neutral-900"
-                            value={codeInputs[b.id] ?? ""}
-                            onChange={(e) =>
-                              setCodeInputs((prev) => ({
-                                ...prev,
-                                [b.id]: e.target.value,
-                              }))
-                            }
-                          />
-                          <button
-                            type="button"
-                            className="rounded-full border border-neutral-300 px-2 py-1 text-xs font-semibold text-neutral-900"
-                            onClick={() => {
-                              const ok = markAttendance(
-                                b.id,
-                                codeInputs[b.id] ?? "",
-                              );
-                              if (ok) toast.success("Marked attended.");
-                              else toast.error("Code does not match.");
-                            }}
-                          >
-                            Mark
-                          </button>
-                        </div>
-                      )}
-                      {b.status === "confirmed" && (
-                        <button
-                          type="button"
-                          className="text-xs font-semibold text-red-800 hover:underline"
-                          onClick={() => {
-                            removeGuestBooking(b.id);
-                            toast.success("Guest removed.");
-                          }}
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

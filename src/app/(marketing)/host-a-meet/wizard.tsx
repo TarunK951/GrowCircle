@@ -50,9 +50,6 @@ import { Upload } from "lucide-react";
 
 const cities = citiesData as City[];
 
-const DEFAULT_COVER =
-  "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?w=1200&auto=format&fit=crop&q=80";
-
 const MAX_IMAGE_BYTES = 750 * 1024;
 /** Larger cap when publishing via Circle + S3 presigned upload */
 const MAX_IMAGE_BYTES_CIRCLE = 5 * 1024 * 1024;
@@ -323,7 +320,7 @@ export function HostWizard() {
               : mime.includes("webp")
                 ? "webp"
                 : "jpg";
-            const { uploadUrl, fileUrl } = await getMediaUploadUrl(
+            const { uploadUrl, publicUrl } = await getMediaUploadUrl(
               token,
               {
                 fileName: `event-cover-${Date.now()}-${resolvedUrls.length}.${ext}`,
@@ -336,13 +333,13 @@ export function HostWizard() {
               blob,
               mime || "image/jpeg",
             );
-            resolvedUrls.push(fileUrl);
+            resolvedUrls.push(publicUrl);
           } else if (slot.url.trim() && isProbablyUrl(slot.url)) {
             resolvedUrls.push(slot.url.trim());
           }
         }
 
-        const coverUrl = resolvedUrls[0] ?? DEFAULT_COVER;
+        const coverUrl = resolvedUrls[0]?.trim() ?? "";
         const additionalImages = resolvedUrls.slice(1);
 
         const created = await createEvent(token, {
@@ -352,7 +349,8 @@ export function HostWizard() {
           price: Math.max(0, draft.priceCents) / 100,
           event_date: startsAtIso,
           location,
-          cover_image_url: coverUrl,
+          ...(coverUrl ? { cover_image_url: coverUrl } : {}),
+          ...(additionalImages.length > 0 ? { image_urls: additionalImages } : {}),
           visibility: draft.listingVisibility,
           waitlist_enabled: true,
         });

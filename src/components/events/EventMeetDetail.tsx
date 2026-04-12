@@ -9,6 +9,7 @@ import {
   User,
   Users,
   X,
+  ImageOff,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { MeetEvent } from "@/lib/types";
@@ -16,6 +17,7 @@ import type { ResolvedEventDetail } from "@/lib/eventDetail";
 import { formatCategoryEyebrow } from "@/lib/eventCategories";
 import { cn } from "@/lib/utils";
 import { JoinMeetButton, SaveEventButton } from "@/components/events/EventMeetActions";
+import { meetEventGalleryUrls } from "@/lib/events/coverDisplay";
 
 function SectionTitle({
   id,
@@ -110,7 +112,9 @@ export function EventMeetDetail({
       "Details shared after booking"
     );
 
-  const coverIsDataUrl = event.image.startsWith("data:");
+  const galleryUrls = meetEventGalleryUrls(event);
+  const cover = galleryUrls[0] ?? null;
+  const coverIsDataUrl = cover?.startsWith("data:") ?? false;
 
   return (
     <>
@@ -134,19 +138,23 @@ export function EventMeetDetail({
         </h2>
         <div className="grid gap-8 lg:grid-cols-2 lg:items-stretch lg:gap-10">
           <div className="flex min-h-0 flex-col gap-3 lg:h-full">
-            <figure className="relative min-h-[min(72vw,22rem)] w-full overflow-hidden rounded-[var(--radius-section)] border border-white/70 shadow-[0_8px_40px_-12px_rgba(30,59,189,0.18)] lg:min-h-0 lg:flex-1">
+            <figure className="relative min-h-[min(72vw,22rem)] w-full overflow-hidden rounded-(--radius-section) border border-white/70 shadow-[0_8px_40px_-12px_rgba(30,59,189,0.18)] lg:min-h-0 lg:flex-1">
               {/* Mobile: fixed aspect. Desktop: stretch to match details column; image fills via absolute inset */}
               <div className="relative aspect-4/3 w-full lg:absolute lg:inset-0 lg:aspect-auto lg:h-full lg:min-h-0">
-                {coverIsDataUrl ? (
+                {!cover ? (
+                  <div className="flex h-full w-full items-center justify-center bg-neutral-100 text-neutral-500">
+                    <ImageOff className="h-8 w-8" aria-hidden />
+                  </div>
+                ) : coverIsDataUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- data URLs from host upload
                   <img
-                    src={event.image}
+                    src={cover}
                     alt=""
                     className="absolute inset-0 h-full w-full object-cover"
                   />
                 ) : (
                   <Image
-                    src={event.image}
+                    src={cover}
                     alt=""
                     fill
                     priority
@@ -156,9 +164,9 @@ export function EventMeetDetail({
                 )}
               </div>
             </figure>
-            {event.additionalImages && event.additionalImages.length > 0 ? (
+            {galleryUrls.length > 1 ? (
               <div className="flex gap-2 overflow-x-auto pb-1">
-                {event.additionalImages.map((url, i) => {
+                {galleryUrls.slice(1).map((url, i) => {
                   const extraIsData = url.startsWith("data:");
                   return (
                     <div
@@ -191,7 +199,7 @@ export function EventMeetDetail({
             ) : null}
           </div>
 
-          <aside className="flex flex-col justify-between rounded-[var(--radius-section)] border border-primary/10 bg-white/75 p-6 shadow-sm backdrop-blur-sm sm:p-8">
+          <aside className="flex flex-col justify-between rounded-(--radius-section) border border-primary/10 bg-white/75 p-6 shadow-sm backdrop-blur-sm sm:p-8">
             <div>
               <p className="text-sm font-semibold text-primary">
                 {formatCategoryEyebrow(event)} · {cityName}
@@ -265,32 +273,36 @@ export function EventMeetDetail({
         </div>
       </section>
 
-      <section className="mt-12 sm:mt-14" aria-labelledby="event-about-heading">
-        <SectionTitle id="event-about-heading">About this meet</SectionTitle>
-        <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-          {detail.moreAbout}
-        </p>
-      </section>
+      {detail.moreAbout ? (
+        <section className="mt-12 sm:mt-14" aria-labelledby="event-about-heading">
+          <SectionTitle id="event-about-heading">About this meet</SectionTitle>
+          <p className="mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+            {detail.moreAbout}
+          </p>
+        </section>
+      ) : null}
 
-      <section className="mt-12 sm:mt-14" aria-labelledby="event-included-heading">
-        <SectionTitle id="event-included-heading">
-          What&apos;s included
-        </SectionTitle>
-        <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-          {detail.whatsIncluded.map((line) => (
-            <li
-              key={line}
-              className="flex gap-3 rounded-xl border border-primary/10 bg-white/60 px-4 py-3 text-sm text-foreground shadow-sm"
-            >
-              <Check
-                className="mt-0.5 h-4 w-4 shrink-0 text-primary"
-                aria-hidden
-              />
-              <span>{line}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {detail.whatsIncluded.length > 0 ? (
+        <section className="mt-12 sm:mt-14" aria-labelledby="event-included-heading">
+          <SectionTitle id="event-included-heading">
+            What&apos;s included
+          </SectionTitle>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+            {detail.whatsIncluded.map((line) => (
+              <li
+                key={line}
+                className="flex gap-3 rounded-xl border border-primary/10 bg-white/60 px-4 py-3 text-sm text-foreground shadow-sm"
+              >
+                <Check
+                  className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+                  aria-hidden
+                />
+                <span>{line}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {event.guestSuggestions && event.guestSuggestions.length > 0 ? (
         <section
@@ -317,89 +329,99 @@ export function EventMeetDetail({
         </section>
       ) : null}
 
-      <section className="mt-12 sm:mt-14" aria-labelledby="event-allowed-heading">
-        <SectionTitle id="event-allowed-heading">
-          What&apos;s allowed & good to know
-        </SectionTitle>
-        <div className="liquid-glass-surface mt-4 max-w-3xl">
-          <p className="text-base leading-relaxed text-muted-foreground">
-            {detail.allowedAndNotes}
+      {detail.allowedAndNotes ? (
+        <section className="mt-12 sm:mt-14" aria-labelledby="event-allowed-heading">
+          <SectionTitle id="event-allowed-heading">
+            What&apos;s allowed & good to know
+          </SectionTitle>
+          <div className="liquid-glass-surface mt-4 max-w-3xl">
+            <p className="text-base leading-relaxed text-muted-foreground">
+              {detail.allowedAndNotes}
+            </p>
+          </div>
+        </section>
+      ) : null}
+
+      {detail.houseRules.dos.length > 0 || detail.houseRules.donts.length > 0 ? (
+        <section className="mt-12 sm:mt-14" aria-labelledby="event-rules-heading">
+          <SectionTitle id="event-rules-heading">House rules</SectionTitle>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            Quick dos and don&apos;ts so everyone enjoys the meet — clear
+            expectations, zero guesswork.
           </p>
-        </div>
-      </section>
-
-      <section className="mt-12 sm:mt-14" aria-labelledby="event-rules-heading">
-        <SectionTitle id="event-rules-heading">House rules</SectionTitle>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Quick dos and don&apos;ts so everyone enjoys the meet — clear
-          expectations, zero guesswork.
-        </p>
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
-          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/6 p-5 sm:p-6">
-            <h3 className="flex items-center gap-2 font-onest text-sm font-semibold uppercase tracking-wide text-emerald-900 dark:text-emerald-100">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-800">
-                <Check className="h-4 w-4" aria-hidden />
-              </span>
-              Do
-            </h3>
-            <ul className="mt-4 space-y-3 text-sm leading-relaxed text-foreground">
-              {detail.houseRules.dos.map((line) => (
-                <li key={line} className="flex gap-2">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="rounded-2xl border border-rose-500/20 bg-rose-500/6 p-5 sm:p-6">
-            <h3 className="flex items-center gap-2 font-onest text-sm font-semibold uppercase tracking-wide text-rose-900 dark:text-rose-100">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-500/20 text-rose-800">
-                <X className="h-4 w-4" aria-hidden />
-              </span>
-              Don&apos;t
-            </h3>
-            <ul className="mt-4 space-y-3 text-sm leading-relaxed text-foreground">
-              {detail.houseRules.donts.map((line) => (
-                <li key={line} className="flex gap-2">
-                  <X className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
-                  <span>{line}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
-
-      <section className="mt-12 sm:mt-14" aria-labelledby="event-faq-heading">
-        <SectionTitle id="event-faq-heading">FAQ</SectionTitle>
-        <div className="mt-4 w-full divide-y divide-primary/10 rounded-2xl border border-primary/10 bg-white/50 px-2 py-1 shadow-sm sm:px-3 sm:py-2">
-          {detail.faqs.map((item, i) => (
-            <details
-              key={`${item.q}-${i}`}
-              className="group px-3 py-0 open:bg-white/80 sm:px-6 sm:py-1"
-            >
-              <summary className="cursor-pointer list-none py-4 text-base font-medium text-foreground transition hover:text-primary sm:py-5 [&::-webkit-details-marker]:hidden">
-                <span className="flex items-start justify-between gap-4">
-                  <span className="min-w-0 flex-1 pr-2">{item.q}</span>
-                  <span className="mt-0.5 shrink-0 text-muted-foreground transition group-open:rotate-180">
-                    ▾
+          <div className="mt-6 grid gap-6 lg:grid-cols-2">
+            {detail.houseRules.dos.length > 0 ? (
+              <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/6 p-5 sm:p-6">
+                <h3 className="flex items-center gap-2 font-onest text-sm font-semibold uppercase tracking-wide text-emerald-900 dark:text-emerald-100">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-800">
+                    <Check className="h-4 w-4" aria-hidden />
                   </span>
-                </span>
-              </summary>
-              <p className="max-w-none pb-5 pl-0 text-sm leading-relaxed text-muted-foreground sm:text-base">
-                {item.a}
-              </p>
-            </details>
-          ))}
-        </div>
-      </section>
+                  Do
+                </h3>
+                <ul className="mt-4 space-y-3 text-sm leading-relaxed text-foreground">
+                  {detail.houseRules.dos.map((line) => (
+                    <li key={line} className="flex gap-2">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+                      <span>{line}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {detail.houseRules.donts.length > 0 ? (
+              <div className="rounded-2xl border border-rose-500/20 bg-rose-500/6 p-5 sm:p-6">
+                <h3 className="flex items-center gap-2 font-onest text-sm font-semibold uppercase tracking-wide text-rose-900 dark:text-rose-100">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-500/20 text-rose-800">
+                    <X className="h-4 w-4" aria-hidden />
+                  </span>
+                  Don&apos;t
+                </h3>
+                <ul className="mt-4 space-y-3 text-sm leading-relaxed text-foreground">
+                  {detail.houseRules.donts.map((line) => (
+                    <li key={line} className="flex gap-2">
+                      <X className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+                      <span>{line}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {detail.faqs.length > 0 ? (
+        <section className="mt-12 sm:mt-14" aria-labelledby="event-faq-heading">
+          <SectionTitle id="event-faq-heading">FAQ</SectionTitle>
+          <div className="mt-4 w-full divide-y divide-primary/10 rounded-2xl border border-primary/10 bg-white/50 px-2 py-1 shadow-sm sm:px-3 sm:py-2">
+            {detail.faqs.map((item, i) => (
+              <details
+                key={`${item.q}-${i}`}
+                className="group px-3 py-0 open:bg-white/80 sm:px-6 sm:py-1"
+              >
+                <summary className="cursor-pointer list-none py-4 text-base font-medium text-foreground transition hover:text-primary sm:py-5 [&::-webkit-details-marker]:hidden">
+                  <span className="flex items-start justify-between gap-4">
+                    <span className="min-w-0 flex-1 pr-2">{item.q}</span>
+                    <span className="mt-0.5 shrink-0 text-muted-foreground transition group-open:rotate-180">
+                      ▾
+                    </span>
+                  </span>
+                </summary>
+                <p className="max-w-none pb-5 pl-0 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                  {item.a}
+                </p>
+              </details>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {/* Bottom — repeat Join / Save */}
       <section
         className="mt-14 sm:mt-16"
         aria-labelledby="event-bottom-cta-heading"
       >
-        <div className="rounded-[var(--radius-section)] border border-primary/12 bg-gradient-to-br from-white/90 to-primary/[0.04] p-6 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-6 sm:p-8">
+        <div className="rounded-(--radius-section) border border-primary/12 bg-linear-to-br from-white/90 to-primary/4 p-6 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-6 sm:p-8">
           <div id="event-bottom-cta-heading" className="min-w-0">
             <p className="font-onest text-lg font-semibold text-foreground">
               Ready to join?

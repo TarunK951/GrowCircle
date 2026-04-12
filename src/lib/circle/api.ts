@@ -200,6 +200,20 @@ export type ListPublicEventsParams = {
   search?: string;
 };
 
+export type ListAdvancedEventsParams = {
+  category?: string;
+  city?: string;
+  tags?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  startDate?: string;
+  endDate?: string;
+  featured?: boolean;
+  sort?: "date" | "price" | "popularity" | "rating";
+  page?: number;
+  limit?: number;
+};
+
 /** §3.1 — envelope includes top-level `meta` (not inside `data`) */
 export async function listPublicEvents(params: ListPublicEventsParams = {}) {
   const base = getCircleApiBase();
@@ -210,6 +224,42 @@ export async function listPublicEvents(params: ListPublicEventsParams = {}) {
   if (params.search) sp.set("search", params.search);
   const q = sp.toString();
   const res = await fetch(`${base}/events${q ? `?${q}` : ""}`);
+  const json = (await res.json()) as {
+    success?: boolean;
+    message?: string;
+    data?: CircleEvent[];
+    meta?: CircleListMeta;
+  };
+  if (!res.ok || json.success === false) {
+    throw new CircleApiError(json.message ?? res.statusText, res.status, json);
+  }
+  const data = Array.isArray(json.data) ? json.data : [];
+  const meta = json.meta ?? {
+    total: data.length,
+    page: params.page ?? 1,
+    limit: params.limit ?? (data.length || 20),
+    totalPages: 1,
+  };
+  return { data, meta };
+}
+
+/** §3.x — advanced public search endpoint (`/events/search/advanced`). */
+export async function listAdvancedEvents(params: ListAdvancedEventsParams = {}) {
+  const base = getCircleApiBase();
+  const sp = new URLSearchParams();
+  if (params.category) sp.set("category", params.category);
+  if (params.city) sp.set("city", params.city);
+  if (params.tags) sp.set("tags", params.tags);
+  if (params.minPrice != null) sp.set("minPrice", String(params.minPrice));
+  if (params.maxPrice != null) sp.set("maxPrice", String(params.maxPrice));
+  if (params.startDate) sp.set("startDate", params.startDate);
+  if (params.endDate) sp.set("endDate", params.endDate);
+  if (params.featured != null) sp.set("featured", String(params.featured));
+  if (params.sort) sp.set("sort", params.sort);
+  if (params.page != null) sp.set("page", String(params.page));
+  if (params.limit != null) sp.set("limit", String(params.limit));
+  const q = sp.toString();
+  const res = await fetch(`${base}/events/search/advanced${q ? `?${q}` : ""}`);
   const json = (await res.json()) as {
     success?: boolean;
     message?: string;

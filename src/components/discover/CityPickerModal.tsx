@@ -1,10 +1,26 @@
 "use client";
 
-import Image from "next/image";
-import { X } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {
+  Building2,
+  Globe2,
+  Landmark,
+  Sailboat,
+  UsersRound,
+  X,
+} from "lucide-react";
 import { getLandmarkForCityId } from "@/data/cityLandmarks";
 import { cn } from "@/lib/utils";
 import type { CityOption } from "./filterTypes";
+
+const landmarkIconMap: Record<string, LucideIcon> = {
+  community: UsersRound,
+  landmark: Landmark,
+  building: Building2,
+  bridge: Landmark,
+  waves: Sailboat,
+  tower: Building2,
+};
 
 export function CityPickerModal({
   open,
@@ -22,7 +38,7 @@ export function CityPickerModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[600] flex items-end justify-center p-0 sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-600 flex items-end justify-center p-0 sm:items-center sm:p-4">
       <button
         type="button"
         className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
@@ -30,7 +46,7 @@ export function CityPickerModal({
         onClick={onClose}
       />
       <div
-        className="relative z-10 flex max-h-[min(90vh,720px)] w-full max-w-lg flex-col rounded-t-2xl border border-zinc-200/80 bg-[var(--glass-bg,#fff)] shadow-2xl sm:max-h-[85vh] sm:rounded-2xl dark:border-white/10 dark:bg-zinc-950"
+        className="relative z-10 flex h-[min(90vh,720px)] w-full max-w-lg min-h-0 flex-col rounded-t-2xl border border-zinc-200/80 bg-(--glass-bg,#fff) shadow-2xl sm:h-[85vh] sm:rounded-2xl dark:border-white/10 dark:bg-zinc-950"
         role="dialog"
         aria-modal="true"
         aria-labelledby="city-picker-title"
@@ -51,7 +67,7 @@ export function CityPickerModal({
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 scrollbar-none sm:p-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <button
               type="button"
@@ -66,16 +82,9 @@ export function CityPickerModal({
                   : "border-zinc-200/90 hover:border-primary/40 dark:border-white/15",
               )}
             >
-              <div className="relative aspect-[16/10] w-full bg-zinc-100 dark:bg-zinc-800">
-                <Image
-                  src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&q=80&auto=format&fit=crop"
-                  alt=""
-                  fill
-                  className="object-cover"
-                  sizes="(max-width:640px) 100vw, 360px"
-                />
-                <span className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
-                <span className="absolute bottom-2 left-2 right-2 text-sm font-bold text-white drop-shadow">
+              <div className="relative flex aspect-16/10 w-full items-center justify-center bg-linear-to-br from-indigo-50 to-blue-100 text-indigo-800 dark:from-zinc-800 dark:to-zinc-900 dark:text-zinc-100">
+                <Globe2 className="h-9 w-9" aria-hidden />
+                <span className="absolute bottom-2 left-2 right-2 text-sm font-bold text-zinc-900 dark:text-zinc-100">
                   All cities
                 </span>
               </div>
@@ -84,8 +93,8 @@ export function CityPickerModal({
 
             {cities.map((c) => {
               const lm = getLandmarkForCityId(c.id);
-              const img = lm?.image ?? "";
               const landmark = lm?.landmark ?? "";
+              const Icon = landmarkIconMap[lm?.icon ?? "landmark"] ?? Landmark;
               return (
                 <button
                   key={c.id}
@@ -101,18 +110,9 @@ export function CityPickerModal({
                       : "border-zinc-200/90 hover:border-primary/40 dark:border-white/15",
                   )}
                 >
-                  <div className="relative aspect-[16/10] w-full bg-zinc-100 dark:bg-zinc-800">
-                    {img ? (
-                      <Image
-                        src={img}
-                        alt=""
-                        fill
-                        className="object-cover transition group-hover:scale-[1.02]"
-                        sizes="(max-width:640px) 100vw, 360px"
-                      />
-                    ) : null}
-                    <span className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                    <span className="absolute bottom-2 left-2 right-2 text-sm font-bold text-white drop-shadow">
+                  <div className="relative flex aspect-16/10 w-full items-center justify-center bg-linear-to-br from-zinc-50 to-zinc-100 text-zinc-700 transition group-hover:from-zinc-100 group-hover:to-zinc-200 dark:from-zinc-800 dark:to-zinc-900 dark:text-zinc-200">
+                    <Icon className="h-9 w-9" aria-hidden />
+                    <span className="absolute bottom-2 left-2 right-2 text-sm font-bold text-zinc-900 dark:text-zinc-100">
                       {c.name}
                     </span>
                   </div>

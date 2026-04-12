@@ -1,9 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ImageOff } from "lucide-react";
 import { formatCategoryEyebrow } from "@/lib/eventCategories";
 import type { MeetEvent } from "@/lib/types";
 import { formatInrFromCents } from "@/lib/formatCurrency";
 import { cn } from "@/lib/utils";
+import { primaryMeetImage } from "@/lib/events/coverDisplay";
 
 export function EventCard({
   event,
@@ -25,31 +27,36 @@ export function EventCard({
   const price = formatInrFromCents(event.priceCents);
 
   const subtitle = hostName?.trim() || cityName;
-  const coverIsDataUrl = event.image.startsWith("data:");
-  const coverIsUnsplash = event.image.includes("images.unsplash.com");
+  const cover = primaryMeetImage(event);
+  const coverIsDataUrl = cover?.startsWith("data:") ?? false;
+  const coverIsUnsplash = cover?.includes("images.unsplash.com") ?? false;
 
   return (
     <Link
       href={`/event/${event.id}`}
       aria-label={event.title}
       className={cn(
-        "event-card-depth group overflow-hidden rounded-(--radius-section) liquid-glass liquid-glass-card",
+        "event-card-depth group flex h-full flex-col overflow-hidden rounded-(--radius-section) liquid-glass liquid-glass-card",
         /* Full card black & white when ended / cancelled */
         inactive && "grayscale opacity-95",
         className,
       )}
     >
       <div className="relative aspect-4/3 w-full overflow-hidden rounded-t-(--radius-section)">
-        {coverIsDataUrl ? (
+        {!cover ? (
+          <div className="flex h-full w-full items-center justify-center bg-neutral-100 text-neutral-500">
+            <ImageOff className="h-7 w-7" aria-hidden />
+          </div>
+        ) : coverIsDataUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={event.image}
+            src={cover}
             alt=""
             className="absolute inset-0 h-full w-full object-cover transition duration-500 ease-out motion-safe:group-hover:scale-[1.02]"
           />
         ) : (
           <Image
-            src={event.image}
+            src={cover}
             alt=""
             fill
             priority={priority}
@@ -69,7 +76,7 @@ export function EventCard({
           </div>
         </div>
       </div>
-      <div className="rounded-b-(--radius-section) border-t border-black/[0.08] bg-white/90 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] backdrop-blur-[2px]">
+      <div className="flex flex-1 flex-col rounded-b-(--radius-section) bg-white/90 p-5 backdrop-blur-[2px]">
         <div className="flex items-start justify-between gap-3">
           <h3 className="font-onest line-clamp-2 text-lg font-bold leading-snug text-foreground">
             {event.title}
@@ -80,9 +87,11 @@ export function EventCard({
             </span>
           ) : null}
         </div>
-        <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
-          {event.description}
-        </p>
+        {event.description.trim().length > 0 ? (
+          <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
+            {event.description}
+          </p>
+        ) : null}
         <p className="mt-2 text-sm font-bold text-foreground">{subtitle}</p>
         <div className="mt-3 flex items-center justify-between gap-3 text-sm">
           <span className="text-muted-foreground">

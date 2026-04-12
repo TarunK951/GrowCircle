@@ -520,26 +520,24 @@ html.cursor-none {
 
   /* Event grid cards — visible border + layered shadow depth */
   .liquid-glass.event-card-depth {
-    border: 2px solid rgba(15, 23, 42, 0.12);
+    border: 1px solid rgba(15, 23, 42, 0.16);
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.75) inset,
-      0 2px 6px rgba(15, 23, 42, 0.06),
-      0 8px 20px -6px rgba(15, 23, 42, 0.12),
-      0 16px 40px -12px rgba(15, 23, 42, 0.14),
-      0 28px 56px -16px rgba(15, 23, 42, 0.1),
-      0 6px 20px -4px rgba(30, 59, 189, 0.14);
+      0 4px 10px rgba(15, 23, 42, 0.08),
+      0 14px 30px -10px rgba(15, 23, 42, 0.14),
+      0 24px 52px -18px rgba(15, 23, 42, 0.11),
+      0 10px 30px -12px rgba(30, 59, 189, 0.18);
   }
 
   .liquid-glass.event-card-depth:hover {
     background: var(--glass-bg-hover);
-    border-color: rgba(30, 59, 189, 0.22);
+    border-color: rgba(30, 59, 189, 0.28);
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.9) inset,
-      0 4px 12px rgba(15, 23, 42, 0.08),
-      0 12px 28px -6px rgba(15, 23, 42, 0.16),
-      0 24px 48px -12px rgba(15, 23, 42, 0.14),
-      0 36px 64px -18px rgba(15, 23, 42, 0.12),
-      0 10px 32px -8px rgba(30, 59, 189, 0.22);
+      0 6px 14px rgba(15, 23, 42, 0.1),
+      0 18px 36px -8px rgba(15, 23, 42, 0.18),
+      0 32px 62px -16px rgba(15, 23, 42, 0.14),
+      0 14px 36px -10px rgba(30, 59, 189, 0.26);
   }
 
   .liquid-glass-toolbar {

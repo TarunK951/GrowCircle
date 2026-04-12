@@ -31,7 +31,7 @@ export default async function DiscoverPage(props: DiscoverPageProps) {
           className="max-w-3xl"
           eyebrow="Explore"
           title="Discover meets"
-          description="Search by keyword, pick a city with landmark photos, filter by interest and a single date. On smaller screens, open Filters for the full panel."
+          description="Search by keyword, pick a city from monument icon tiles, and filter by interest and date. On smaller screens, open Filters for the full panel."
         />
       </Reveal>
 

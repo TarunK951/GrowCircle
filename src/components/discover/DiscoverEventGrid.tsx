@@ -43,11 +43,11 @@ export function DiscoverEventGrid() {
 
   if (events.length === 0) {
     return (
-      <div className="mt-10 rounded-2xl border border-dashed border-primary/20 bg-primary/5 px-6 py-12 text-center">
-        <p className="font-onest text-base font-semibold text-foreground">
+      <div className="mt-10 rounded-2xl border border-neutral-200 bg-white px-6 py-12 text-center shadow-sm">
+        <p className="font-onest text-base font-semibold text-neutral-900">
           No meets match these filters
         </p>
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-2 text-sm text-neutral-800">
           Try clearing the date, widening the city, or searching with a
           different keyword.
         </p>
@@ -58,7 +58,7 @@ export function DiscoverEventGrid() {
   return (
     <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {events.map((e, index) => (
-        <Reveal key={e.id}>
+        <Reveal key={e.id} className="h-full">
           <EventCard
             event={e}
             cityName={e.displayLocation ?? cityById[e.cityId] ?? ""}

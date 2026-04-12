@@ -82,7 +82,7 @@ function CategorySelect({
   return (
     <div
       ref={ref}
-      className={cn("relative min-w-0", open && "z-[130]")}
+      className={cn("relative min-w-0", open && "z-130")}
     >
       <span className={labelCls}>Category</span>
       <button
@@ -107,7 +107,7 @@ function CategorySelect({
       </button>
       {open && (
         <ul
-          className="liquid-glass-menu absolute left-0 right-0 top-full z-[140] mt-1.5 max-h-56 overflow-auto rounded-xl p-1.5 text-sm shadow-lg ring-1 ring-black/5"
+          className="liquid-glass-menu absolute left-0 right-0 top-full z-140 mt-1.5 max-h-56 overflow-auto rounded-xl p-1.5 text-sm shadow-lg ring-1 ring-black/5"
           role="listbox"
           aria-labelledby="explore-filter-category"
         >
@@ -149,7 +149,6 @@ function CategorySelect({
 
 type FilterFieldsProps = {
   city: string;
-  setCity: (v: string) => void;
   category: string;
   setCategory: (v: string) => void;
   date: string;
@@ -171,7 +170,6 @@ type FilterFieldsProps = {
 
 function FilterFields({
   city,
-  setCity,
   category,
   setCategory,
   date,
@@ -265,14 +263,11 @@ function FilterFields({
               onChange={(e) => setDate(e.target.value)}
               className={cn(
                 "liquid-glass-field liquid-glass-field-sm w-full min-h-11 rounded-xl py-2.5 pl-10 pr-3 text-sm",
-                "[color-scheme:light] dark:[color-scheme:dark]",
+                "scheme-light dark:scheme-dark",
               )}
               aria-label="Filter by meet date"
             />
           </div>
-          <p className="mt-1.5 text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">
-            Show meets happening on this day. Clear the field to see all dates.
-          </p>
         </div>
       </div>
     </div>
@@ -385,7 +380,6 @@ export function ExploreFilters({
 
   const filterFieldsProps: FilterFieldsProps = {
     city,
-    setCity,
     category,
     setCategory,
     date,
@@ -451,14 +445,14 @@ export function ExploreFilters({
         </div>
 
         {filterDrawerOpen && (
-          <div className="fixed inset-0 z-[500] lg:hidden">
+          <div className="fixed inset-0 z-500 lg:hidden">
             <button
               type="button"
               className="absolute inset-0 bg-black/45 backdrop-blur-[1px]"
               aria-label="Close filters"
               onClick={() => setFilterDrawerOpen(false)}
             />
-            <div className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-zinc-200/80 bg-[var(--background)] shadow-2xl dark:border-white/10">
+            <div className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-zinc-200/80 bg-background shadow-2xl dark:border-white/10">
               <div className="flex items-center justify-between border-b border-zinc-200/80 px-4 py-3 dark:border-white/10">
                 <p className="font-onest text-base font-semibold">Filters</p>
                 <button
@@ -494,19 +488,19 @@ export function ExploreFilters({
       {/* Desktop filter card */}
       <div
         ref={toolbarRef}
-        className="liquid-glass liquid-glass-toolbar mt-6 hidden lg:mt-10 lg:block"
+        className="liquid-glass liquid-glass-toolbar mt-6 hidden border border-neutral-200 bg-white/95 shadow-[0_10px_26px_-16px_rgba(15,23,42,0.35)] lg:mt-10 lg:block"
         aria-label="Filter meets"
       >
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch">
-          <div className="min-w-0 flex-1 space-y-6">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch">
+          <div className="min-w-0 flex-1">
             <FilterFields {...filterFieldsProps} />
           </div>
-          <div className="flex shrink-0 flex-col justify-end border-t border-zinc-200/80 pt-6 dark:border-white/10 lg:w-44 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+          <div className="flex shrink-0 flex-col justify-end border-t border-neutral-200 pt-5 lg:w-44 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
             <button
               type="button"
               onClick={apply}
               aria-label="Apply filters"
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-primary/25 transition hover:bg-primary/92 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-neutral-900 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2"
             >
               Apply
             </button>
