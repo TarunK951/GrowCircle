@@ -36,7 +36,7 @@ export function CustomCursor() {
       if (next === hovering) return;
       hovering = next;
       gsap.to(ringEl, {
-        scale: next ? 1.55 : 1,
+        scale: next ? 1.18 : 1,
         duration: 0.35,
         ease: "power3.out",
       });
@@ -58,11 +58,12 @@ export function CustomCursor() {
   return (
     <div
       ref={ring}
-      className="custom-cursor pointer-events-none fixed left-0 top-0 z-[9997] h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full"
+      className="custom-cursor pointer-events-none fixed left-0 top-0 z-[9997] h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full"
       style={{
-        border: "3px solid var(--cursor-ring-border)",
+        border: "var(--cursor-ring-stroke) solid var(--cursor-ring-border)",
         backgroundColor: "transparent",
-        boxShadow: "0 0 0 2px rgba(30, 59, 189, 0.06)",
+        /* Soft outer halo — stroke width carries the logo-like ring */
+        boxShadow: "0 6px 22px var(--cursor-ring-glow)",
       }}
       aria-hidden
     />

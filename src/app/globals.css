@@ -13,10 +13,12 @@
   --secondary: oklch(0.97 0 0);
   --muted: oklch(0.97 0 0);
   --radius-section: 1.5rem;
-  /* Custom cursor (pointer) — tuned for warm canvas */
+  /* Custom cursor (pointer) — tuned for warm canvas; stroke matches logo-forward ring */
   --cursor-dot: #1e3bbd;
   --cursor-ring: rgba(30, 59, 189, 0.22);
-  --cursor-ring-border: rgba(30, 59, 189, 0.35);
+  --cursor-ring-border: rgba(30, 59, 189, 0.52);
+  --cursor-ring-stroke: 5px;
+  --cursor-ring-glow: rgba(30, 59, 189, 0.2);
   /* Light frosted glass (warm canvas) */
   --glass-bg: rgba(255, 255, 255, 0.52);
   --glass-bg-hover: rgba(255, 255, 255, 0.78);
