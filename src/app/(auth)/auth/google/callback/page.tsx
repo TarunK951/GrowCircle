@@ -116,7 +116,8 @@ function parseOAuthTokensFromWindow(): {
               typeof raw.verification_tier === "number"
                 ? raw.verification_tier
                 : undefined,
-            is_profile_complete: raw.is_profile_complete === true,
+            is_profile_complete:
+              raw.is_profile_complete === true || raw.isProfileComplete === true,
           };
         }
       }

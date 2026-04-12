@@ -7,11 +7,13 @@ import { UiPrefsEffects } from "@/components/providers/UiPrefsEffects";
 import { CircleCatalogSync } from "@/components/providers/CircleCatalogSync";
 import { CircleHostedEventsSync } from "@/components/providers/CircleHostedEventsSync";
 import { StoreProvider } from "@/components/providers/StoreProvider";
+import { IncompleteProfileGate } from "@/components/auth/IncompleteProfileGate";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <StoreProvider>
     <MotionProviders>
+      <IncompleteProfileGate />
       <CircleCatalogSync />
       <CircleHostedEventsSync />
       <UiPrefsEffects />

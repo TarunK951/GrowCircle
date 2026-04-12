@@ -24,7 +24,8 @@ export type VerifyOtpData = {
 
 export type CircleProfile = {
   id: string;
-  phone: string;
+  /** OAuth-only users may have `null` until a phone is linked. */
+  phone: string | null;
   username?: string | null;
   email?: string | null;
   dob?: string | null;

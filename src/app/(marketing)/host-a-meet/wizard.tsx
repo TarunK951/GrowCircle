@@ -9,6 +9,7 @@ import {
   addEventQuestion,
   createEvent,
   getMyProfile,
+  isCircleProfileComplete,
   publishEvent,
 } from "@/lib/circle/api";
 import { CircleApiError, formatCircleError } from "@/lib/circle/client";
@@ -257,7 +258,7 @@ export function HostWizard() {
             throw e;
           }
         }
-        if (me.is_profile_complete !== true) {
+        if (!isCircleProfileComplete(me)) {
           toast.error("Complete your profile before hosting a meet.");
           router.push(
             `/login?returnUrl=${encodeURIComponent("/host-a-meet")}&circleProfile=1`,

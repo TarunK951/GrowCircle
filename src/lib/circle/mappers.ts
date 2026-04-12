@@ -16,7 +16,7 @@ export function circleProfileToUser(profile: CircleProfile): User {
   const name =
     profile.username?.trim() ||
     profile.email?.split("@")[0]?.trim() ||
-    profile.phone ||
+    profile.phone?.trim() ||
     "Member";
   return {
     id: profile.id,

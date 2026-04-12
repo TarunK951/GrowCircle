@@ -23,6 +23,57 @@ function pickStr(obj: Record<string, unknown>, ...keys: string[]): string | unde
   return undefined;
 }
 
+/** §2.1 — backend may emit camelCase or snake_case on user objects. */
+export function normalizeCircleProfile(raw: unknown): CircleProfile {
+  if (!raw || typeof raw !== "object") {
+    throw new CircleApiError("Invalid profile response", 500, raw);
+  }
+  const o = raw as Record<string, unknown>;
+  const id = pickStr(o, "id");
+  if (!id) {
+    throw new CircleApiError("Invalid profile: missing id", 500, raw);
+  }
+  const phoneRaw = o.phone;
+  const phone: string | null =
+    phoneRaw === null || phoneRaw === undefined
+      ? null
+      : typeof phoneRaw === "string"
+        ? phoneRaw
+        : null;
+  const username =
+    typeof o.username === "string" || o.username === null ? o.username : undefined;
+  const email = typeof o.email === "string" || o.email === null ? o.email : undefined;
+  const dob = typeof o.dob === "string" || o.dob === null ? o.dob : undefined;
+  const av = o.avatar_url ?? o.avatarUrl;
+  const avatar_url =
+    av === null ? null : typeof av === "string" ? av : undefined;
+  const ct = o.created_at ?? o.createdAt;
+  const created_at = typeof ct === "string" ? ct : undefined;
+  const verification_tier =
+    typeof o.verification_tier === "number" ? o.verification_tier : undefined;
+  const is_globally_banned =
+    typeof o.is_globally_banned === "boolean" ? o.is_globally_banned : undefined;
+  const is_profile_complete =
+    o.is_profile_complete === true || o.isProfileComplete === true;
+
+  return {
+    id,
+    phone,
+    username,
+    email,
+    dob,
+    avatar_url: avatar_url ?? undefined,
+    verification_tier,
+    is_profile_complete,
+    is_globally_banned,
+    created_at,
+  };
+}
+
+export function isCircleProfileComplete(profile: CircleProfile): boolean {
+  return profile.is_profile_complete === true;
+}
+
 /** Backend may return camelCase (per API doc) or snake_case. */
 function normalizeTokenPair(raw: unknown): { accessToken: string; refreshToken: string } {
   if (!raw || typeof raw !== "object") {
@@ -56,7 +107,8 @@ function normalizeVerifyOtpData(raw: unknown): VerifyOtpData {
   const isProfileComplete =
     o.isProfileComplete === true ||
     o.is_profile_complete === true ||
-    u.is_profile_complete === true;
+    u.is_profile_complete === true ||
+    u.isProfileComplete === true;
   const user: CircleAuthUser = {
     id,
     phone,
@@ -64,7 +116,8 @@ function normalizeVerifyOtpData(raw: unknown): VerifyOtpData {
       typeof u.username === "string" || u.username === null ? u.username : undefined,
     email: typeof u.email === "string" || u.email === null ? u.email : undefined,
     verification_tier: typeof u.verification_tier === "number" ? u.verification_tier : undefined,
-    is_profile_complete: u.is_profile_complete === true,
+    is_profile_complete:
+      u.is_profile_complete === true || u.isProfileComplete === true,
   };
   return {
     ...tokens,
@@ -88,14 +141,15 @@ export async function verifyOtp(phone: string, otp: string): Promise<VerifyOtpDa
 }
 
 /** §1.3 */
-export function completeProfile(
+export async function completeProfile(
   accessToken: string,
   body: { username: string; email: string; dob: string },
-) {
-  return circleRequest<CircleProfile>("/auth/complete-profile", {
+): Promise<CircleProfile> {
+  const raw = await circleRequest<unknown>("/auth/complete-profile", {
     accessToken,
     body,
   });
+  return normalizeCircleProfile(raw);
 }
 
 /** §1.4 */
@@ -115,24 +169,26 @@ export function logoutApi(accessToken: string, refreshToken: string) {
 }
 
 /** §2.1 */
-export function getMyProfile(accessToken: string) {
-  return circleRequest<CircleProfile>("/users/me", { accessToken });
+export async function getMyProfile(accessToken: string): Promise<CircleProfile> {
+  const raw = await circleRequest<unknown>("/users/me", { accessToken });
+  return normalizeCircleProfile(raw);
 }
 
 /** §2.2 */
-export function updateMyProfile(
+export async function updateMyProfile(
   accessToken: string,
   body: Partial<{
     username: string;
     email: string;
     avatar_url: string;
   }>,
-) {
-  return circleRequest<CircleProfile>("/users/me", {
+): Promise<CircleProfile> {
+  const raw = await circleRequest<unknown>("/users/me", {
     method: "PUT",
     accessToken,
     body,
   });
+  return normalizeCircleProfile(raw);
 }
 
 export type ListPublicEventsParams = {
