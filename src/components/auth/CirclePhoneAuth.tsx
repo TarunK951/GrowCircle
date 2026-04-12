@@ -20,6 +20,7 @@ import {
   verifyOtp,
 } from "@/lib/circle/api";
 import { formatCircleError } from "@/lib/circle/client";
+import { normalizedEmailSchema } from "@/lib/auth/apiSchemas";
 import { getCircleGoogleAuthUrl, isCircleApiConfigured } from "@/lib/circle/config";
 import { circleProfileToUser } from "@/lib/circle/mappers";
 import { store } from "@/lib/store/store";
@@ -50,13 +51,13 @@ const profileSchema = z.object({
 });
 
 const localLoginSchema = z.object({
-  email: z.string().trim().email("Enter a valid email"),
+  email: normalizedEmailSchema,
   password: z.string().min(4, "Password must be at least 4 characters"),
 });
 
 const localSignupSchema = z.object({
   name: z.string().trim().min(2, "Name is required"),
-  email: z.string().trim().email("Enter a valid email"),
+  email: normalizedEmailSchema,
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -74,7 +75,7 @@ function maskNationalPhone(digits: string): string {
 
 type Step = "phone" | "otp" | "profile";
 
-/** Phone OTP, Google (Circle API), or app-local Gmail + password (`/api/auth/*`). */
+/** Phone OTP, Google (Circle API), or app-local email + password (`/api/auth/*`). */
 type AuthChannel = "phone" | "google" | "email";
 
 export function CirclePhoneAuth() {
@@ -307,7 +308,9 @@ export function CirclePhoneAuth() {
           password: localPassword,
         });
         if (!parsed.success) {
-          toast.error(parsed.error.issues[0]?.message ?? "Check Gmail and password");
+          toast.error(
+            parsed.error.issues[0]?.message ?? "Check your email and password.",
+          );
           return;
         }
         const user = await loginWithEmailPasswordApi(
@@ -370,8 +373,8 @@ export function CirclePhoneAuth() {
     }
     if (authChannel === "email") {
       return mode === "signup"
-        ? "Create an account with your Gmail address and a password."
-        : "Sign in with the Gmail and password you used when you registered here.";
+        ? "Create an account with any email address and a password."
+        : "Sign in with the email and password you used when you registered.";
     }
     return "Sign in with your phone — we’ll send a one-time code.";
   })();
@@ -387,7 +390,7 @@ export function CirclePhoneAuth() {
         <div
           className="mt-6 grid grid-cols-3 gap-1 rounded-2xl border border-neutral-200/90 bg-neutral-100/70 p-1"
           role="tablist"
-          aria-label="Sign-in method: phone, Google, or Gmail"
+          aria-label="Sign-in method: phone, Google, or email"
         >
           <button
             type="button"
@@ -432,7 +435,7 @@ export function CirclePhoneAuth() {
             onClick={() => setAuthChannel("email")}
           >
             <Mail className="h-4 w-4 shrink-0" aria-hidden />
-            Gmail
+            Email
           </button>
         </div>
       )}
@@ -533,13 +536,13 @@ export function CirclePhoneAuth() {
               htmlFor="circle-local-email"
               className="text-sm font-medium text-neutral-700"
             >
-              Gmail
+              Email
             </label>
             <input
               id="circle-local-email"
               type="email"
               autoComplete="email"
-              placeholder="you@gmail.com"
+              placeholder="you@example.com"
               className={`mt-2 ${inputClass}`}
               value={localEmail}
               onChange={(e) => setLocalEmail(e.target.value)}
@@ -589,7 +592,7 @@ export function CirclePhoneAuth() {
                 ? "Signing in…"
                 : "Creating…"
               : mode === "login"
-                ? "Sign in with Gmail"
+                ? "Sign in with email"
                 : "Create account"}
           </button>
         </div>
