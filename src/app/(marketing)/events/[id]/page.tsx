@@ -10,7 +10,7 @@ type EventPageProps = Readonly<{
 export default function EventDetailPage({ params }: EventPageProps) {
   const { id } = use(params);
   return (
-    <Container className="page-shell">
+    <Container className="page-shell !pt-4 !pb-10 sm:!pt-5 sm:!pb-12 md:!pt-6 md:!pb-14">
       <EventDetailView id={id} />
     </Container>
   );

@@ -114,16 +114,19 @@ export function EventMeetDetail({
 
   return (
     <>
-      <Link
-        href="/explore"
-        className="text-sm font-medium text-primary transition hover:underline"
-      >
-        ← Back to explore
-      </Link>
+      <div className="flex items-center justify-end">
+        <Link
+          href="/explore"
+          aria-label="Close and return to explore"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-900 shadow-sm transition hover:bg-neutral-50"
+        >
+          <X className="h-5 w-5" strokeWidth={2} aria-hidden />
+        </Link>
+      </div>
 
       {/* 1 — Photo + summary first */}
       <section
-        className="mt-6"
+        className="mt-4"
         aria-labelledby="event-visual-heading"
       >
         <h2 id="event-visual-heading" className="sr-only">
