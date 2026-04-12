@@ -6,8 +6,11 @@ import { getMyApplications } from "@/lib/circle/api";
 import { isCircleApiConfigured } from "@/lib/circle/config";
 import type { CircleMyApplication } from "@/lib/circle/types";
 import { mergeEventCatalog } from "@/lib/eventsCatalog";
+import { cn } from "@/lib/utils";
 import { useSessionStore } from "@/stores/session-store";
 import type { MeetEvent } from "@/lib/types";
+
+type DashboardTab = "bookings" | "hosting";
 
 const CIRCLE_ACTIVE = new Set([
   "pending",
@@ -26,6 +29,7 @@ function humanizeStatus(s: string) {
 }
 
 export default function DashboardPage() {
+  const [tab, setTab] = useState<DashboardTab>("bookings");
   const user = useSessionStore((s) => s.user);
   const bookings = useSessionStore((s) => s.bookings);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
@@ -115,99 +119,158 @@ export default function DashboardPage() {
         </Link>{" "}
         for applications, tickets, and host tools.
       </p>
-      <div className="mt-8 grid gap-6 md:grid-cols-2">
-        <div className="liquid-glass-surface liquid-glass-interactive">
-          <h2 className="text-base font-semibold text-neutral-900">
+
+      <div className="mt-8">
+        <div
+          className="grid grid-cols-2 gap-1 rounded-xl border border-neutral-200 bg-neutral-100/80 p-1"
+          role="tablist"
+          aria-label="Dashboard sections"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "bookings"}
+            id="dashboard-tab-bookings"
+            onClick={() => setTab("bookings")}
+            className={cn(
+              "min-h-10 rounded-lg px-3 py-2 text-center text-sm font-semibold transition",
+              tab === "bookings"
+                ? "bg-white text-neutral-900 shadow-sm"
+                : "text-neutral-600 hover:text-neutral-900",
+            )}
+          >
             Upcoming bookings
-          </h2>
-          {circleListLoading ? (
-            <p className="mt-3 text-sm text-neutral-900">Loading your applications…</p>
-          ) : useBackendBookings ? (
-            circleUpcoming.length === 0 ? (
-              <p className="mt-3 text-sm text-neutral-900">
-                No active applications —{" "}
-                <Link
-                  className="font-medium text-primary hover:underline"
-                  href="/explore"
-                >
-                  explore meets
-                </Link>
-                .
-              </p>
-            ) : (
-              <ul className="mt-3 space-y-2 text-sm">
-                {circleUpcoming.map((a) => {
-                  const eventId = a.event?.id;
-                  const title = a.event?.title ?? "Event";
-                  return (
-                    <li
-                      key={a.id}
-                      className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
-                    >
-                      {eventId ? (
-                        <Link
-                          href={`/event/${eventId}`}
-                          className="font-medium text-primary hover:underline"
-                        >
-                          {title}
-                        </Link>
-                      ) : (
-                        <span className="font-medium text-neutral-900">{title}</span>
-                      )}
-                      <span className="text-xs text-neutral-900">
-                        {humanizeStatus(a.status)}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )
-          ) : upcoming.length === 0 ? (
-            <p className="mt-3 text-sm text-neutral-900">
-              No bookings yet —{" "}
-              <Link className="font-medium text-primary hover:underline" href="/explore">
-                explore meets
-              </Link>
-              .
-            </p>
-          ) : (
-            <ul className="mt-3 space-y-2 text-sm">
-              {upcoming.map((e) => (
-                <li key={e.id}>
-                  <Link
-                    href={`/event/${e.id}`}
-                    className="font-medium text-primary hover:underline"
-                  >
-                    {e.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "hosting"}
+            id="dashboard-tab-hosting"
+            onClick={() => setTab("hosting")}
+            className={cn(
+              "min-h-10 rounded-lg px-3 py-2 text-center text-sm font-semibold transition",
+              tab === "hosting"
+                ? "bg-white text-neutral-900 shadow-sm"
+                : "text-neutral-600 hover:text-neutral-900",
+            )}
+          >
+            Hosting
+          </button>
         </div>
-        <div className="liquid-glass-surface liquid-glass-interactive">
-          <h2 className="text-base font-semibold text-neutral-900">Hosting</h2>
-          {hostingPreview.length === 0 ? (
-            <p className="mt-3 text-sm text-neutral-900">
-              Nothing listed —{" "}
-              <Link href="/host" className="font-medium text-primary hover:underline">
-                host a meet
-              </Link>
-              .
-            </p>
-          ) : (
-            <ul className="mt-3 space-y-2 text-sm">
-              {hostingPreview.map((e) => (
-                <li key={e.id}>
+
+        <div
+          className="liquid-glass-surface liquid-glass-interactive mt-4"
+          role="tabpanel"
+          aria-labelledby={
+            tab === "bookings" ? "dashboard-tab-bookings" : "dashboard-tab-hosting"
+          }
+        >
+          {tab === "bookings" ? (
+            <>
+              <h2 className="text-base font-semibold text-neutral-900">
+                Upcoming bookings
+              </h2>
+              {circleListLoading ? (
+                <p className="mt-3 text-sm text-neutral-900">
+                  Loading your applications…
+                </p>
+              ) : useBackendBookings ? (
+                circleUpcoming.length === 0 ? (
+                  <p className="mt-3 text-sm text-neutral-900">
+                    No active applications —{" "}
+                    <Link
+                      className="font-medium text-primary hover:underline"
+                      href="/explore"
+                    >
+                      explore meets
+                    </Link>
+                    .
+                  </p>
+                ) : (
+                  <ul className="mt-3 space-y-2 text-sm">
+                    {circleUpcoming.map((a) => {
+                      const eventId = a.event?.id;
+                      const title = a.event?.title ?? "Event";
+                      return (
+                        <li
+                          key={a.id}
+                          className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+                        >
+                          {eventId ? (
+                            <Link
+                              href={`/event/${eventId}`}
+                              className="font-medium text-primary hover:underline"
+                            >
+                              {title}
+                            </Link>
+                          ) : (
+                            <span className="font-medium text-neutral-900">
+                              {title}
+                            </span>
+                          )}
+                          <span className="text-xs text-neutral-900">
+                            {humanizeStatus(a.status)}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )
+              ) : upcoming.length === 0 ? (
+                <p className="mt-3 text-sm text-neutral-900">
+                  No bookings yet —{" "}
                   <Link
-                    href="/bookings"
+                    className="font-medium text-primary hover:underline"
+                    href="/explore"
+                  >
+                    explore meets
+                  </Link>
+                  .
+                </p>
+              ) : (
+                <ul className="mt-3 space-y-2 text-sm">
+                  {upcoming.map((e) => (
+                    <li key={e.id}>
+                      <Link
+                        href={`/event/${e.id}`}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {e.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          ) : (
+            <>
+              <h2 className="text-base font-semibold text-neutral-900">Hosting</h2>
+              {hostingPreview.length === 0 ? (
+                <p className="mt-3 text-sm text-neutral-900">
+                  Nothing listed —{" "}
+                  <Link
+                    href="/host"
                     className="font-medium text-primary hover:underline"
                   >
-                    {e.title}
+                    host a meet
                   </Link>
-                </li>
-              ))}
-            </ul>
+                  .
+                </p>
+              ) : (
+                <ul className="mt-3 space-y-2 text-sm">
+                  {hostingPreview.map((e) => (
+                    <li key={e.id}>
+                      <Link
+                        href="/bookings"
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {e.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
         </div>
       </div>
