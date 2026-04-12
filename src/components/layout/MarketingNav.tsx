@@ -50,8 +50,15 @@ const btnPrimaryCompact = cn(
 );
 
 const glassHome = "nav-liquid-glass-hero";
-const switchCta =
-  "!h-8 !rounded-full !border !border-black/55 !bg-black !px-3 !py-1 !text-[11px] !font-medium !tracking-[0.01em] !text-white after:ml-2 after:inline-block after:size-4 after:rounded-full after:bg-white after:align-middle sm:!h-9 sm:!px-3.5 sm:!text-xs";
+
+/** Home: compact black pill — same footprint as Get Started (body only; no knob). */
+const homeNavCtaBase =
+  "!inline-flex !h-8 !min-h-0 !shrink-0 !items-center !justify-center !rounded-full !border !border-black/55 !bg-black !px-3.5 !py-1 !text-[11px] !font-medium !leading-none !tracking-[0.01em] !text-white !shadow-none hover:!-translate-y-0.5 active:!scale-[0.98] sm:!h-9 sm:!px-4 sm:!text-xs";
+
+const switchCta = cn(
+  homeNavCtaBase,
+  "after:ml-1.5 after:inline-flex after:size-4 after:shrink-0 after:items-center after:justify-center after:rounded-full after:bg-white after:align-middle after:content-[''] sm:after:ml-2",
+);
 
 export function MarketingNav() {
   const pathname = usePathname();
@@ -97,8 +104,8 @@ export function MarketingNav() {
               <NavbarButton
                 as={Link}
                 href="/profile"
-                variant="primary"
-                className={btnPrimaryCompact}
+                variant={isHome ? "dark" : "primary"}
+                className={cn(isHome ? homeNavCtaBase : btnPrimaryCompact)}
               >
                 Profile
               </NavbarButton>
