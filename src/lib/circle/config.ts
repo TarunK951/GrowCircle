@@ -35,10 +35,10 @@ export function isCircleApiConfigured(): boolean {
  * Public site origin for OAuth token handoff after the **backend** finishes Google OAuth.
  * Set `NEXT_PUBLIC_APP_URL=https://your-domain.com` in production so the callback URL is stable.
  *
- * **Google Cloud “Authorized redirect URIs”** must match the `redirect_uri` the Circle backend
- * sends to Google (see §1.6–1.7). That is often `{NEXT_PUBLIC_APP_URL or localhost}/api/auth/google/callback`;
- * this Next route forwards the `code` to the API server, which then redirects here with tokens at
- * `${NEXT_PUBLIC_APP_URL}/auth/google/callback` (no `/api`).
+ * **Google Cloud “Authorized redirect URIs”** must point at **this app**, not the Railway host:
+ * `{NEXT_PUBLIC_APP_URL or localhost}/api/auth/google/callback`. Google returns here; our route
+ * exchanges the `code` with the Circle API server-side and redirects to `/auth/google/callback`
+ * with tokens (see `src/app/api/auth/google/callback/route.ts`).
  */
 export function getPublicAppBaseUrl(): string | null {
   const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();
