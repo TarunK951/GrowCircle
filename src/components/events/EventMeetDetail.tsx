@@ -452,6 +452,12 @@ export function EventMeetDetail({
             ConnectSphere doesn&apos;t process real payments yet, so nothing is
             charged and there&apos;s nothing to refund through this demo.
           </p>
+          {detail.refundPolicy ? (
+            <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+              <span className="font-semibold text-foreground">Host policy:</span>{" "}
+              {detail.refundPolicy}
+            </p>
+          ) : null}
           <p className="mt-4 text-base leading-relaxed text-muted-foreground">
             When hosts go live for real, refunds will follow each meet&apos;s
             policy — typically shown at checkout. Common patterns:

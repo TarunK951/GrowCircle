@@ -32,6 +32,17 @@ import type { City } from "@/lib/types";
 
 type Tab = "preview" | "questions" | "approve";
 type EditableQuestion = { id?: string; prompt: string; options: string[] };
+type EditableFaq = { q: string; a: string };
+type EditableDetailDraft = {
+  moreAbout: string;
+  whatsIncluded: string[];
+  guestSuggestions: string[];
+  allowedAndNotes: string;
+  dos: string[];
+  donts: string[];
+  faqs: EditableFaq[];
+  refundPolicy: string;
+};
 
 const MAX_IMAGE_BYTES_LOCAL = 750 * 1024;
 const MAX_IMAGE_BYTES_CIRCLE = 5 * 1024 * 1024;
@@ -61,6 +72,30 @@ function seatCountForEvent(
       b.eventId === eventId &&
       (b.status === "confirmed" || b.status === "attended"),
   ).length;
+}
+
+function trimLines(lines: string[]): string[] {
+  return lines.map((line) => line.trim()).filter(Boolean);
+}
+
+function detailsFromEvent(event: {
+  moreAbout?: string;
+  whatsIncluded?: string[];
+  guestSuggestions?: string[];
+  allowedAndNotes?: string;
+  houseRules?: { dos?: string[]; donts?: string[] };
+  faqs?: { q: string; a: string }[];
+}): EditableDetailDraft {
+  return {
+    moreAbout: event.moreAbout ?? "",
+    whatsIncluded: event.whatsIncluded?.length ? event.whatsIncluded : [""],
+    guestSuggestions: event.guestSuggestions?.length ? event.guestSuggestions : [""],
+    allowedAndNotes: event.allowedAndNotes ?? "",
+    dos: event.houseRules?.dos?.length ? event.houseRules.dos : [""],
+    donts: event.houseRules?.donts?.length ? event.houseRules.donts : [""],
+    faqs: event.faqs?.length ? event.faqs : [{ q: "", a: "" }],
+    refundPolicy: event.refundPolicy ?? "",
+  };
 }
 
 function normalizeQuestionRows(rows: EditableQuestion[]): EditableQuestion[] {
@@ -93,7 +128,19 @@ export default function HostManagePage() {
   const [rows, setRows] = useState<EditableQuestion[]>([]);
   const [busy, setBusy] = useState(false);
   const [imagesBusy, setImagesBusy] = useState(false);
+  const [detailsBusy, setDetailsBusy] = useState(false);
+  const [previewEditMode, setPreviewEditMode] = useState(false);
   const [galleryDraft, setGalleryDraft] = useState<string[]>([]);
+  const [detailDraft, setDetailDraft] = useState<EditableDetailDraft>({
+    moreAbout: "",
+    whatsIncluded: [""],
+    guestSuggestions: [""],
+    allowedAndNotes: "",
+    dos: [""],
+    donts: [""],
+    faqs: [{ q: "", a: "" }],
+    refundPolicy: "",
+  });
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   const catalog = useMemo(
@@ -154,11 +201,16 @@ export default function HostManagePage() {
   useEffect(() => {
     if (!event) return;
     setGalleryDraft(meetEventGalleryUrls(event));
+    setDetailDraft(detailsFromEvent(event));
   }, [event]);
+
+  useEffect(() => {
+    if (tab !== "preview") setPreviewEditMode(false);
+  }, [tab]);
 
   if (!event || !canManage) {
     return (
-      <div className="mx-auto w-full max-w-6xl px-4 pb-14 pt-24 text-neutral-900 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-7xl px-4 pb-14 pt-24 text-neutral-900 sm:px-6 lg:px-8">
         <p className="text-sm font-medium">You cannot manage this meet.</p>
         <Link href="/bookings" className="mt-4 inline-flex text-sm font-semibold underline">
           Back to bookings
@@ -169,8 +221,25 @@ export default function HostManagePage() {
 
   const localBookings = bookings.filter((b) => b.eventId === event.id);
   const seatCount = seatCountForEvent(event.id, localBookings);
-  const detail = resolveEventDetail(event, {
-    overrideSpotsTaken: Math.min(event.capacity, seatCount),
+  const previewEvent = {
+    ...event,
+    image: galleryDraft[0] ?? "",
+    additionalImages: galleryDraft.slice(1),
+    moreAbout: detailDraft.moreAbout.trim() || undefined,
+    whatsIncluded: trimLines(detailDraft.whatsIncluded),
+    guestSuggestions: trimLines(detailDraft.guestSuggestions),
+    allowedAndNotes: detailDraft.allowedAndNotes.trim() || undefined,
+    houseRules: {
+      dos: trimLines(detailDraft.dos),
+      donts: trimLines(detailDraft.donts),
+    },
+    faqs: detailDraft.faqs
+      .map((row) => ({ q: row.q.trim(), a: row.a.trim() }))
+      .filter((row) => row.q && row.a),
+    refundPolicy: detailDraft.refundPolicy.trim() || undefined,
+  };
+  const detail = resolveEventDetail(previewEvent, {
+    overrideSpotsTaken: Math.min(previewEvent.capacity, seatCount),
   });
   const city = cities.find((c) => c.id === event.cityId);
   const hostName = hostLabelForEvent(event, user ?? null);
@@ -261,6 +330,33 @@ export default function HostManagePage() {
     }
   };
 
+  const saveDetails = () => {
+    if (!event) return;
+    setDetailsBusy(true);
+    try {
+      const whatsIncluded = trimLines(detailDraft.whatsIncluded);
+      const guestSuggestions = trimLines(detailDraft.guestSuggestions);
+      const dos = trimLines(detailDraft.dos);
+      const donts = trimLines(detailDraft.donts);
+      const faqs = detailDraft.faqs
+        .map((row) => ({ q: row.q.trim(), a: row.a.trim() }))
+        .filter((row) => row.q && row.a);
+      updateHostedEvent(event.id, {
+        moreAbout: detailDraft.moreAbout.trim() || undefined,
+        whatsIncluded: whatsIncluded.length > 0 ? whatsIncluded : undefined,
+        guestSuggestions: guestSuggestions.length > 0 ? guestSuggestions : undefined,
+        allowedAndNotes: detailDraft.allowedAndNotes.trim() || undefined,
+        houseRules:
+          dos.length > 0 || donts.length > 0 ? { dos, donts } : undefined,
+        faqs: faqs.length > 0 ? faqs : undefined,
+        refundPolicy: detailDraft.refundPolicy.trim() || undefined,
+      });
+      toast.success("Preview content updated.");
+    } finally {
+      setDetailsBusy(false);
+    }
+  };
+
   const saveQuestions = async () => {
     const normalized = normalizeQuestionRows(rows).filter((q) => q.prompt && q.options.length >= 2);
     setBusy(true);
@@ -314,7 +410,7 @@ export default function HostManagePage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 pb-14 pt-24 text-neutral-900 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-7xl px-4 pb-14 pt-24 text-neutral-900 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between gap-3 border-b border-neutral-200 pb-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-neutral-700">Manage</p>
@@ -345,6 +441,49 @@ export default function HostManagePage() {
 
       {tab === "preview" && (
         <section className="mt-6 space-y-4">
+          <div className="rounded-2xl border border-neutral-200 bg-white p-0 shadow-sm">
+            <div className="border-b border-neutral-200 px-4 py-3 sm:px-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-neutral-700">
+                Guest preview (same layout as attendee view)
+              </p>
+            </div>
+            <div className="p-4 sm:p-5">
+              <EventMeetDetail
+                event={previewEvent}
+                detail={detail}
+                cityName={previewEvent.displayLocation ?? city?.name ?? ""}
+                hostName={hostName}
+                priceLabel={priceLabel}
+                whenLabel={whenLabel}
+              />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-neutral-900">Preview controls</p>
+                <p className="mt-1 text-xs text-neutral-700">
+                  Preview is read-only by default. Enable edit mode to modify fields.
+                </p>
+              </div>
+              <button
+                type="button"
+                className={cn(
+                  "rounded-full px-4 py-2 text-xs font-semibold",
+                  previewEditMode
+                    ? "border border-neutral-300 bg-white text-neutral-900 hover:bg-neutral-100"
+                    : "bg-neutral-900 text-white",
+                )}
+                onClick={() => setPreviewEditMode((v) => !v)}
+              >
+                {previewEditMode ? "Done editing" : "Edit options"}
+              </button>
+            </div>
+          </div>
+
+          {previewEditMode && (
+            <>
           <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-semibold text-neutral-900">Event images (cover + gallery)</p>
@@ -426,22 +565,324 @@ export default function HostManagePage() {
           </div>
 
           <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm sm:p-5">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-neutral-700">
-              Guest preview (same layout as attendee view)
-            </p>
-            <EventMeetDetail
-              event={{
-                ...event,
-                image: galleryDraft[0] ?? "",
-                additionalImages: galleryDraft.slice(1),
-              }}
-              detail={detail}
-              cityName={event.displayLocation ?? city?.name ?? ""}
-              hostName={hostName}
-              priceLabel={priceLabel}
-              whenLabel={whenLabel}
-            />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-neutral-900">Meet details shown to guests</p>
+              <button
+                type="button"
+                className="rounded-full bg-neutral-900 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                onClick={saveDetails}
+                disabled={detailsBusy}
+              >
+                {detailsBusy ? "Saving..." : "Save details"}
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-5">
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-neutral-700">
+                  About this meet
+                </label>
+                <textarea
+                  className="liquid-glass-input mt-2 min-h-20 w-full text-sm text-neutral-900"
+                  value={detailDraft.moreAbout}
+                  onChange={(e) =>
+                    setDetailDraft((prev) => ({ ...prev, moreAbout: e.target.value }))
+                  }
+                  placeholder="Add a richer description for guests"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-neutral-700">
+                  What&apos;s included
+                </label>
+                <div className="mt-2 space-y-2">
+                  {detailDraft.whatsIncluded.map((line, idx) => (
+                    <div key={`wi-${idx}`} className="flex gap-2">
+                      <input
+                        className="liquid-glass-input mt-0 w-full text-sm text-neutral-900"
+                        value={line}
+                        onChange={(e) =>
+                          setDetailDraft((prev) => ({
+                            ...prev,
+                            whatsIncluded: prev.whatsIncluded.map((x, i) =>
+                              i === idx ? e.target.value : x,
+                            ),
+                          }))
+                        }
+                        placeholder={`Included item ${idx + 1}`}
+                      />
+                      <button
+                        type="button"
+                        className="rounded-full border border-red-200 px-3 text-xs font-semibold text-red-700"
+                        onClick={() =>
+                          setDetailDraft((prev) => ({
+                            ...prev,
+                            whatsIncluded:
+                              prev.whatsIncluded.length > 1
+                                ? prev.whatsIncluded.filter((_, i) => i !== idx)
+                                : [""],
+                          }))
+                        }
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="mt-2 rounded-full border border-neutral-300 px-3 py-1 text-xs font-semibold"
+                  onClick={() =>
+                    setDetailDraft((prev) => ({
+                      ...prev,
+                      whatsIncluded: [...prev.whatsIncluded, ""],
+                    }))
+                  }
+                >
+                  + Add item
+                </button>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-[0.08em] text-emerald-700">
+                    Do&apos;s
+                  </label>
+                  <div className="mt-2 space-y-2">
+                    {detailDraft.dos.map((line, idx) => (
+                      <div key={`do-${idx}`} className="flex gap-2">
+                        <input
+                          className="liquid-glass-input mt-0 w-full text-sm text-neutral-900"
+                          value={line}
+                          onChange={(e) =>
+                            setDetailDraft((prev) => ({
+                              ...prev,
+                              dos: prev.dos.map((x, i) => (i === idx ? e.target.value : x)),
+                            }))
+                          }
+                          placeholder={`Do ${idx + 1}`}
+                        />
+                        <button
+                          type="button"
+                          className="rounded-full border border-red-200 px-3 text-xs font-semibold text-red-700"
+                          onClick={() =>
+                            setDetailDraft((prev) => ({
+                              ...prev,
+                              dos: prev.dos.length > 1 ? prev.dos.filter((_, i) => i !== idx) : [""],
+                            }))
+                          }
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="mt-2 rounded-full border border-neutral-300 px-3 py-1 text-xs font-semibold"
+                    onClick={() =>
+                      setDetailDraft((prev) => ({ ...prev, dos: [...prev.dos, ""] }))
+                    }
+                  >
+                    + Add do
+                  </button>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-[0.08em] text-rose-700">
+                    Don&apos;ts
+                  </label>
+                  <div className="mt-2 space-y-2">
+                    {detailDraft.donts.map((line, idx) => (
+                      <div key={`dont-${idx}`} className="flex gap-2">
+                        <input
+                          className="liquid-glass-input mt-0 w-full text-sm text-neutral-900"
+                          value={line}
+                          onChange={(e) =>
+                            setDetailDraft((prev) => ({
+                              ...prev,
+                              donts: prev.donts.map((x, i) => (i === idx ? e.target.value : x)),
+                            }))
+                          }
+                          placeholder={`Don't ${idx + 1}`}
+                        />
+                        <button
+                          type="button"
+                          className="rounded-full border border-red-200 px-3 text-xs font-semibold text-red-700"
+                          onClick={() =>
+                            setDetailDraft((prev) => ({
+                              ...prev,
+                              donts:
+                                prev.donts.length > 1 ? prev.donts.filter((_, i) => i !== idx) : [""],
+                            }))
+                          }
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="mt-2 rounded-full border border-neutral-300 px-3 py-1 text-xs font-semibold"
+                    onClick={() =>
+                      setDetailDraft((prev) => ({ ...prev, donts: [...prev.donts, ""] }))
+                    }
+                  >
+                    + Add don&apos;t
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-neutral-700">
+                  Suggestions
+                </label>
+                <div className="mt-2 space-y-2">
+                  {detailDraft.guestSuggestions.map((line, idx) => (
+                    <div key={`gs-${idx}`} className="flex gap-2">
+                      <input
+                        className="liquid-glass-input mt-0 w-full text-sm text-neutral-900"
+                        value={line}
+                        onChange={(e) =>
+                          setDetailDraft((prev) => ({
+                            ...prev,
+                            guestSuggestions: prev.guestSuggestions.map((x, i) =>
+                              i === idx ? e.target.value : x,
+                            ),
+                          }))
+                        }
+                        placeholder={`Suggestion ${idx + 1}`}
+                      />
+                      <button
+                        type="button"
+                        className="rounded-full border border-red-200 px-3 text-xs font-semibold text-red-700"
+                        onClick={() =>
+                          setDetailDraft((prev) => ({
+                            ...prev,
+                            guestSuggestions:
+                              prev.guestSuggestions.length > 1
+                                ? prev.guestSuggestions.filter((_, i) => i !== idx)
+                                : [""],
+                          }))
+                        }
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="mt-2 rounded-full border border-neutral-300 px-3 py-1 text-xs font-semibold"
+                  onClick={() =>
+                    setDetailDraft((prev) => ({
+                      ...prev,
+                      guestSuggestions: [...prev.guestSuggestions, ""],
+                    }))
+                  }
+                >
+                  + Add suggestion
+                </button>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-neutral-700">
+                  Allowed & good to know
+                </label>
+                <textarea
+                  className="liquid-glass-input mt-2 min-h-20 w-full text-sm text-neutral-900"
+                  value={detailDraft.allowedAndNotes}
+                  onChange={(e) =>
+                    setDetailDraft((prev) => ({ ...prev, allowedAndNotes: e.target.value }))
+                  }
+                  placeholder="Share what is allowed and key notes"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-neutral-700">
+                  FAQ
+                </label>
+                <div className="mt-2 space-y-2">
+                  {detailDraft.faqs.map((row, idx) => (
+                    <div key={`faq-${idx}`} className="rounded-xl border border-neutral-200 p-3">
+                      <input
+                        className="liquid-glass-input mt-0 w-full text-sm text-neutral-900"
+                        value={row.q}
+                        onChange={(e) =>
+                          setDetailDraft((prev) => ({
+                            ...prev,
+                            faqs: prev.faqs.map((x, i) =>
+                              i === idx ? { ...x, q: e.target.value } : x,
+                            ),
+                          }))
+                        }
+                        placeholder="Question"
+                      />
+                      <textarea
+                        className="liquid-glass-input mt-2 min-h-16 w-full text-sm text-neutral-900"
+                        value={row.a}
+                        onChange={(e) =>
+                          setDetailDraft((prev) => ({
+                            ...prev,
+                            faqs: prev.faqs.map((x, i) =>
+                              i === idx ? { ...x, a: e.target.value } : x,
+                            ),
+                          }))
+                        }
+                        placeholder="Answer"
+                      />
+                      <button
+                        type="button"
+                        className="mt-2 rounded-full border border-red-200 px-3 py-1 text-xs font-semibold text-red-700"
+                        onClick={() =>
+                          setDetailDraft((prev) => ({
+                            ...prev,
+                            faqs:
+                              prev.faqs.length > 1
+                                ? prev.faqs.filter((_, i) => i !== idx)
+                                : [{ q: "", a: "" }],
+                          }))
+                        }
+                      >
+                        Remove FAQ
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="mt-2 rounded-full border border-neutral-300 px-3 py-1 text-xs font-semibold"
+                  onClick={() =>
+                    setDetailDraft((prev) => ({
+                      ...prev,
+                      faqs: [...prev.faqs, { q: "", a: "" }],
+                    }))
+                  }
+                >
+                  + Add FAQ
+                </button>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-neutral-700">
+                  Refund policy (shown last)
+                </label>
+                <textarea
+                  className="liquid-glass-input mt-2 min-h-20 w-full text-sm text-neutral-900"
+                  value={detailDraft.refundPolicy}
+                  onChange={(e) =>
+                    setDetailDraft((prev) => ({ ...prev, refundPolicy: e.target.value }))
+                  }
+                  placeholder="Example: Full refund up to 24 hours before start; no refund after that."
+                />
+              </div>
+            </div>
           </div>
+            </>
+          )}
         </section>
       )}
 

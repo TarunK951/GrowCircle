@@ -7,6 +7,7 @@ export type ResolvedEventDetail = {
   allowedAndNotes: string;
   houseRules: { dos: string[]; donts: string[] };
   faqs: EventFaq[];
+  refundPolicy: string;
 };
 
 type ResolveOpts = {
@@ -32,6 +33,7 @@ export function resolveEventDetail(
   const houseRules = event.houseRules ?? { dos: [], donts: [] };
 
   const faqs: EventFaq[] = event.faqs?.length ? event.faqs : [];
+  const refundPolicy = event.refundPolicy?.trim() ?? "";
 
   return {
     spotsTaken: Math.min(Math.max(0, spotsTaken), event.capacity),
@@ -40,5 +42,6 @@ export function resolveEventDetail(
     allowedAndNotes,
     houseRules,
     faqs,
+    refundPolicy,
   };
 }

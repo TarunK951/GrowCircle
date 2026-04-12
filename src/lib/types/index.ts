@@ -58,6 +58,8 @@ export type MeetEvent = {
   faqs?: EventFaq[];
   /** Shown before “What’s allowed”; short guest tips. */
   guestSuggestions?: string[];
+  /** Optional host-defined refund terms shown in refund section. */
+  refundPolicy?: string;
   /** Max 5; each needs ≥2 options for join-time radios. */
   preJoinQuestions?: PreJoinQuestion[];
   /** Host soft-cancelled; meet stays in history but is hidden from Explore. */
