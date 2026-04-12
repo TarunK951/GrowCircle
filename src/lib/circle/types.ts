@@ -62,6 +62,10 @@ export type CircleEvent = {
   max_capacity: number;
   price: string | number;
   event_date: string;
+  /** IANA timezone name when API returns it */
+  timezone?: string;
+  /** Free-form labels; shape varies by backend — normalize in mapper */
+  tags?: string[] | string | null;
   location?: string;
   slug?: string;
   cover_image_url?: string | null;

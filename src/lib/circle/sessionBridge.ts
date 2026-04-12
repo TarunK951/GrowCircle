@@ -1,4 +1,5 @@
 import { refreshTokens } from "@/lib/circle/api";
+import { applyTokenRefresh } from "@/lib/store/authSlice";
 import type { User } from "@/lib/types";
 import { store } from "@/lib/store/store";
 
@@ -15,9 +16,37 @@ let bridge: SessionBridge | null = null;
 /** Coalesces overlapping refresh calls (timers + tab focus + API retries). */
 let refreshInFlight: Promise<boolean> | null = null;
 
+/** When JWT `exp` is known, refresh this long before expiry (matches `CircleSessionBridge`). */
+const ENSURE_REFRESH_BEFORE_MS = 2 * 60 * 1000;
+
 export function configureCircleSession(next: SessionBridge): void {
   bridge = next;
 }
+
+/**
+ * Default bridge must exist before any Circle API call (e.g. RTK `hostedEvents` in
+ * `AppProviders`). `CircleSessionBridge` only mounts under `(app)/layout`, so marketing
+ * routes (e.g. host wizard) would otherwise run with `bridge === null` and never refresh.
+ */
+function registerDefaultCircleSessionBridge(): void {
+  configureCircleSession({
+    getSession: () => {
+      const s = store.getState();
+      return { user: s.auth.user, refreshToken: s.auth.refreshToken };
+    },
+    applyTokens: (t) => {
+      store.dispatch(applyTokenRefresh(t));
+    },
+    onRefreshFailed: () => {
+      if (typeof window === "undefined") return;
+      void import("@/stores/session-store").then(({ useSessionStore }) => {
+        useSessionStore.getState().logout();
+      });
+    },
+  });
+}
+
+registerDefaultCircleSessionBridge();
 
 /** Returns JWT `exp` as ms since epoch, or null if not a decodable JWT. */
 export function getAccessTokenExpiryMs(accessToken: string): number | null {
@@ -64,12 +93,38 @@ export async function refreshCircleAccessToken(): Promise<boolean> {
 }
 
 /**
- * Returns a valid access token from Redux, refreshing with the stored refresh token
- * when the access token is missing (e.g. expired) but the session is still valid.
+ * Returns a usable access token from Redux. Refreshes when the access token is missing,
+ * when the JWT is expired or within ~2 minutes of expiring,
+ * or when only a refresh token exists. Non-JWT (opaque) tokens are returned as-is; rotation
+ * relies on timers, tab focus, and `circleRequest` 401 retry.
  */
 export async function ensureCircleAccessToken(): Promise<string | null> {
-  const access = store.getState().auth.accessToken;
-  if (access) return access;
-  const ok = await refreshCircleAccessToken();
-  return ok ? store.getState().auth.accessToken : null;
+  const { accessToken, refreshToken } = store.getState().auth;
+
+  if (!refreshToken) {
+    return accessToken ?? null;
+  }
+
+  if (!accessToken) {
+    const ok = await refreshCircleAccessToken();
+    return ok ? store.getState().auth.accessToken : null;
+  }
+
+  const expMs = getAccessTokenExpiryMs(accessToken);
+  if (expMs == null) {
+    return accessToken;
+  }
+
+  const now = Date.now();
+  if (expMs <= now) {
+    const ok = await refreshCircleAccessToken();
+    return ok ? store.getState().auth.accessToken : null;
+  }
+
+  if (expMs <= now + ENSURE_REFRESH_BEFORE_MS) {
+    const ok = await refreshCircleAccessToken();
+    if (ok) return store.getState().auth.accessToken ?? null;
+  }
+
+  return accessToken;
 }

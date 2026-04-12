@@ -2,20 +2,16 @@
 
 import { useEffect, useRef } from "react";
 import {
-  configureCircleSession,
   getAccessTokenExpiryMs,
   refreshCircleAccessToken,
 } from "@/lib/circle/sessionBridge";
 import { isCircleApiConfigured } from "@/lib/circle/config";
 import {
-  applyTokenRefresh,
   selectAccessToken,
   selectRefreshToken,
   selectUser,
 } from "@/lib/store/authSlice";
-import { useAppDispatch, useAppSelector } from "@/lib/store/hooks";
-import { store } from "@/lib/store/store";
-import { useSessionStore } from "@/stores/session-store";
+import { useAppSelector } from "@/lib/store/hooks";
 
 /** When JWT has no/invalid exp, still rotate refresh token on this cadence. */
 const FALLBACK_INTERVAL_MS = 10 * 60 * 1000;
@@ -31,28 +27,17 @@ const VISIBILITY_THROTTLE_MS = 45 * 1000;
  * — timer ~2 min before JWT exp (when `exp` is present)
  * — fallback interval when `exp` is missing
  * — refresh when the tab becomes visible again
+ *
+ * Session bridge registration lives in `sessionBridge.ts` so refresh works on all routes
+ * (not only under `(app)/layout` where this component mounts).
  */
 export function CircleSessionBridge() {
-  const dispatch = useAppDispatch();
   const user = useAppSelector(selectUser);
   const accessToken = useAppSelector(selectAccessToken);
   const refreshToken = useAppSelector(selectRefreshToken);
   const lastVisibilityRefreshRef = useRef(0);
   /** One-shot refresh when JWT has no `exp` (opaque token) — avoids a refresh loop. */
   const opaqueTokenWarmupRef = useRef(false);
-
-  useEffect(() => {
-    configureCircleSession({
-      getSession: () => {
-        const s = store.getState();
-        return { user: s.auth.user, refreshToken: s.auth.refreshToken };
-      },
-      applyTokens: (t) => {
-        dispatch(applyTokenRefresh(t));
-      },
-      onRefreshFailed: () => useSessionStore.getState().logout(),
-    });
-  }, [dispatch]);
 
   useEffect(() => {
     if (!isCircleApiConfigured() || !user || !refreshToken) return;

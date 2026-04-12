@@ -20,6 +20,22 @@ function asStringArray(v: unknown): string[] {
   return v.filter((x): x is string => typeof x === "string" && x.trim().length > 0);
 }
 
+function asTagsArray(v: unknown): string[] {
+  if (v === null || v === undefined) return [];
+  if (Array.isArray(v)) {
+    return v
+      .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+      .map((x) => x.trim());
+  }
+  if (typeof v === "string" && v.trim()) {
+    return v
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
 function normalizeFaqs(raw: unknown): EventFaq[] {
   if (!Array.isArray(raw)) return [];
   const out: EventFaq[] = [];
@@ -153,14 +169,22 @@ export function circleEventToMeetEvent(
   const faqs = normalizeFaqs(api.faqs ?? loose.faqs);
   const houseRules = normalizeHouseRules(api, loose);
 
-  const categoryLabel =
+  const rawCategory =
     typeof api.category === "string" && api.category.trim()
       ? api.category.trim()
-      : "Social";
+      : null;
+  const tagList = asTagsArray(api.tags ?? loose.tags);
+  const categoryLabel = rawCategory ?? "Meet";
   const categoriesFromApi =
     Array.isArray(api.categories) && api.categories.length > 0
-      ? api.categories.filter((c): c is string => typeof c === "string" && c.trim().length > 0)
-      : [categoryLabel];
+      ? api.categories
+          .filter((c): c is string => typeof c === "string" && c.trim().length > 0)
+          .map((c) => c.trim())
+      : rawCategory
+        ? [...new Set([rawCategory, ...tagList])]
+        : tagList.length > 0
+          ? [...new Set(["Meet", ...tagList])]
+          : ["Meet"];
 
   return {
     id: api.id,

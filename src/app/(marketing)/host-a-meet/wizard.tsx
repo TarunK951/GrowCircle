@@ -8,9 +8,11 @@ import { EVENT_CATEGORY_PRESETS } from "@/lib/eventCategories";
 import {
   addEventQuestion,
   createEvent,
+  getEventById,
   getMyProfile,
   isCircleProfileComplete,
   publishEvent,
+  updateEvent,
 } from "@/lib/circle/api";
 import { CircleApiError, formatCircleError } from "@/lib/circle/client";
 import { isCircleApiConfigured } from "@/lib/circle/config";
@@ -53,8 +55,27 @@ const cities = citiesData as City[];
 const MAX_IMAGE_BYTES = 750 * 1024;
 /** Larger cap when publishing via Circle + S3 presigned upload */
 const MAX_IMAGE_BYTES_CIRCLE = 5 * 1024 * 1024;
-const STEPS = 10;
+const STEPS = 5;
 const MAX_COVER_SLOTS = 3;
+
+const TIMEZONE_OPTIONS = [
+  "Asia/Kolkata",
+  "Asia/Dubai",
+  "Asia/Singapore",
+  "Europe/London",
+  "America/New_York",
+  "America/Los_Angeles",
+  "UTC",
+] as const;
+
+function tagsPayloadFromDraft(d: HostDraft): string[] {
+  const fromCats = d.categories.slice(1);
+  const fromComma = d.tagsComma
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return [...new Set([...fromCats, ...fromComma])];
+}
 
 async function dataUrlToBlob(
   dataUrl: string,
@@ -62,10 +83,6 @@ async function dataUrlToBlob(
   const res = await fetch(dataUrl);
   const blob = await res.blob();
   return { blob, mime: blob.type || "image/jpeg" };
-}
-
-function trimLines(lines: string[]): string[] {
-  return lines.map((s) => s.trim()).filter(Boolean);
 }
 
 function isProbablyUrl(s: string): boolean {
@@ -129,7 +146,7 @@ export function HostWizard() {
       const { hostDraft, hostWizardStep } = useSessionStore.getState();
       if (hostDraft != null) {
         setDraft(normalizeHostDraft(hostDraft));
-        setStep(hostWizardStep ?? 0);
+        setStep(Math.min(hostWizardStep ?? 0, STEPS - 1));
       }
       setPersistReady(true);
     };
@@ -239,12 +256,9 @@ export function HostWizard() {
       const startsAtIso = new Date(draft.startsAt).toISOString();
 
       const cats = draft.categories.slice(0, 3);
-      const primaryCategory = cats[0] ?? "Social";
+      const primaryCategory = cats[0] ?? "Meet";
+      const tagPayload = tagsPayloadFromDraft(draft);
 
-      const whatsIncluded = trimLines(draft.whatsIncludedLines);
-      const guestSuggestions = trimLines(draft.guestSuggestions);
-      const dos = trimLines(draft.houseDos);
-      const donts = trimLines(draft.houseDonts);
       const faqs = draft.faqs
         .map((f) => ({ q: f.q.trim(), a: f.a.trim() }))
         .filter((f) => f.q && f.a);
@@ -348,11 +362,21 @@ export function HostWizard() {
           max_capacity: Math.max(4, draft.capacity),
           price: Math.max(0, draft.priceCents) / 100,
           event_date: startsAtIso,
+          timezone: draft.timezone.trim() || "Asia/Kolkata",
           location,
+          ...(primaryCategory ? { category: primaryCategory } : {}),
+          ...(tagPayload.length > 0 ? { tags: tagPayload } : {}),
           ...(coverUrl ? { cover_image_url: coverUrl } : {}),
           ...(additionalImages.length > 0 ? { image_urls: additionalImages } : {}),
           visibility: draft.listingVisibility,
-          waitlist_enabled: true,
+          waitlist_enabled: draft.waitlistEnabled,
+        });
+
+        await updateEvent(token, created.id, {
+          timezone: draft.timezone.trim() || "Asia/Kolkata",
+          ...(primaryCategory ? { category: primaryCategory } : {}),
+          ...(tagPayload.length > 0 ? { tags: tagPayload } : {}),
+          ...(faqs.length > 0 ? { faqs } : {}),
         });
 
         for (let i = 0; i < draft.preJoinQuestions.length; i++) {
@@ -368,28 +392,24 @@ export function HostWizard() {
           });
         }
 
-        const published = await publishEvent(token, created.id);
-        const ev = circleEventToMeetEvent(published, {
+        await publishEvent(token, created.id);
+        let finalRaw;
+        try {
+          finalRaw = await getEventById(created.id, token);
+        } catch {
+          finalRaw = created;
+        }
+        const ev = circleEventToMeetEvent(finalRaw, {
           defaultHostUserId: user.id,
         });
         publishHostedEvent({
           ...ev,
           category: primaryCategory,
-          categories: cats,
+          categories: cats.length ? cats : ev.categories,
           cityId: draft.cityId,
-          moreAbout: draft.moreAbout.trim() || undefined,
-          whatsIncluded: whatsIncluded.length ? whatsIncluded : undefined,
-          guestSuggestions: guestSuggestions.length
-            ? guestSuggestions
-            : undefined,
-          allowedAndNotes: draft.allowedAndNotes.trim() || undefined,
-          houseRules:
-            dos.length || donts.length ? { dos, donts } : undefined,
-          faqs: faqs.length ? faqs : undefined,
           preJoinQuestions: preJoinQuestions.length
             ? preJoinQuestions
             : undefined,
-          joinMode: draft.joinMode,
           shareToken: generateShareToken(),
           additionalImages:
             additionalImages.length > 0 ? additionalImages : undefined,
@@ -464,6 +484,52 @@ export function HostWizard() {
               onChange={(e) =>
                 setDraft((d) => ({ ...d, description: e.target.value }))
               }
+            />
+          </div>
+          <div>
+            <p className="text-sm text-neutral-900">
+              Categories (up to 3). The first is stored as the primary{" "}
+              <span className="font-medium">category</span> on the server; extras
+              go to <span className="font-medium">tags</span>.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {EVENT_CATEGORY_PRESETS.map((c) => {
+                const on = draft.categories.includes(c);
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => toggleCategory(c)}
+                    className={
+                      on
+                        ? "rounded-full bg-primary px-4 py-2 text-sm font-medium text-white"
+                        : "rounded-full border border-primary/25 bg-white/50 px-4 py-2 text-sm font-medium text-foreground"
+                    }
+                  >
+                    {c}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-neutral-700">
+              Selected:{" "}
+              {draft.categories.length ? draft.categories.join(" · ") : "—"}
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-neutral-900">
+              Extra tags (optional)
+            </label>
+            <p className="mt-1 text-xs text-neutral-600">
+              Comma-separated — merged with any categories after the first.
+            </p>
+            <input
+              className={inputClass}
+              value={draft.tagsComma}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, tagsComma: e.target.value }))
+              }
+              placeholder="e.g. outdoors, beginners"
             />
           </div>
         </div>
@@ -552,6 +618,12 @@ export function HostWizard() {
               </div>
             </div>
           </div>
+          <HostMeetSelect
+            label="Timezone"
+            value={draft.timezone}
+            options={TIMEZONE_OPTIONS.map((z) => ({ value: z, label: z }))}
+            onChange={(timezone) => setDraft((d) => ({ ...d, timezone }))}
+          />
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="text-sm font-semibold text-neutral-900">Capacity (max slots)</label>
@@ -596,24 +668,24 @@ export function HostWizard() {
       )}
 
       {step === 3 && (
-        <div className="mt-4 space-y-4">
+        <div className="mt-4 space-y-5">
           <HostMeetSelect
-            label="Join policy"
-            value={draft.joinMode}
+            label="Waitlist"
+            value={draft.waitlistEnabled ? "on" : "off"}
             options={[
               {
-                value: "open",
-                label: "Open — anyone can join instantly",
+                value: "on",
+                label: "Enabled — guests can join the waitlist when full",
               },
               {
-                value: "invite",
-                label: "Invite — guests request; you approve",
+                value: "off",
+                label: "Disabled — no waitlist for this meet",
               },
             ]}
             onChange={(v) =>
               setDraft((d) => ({
                 ...d,
-                joinMode: v as "open" | "invite",
+                waitlistEnabled: v === "on",
               }))
             }
           />
@@ -631,11 +703,7 @@ export function HostWizard() {
               }))
             }
           />
-        </div>
-      )}
 
-      {step === 4 && (
-        <div className="mt-4 space-y-5">
           <input
             ref={coverFileInputRef}
             type="file"
@@ -860,251 +928,7 @@ export function HostWizard() {
         </div>
       )}
 
-      {step === 5 && (
-        <div className="mt-4 space-y-4">
-          <div>
-            <label className="text-sm font-semibold text-neutral-900">About this meet (longer)</label>
-            <textarea
-              className={`${inputClass} min-h-[120px] resize-y`}
-              value={draft.moreAbout}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, moreAbout: e.target.value }))
-              }
-              placeholder="What happens, tone, accessibility…"
-            />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-neutral-900">What&apos;s included</p>
-            <p className="mt-1 text-xs text-neutral-900">
-              One line per item (empty lines are ignored).
-            </p>
-            <div className="mt-2 space-y-2">
-              {draft.whatsIncludedLines.map((line, i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    className={inputClass + " mt-0"}
-                    value={line}
-                    onChange={(e) => {
-                      const next = [...draft.whatsIncludedLines];
-                      next[i] = e.target.value;
-                      setDraft((d) => ({ ...d, whatsIncludedLines: next }));
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="mt-0 shrink-0 rounded-full border border-primary/20 px-3 text-sm"
-                    onClick={() => {
-                      const next = draft.whatsIncludedLines.filter(
-                        (_, j) => j !== i,
-                      );
-                      setDraft((d) => ({
-                        ...d,
-                        whatsIncludedLines:
-                          next.length > 0 ? next : [""],
-                      }));
-                    }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                className="text-sm font-medium text-primary hover:underline"
-                onClick={() =>
-                  setDraft((d) => ({
-                    ...d,
-                    whatsIncludedLines: [...d.whatsIncludedLines, ""],
-                  }))
-                }
-              >
-                + Add line
-              </button>
-            </div>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-neutral-900">Suggestions for guests</p>
-            <p className="mt-1 text-xs text-neutral-900">
-              Short tips (one per line); shown on the event page if set.
-            </p>
-            <div className="mt-2 space-y-2">
-              {draft.guestSuggestions.map((line, i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    className={inputClass + " mt-0"}
-                    value={line}
-                    onChange={(e) => {
-                      const next = [...draft.guestSuggestions];
-                      next[i] = e.target.value;
-                      setDraft((d) => ({ ...d, guestSuggestions: next }));
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="mt-0 shrink-0 rounded-full border border-primary/20 px-3 text-sm"
-                    onClick={() => {
-                      const next = draft.guestSuggestions.filter(
-                        (_, j) => j !== i,
-                      );
-                      setDraft((d) => ({
-                        ...d,
-                        guestSuggestions: next.length > 0 ? next : [""],
-                      }));
-                    }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                className="text-sm font-medium text-primary hover:underline"
-                onClick={() =>
-                  setDraft((d) => ({
-                    ...d,
-                    guestSuggestions: [...d.guestSuggestions, ""],
-                  }))
-                }
-              >
-                + Add line
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {step === 6 && (
-        <div className="mt-4 space-y-4">
-          <div>
-            <label className="text-sm font-semibold text-neutral-900">
-              What&apos;s allowed &amp; good to know
-            </label>
-            <textarea
-              className={`${inputClass} min-h-[100px] resize-y`}
-              value={draft.allowedAndNotes}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, allowedAndNotes: e.target.value }))
-              }
-            />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-neutral-900">Do</p>
-            <div className="mt-2 space-y-2">
-              {draft.houseDos.map((line, i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    className={inputClass + " mt-0"}
-                    value={line}
-                    onChange={(e) => {
-                      const next = [...draft.houseDos];
-                      next[i] = e.target.value;
-                      setDraft((d) => ({ ...d, houseDos: next }));
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="mt-0 shrink-0 rounded-full border border-primary/20 px-3 text-sm"
-                    onClick={() => {
-                      const next = draft.houseDos.filter((_, j) => j !== i);
-                      setDraft((d) => ({
-                        ...d,
-                        houseDos: next.length > 0 ? next : [""],
-                      }));
-                    }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                className="text-sm font-medium text-primary hover:underline"
-                onClick={() =>
-                  setDraft((d) => ({ ...d, houseDos: [...d.houseDos, ""] }))
-                }
-              >
-                + Add
-              </button>
-            </div>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-neutral-900">Don&apos;t</p>
-            <div className="mt-2 space-y-2">
-              {draft.houseDonts.map((line, i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    className={inputClass + " mt-0"}
-                    value={line}
-                    onChange={(e) => {
-                      const next = [...draft.houseDonts];
-                      next[i] = e.target.value;
-                      setDraft((d) => ({ ...d, houseDonts: next }));
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="mt-0 shrink-0 rounded-full border border-primary/20 px-3 text-sm"
-                    onClick={() => {
-                      const next = draft.houseDonts.filter((_, j) => j !== i);
-                      setDraft((d) => ({
-                        ...d,
-                        houseDonts: next.length > 0 ? next : [""],
-                      }));
-                    }}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                className="text-sm font-medium text-primary hover:underline"
-                onClick={() =>
-                  setDraft((d) => ({
-                    ...d,
-                    houseDonts: [...d.houseDonts, ""],
-                  }))
-                }
-              >
-                + Add
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {step === 7 && (
-        <div className="mt-4 space-y-3">
-          <p className="text-sm text-neutral-900">
-            Pick up to three categories. These appear on Explore and on your event
-            page.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {EVENT_CATEGORY_PRESETS.map((c) => {
-              const on = draft.categories.includes(c);
-              return (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => toggleCategory(c)}
-                  className={
-                    on
-                      ? "rounded-full bg-primary px-4 py-2 text-sm font-medium text-white"
-                      : "rounded-full border border-primary/25 bg-white/50 px-4 py-2 text-sm font-medium text-foreground"
-                  }
-                >
-                  {c}
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-xs text-neutral-900">
-            Selected: {draft.categories.length ? draft.categories.join(" · ") : "—"}
-          </p>
-        </div>
-      )}
-
-      {step === 8 && (
+      {step === 4 && (
         <div className="mt-4 space-y-4">
           <p className="text-sm text-neutral-900">
             Add question and answer pairs for the FAQ accordion on the event page.
@@ -1158,11 +982,9 @@ export function HostWizard() {
           >
             + Add FAQ
           </button>
-        </div>
-      )}
 
-      {step === 9 && (
-        <div className="mt-4 space-y-4">
+          <div className="mt-8 space-y-4 border-t border-neutral-200 pt-8">
+          <p className="text-sm font-semibold text-neutral-900">Pre-join questions</p>
           <p className="text-sm text-neutral-900">
             Optional: up to 5 multiple-choice questions guests must answer before
             joining. Each needs a prompt and at least two options.
@@ -1251,6 +1073,7 @@ export function HostWizard() {
           >
             + Add pre-join question
           </button>
+          </div>
         </div>
       )}
 

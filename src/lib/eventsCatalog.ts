@@ -2,7 +2,20 @@ import {
   eventCategoryLabels,
   eventMatchesCategoryFilter,
 } from "@/lib/eventCategories";
-import type { MeetEvent } from "@/lib/types";
+import type { City, MeetEvent } from "@/lib/types";
+import citiesData from "@/data/cities.json";
+
+const cities = citiesData as City[];
+
+function eventMatchesCityFilter(event: MeetEvent, cityId: string): boolean {
+  if (event.cityId === cityId) return true;
+  const loc = event.displayLocation?.trim().toLowerCase();
+  if (!loc) return cityId === "circle";
+  const selected = cities.find((c) => c.id === cityId);
+  if (!selected) return false;
+  if (selected.id === "circle") return true;
+  return loc.includes(selected.name.toLowerCase());
+}
 
 export type CatalogMergeOptions = {
   /** @deprecated Static JSON seed removed; option ignored. */
@@ -57,7 +70,9 @@ export function listEventsMerged(
   if (filters?.publicOnly) {
     list = list.filter((e) => (e.listingVisibility ?? "public") === "public");
   }
-  if (filters?.cityId) list = list.filter((e) => e.cityId === filters.cityId);
+  if (filters?.cityId) {
+    list = list.filter((e) => eventMatchesCityFilter(e, filters.cityId!));
+  }
   if (filters?.category && filters.category !== "all") {
     list = list.filter((e) =>
       eventMatchesCategoryFilter(e, filters.category!),

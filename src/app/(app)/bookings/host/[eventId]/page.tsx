@@ -336,7 +336,7 @@ export default function HostManagePage() {
     }
   };
 
-  const saveDetails = () => {
+  const saveDetails = async () => {
     if (!event) return;
     setDetailsBusy(true);
     try {
@@ -357,7 +357,16 @@ export default function HostManagePage() {
         faqs: faqs.length > 0 ? faqs : undefined,
         refundPolicy: detailDraft.refundPolicy.trim() || undefined,
       });
+      if (circleMode && accessToken) {
+        await updateEvent(accessToken, event.id, {
+          faqs: faqs.length > 0 ? faqs : [],
+        });
+      }
       toast.success("Preview content updated.");
+    } catch (e) {
+      toast.error(
+        e instanceof CircleApiError ? e.message : "Could not save details",
+      );
     } finally {
       setDetailsBusy(false);
     }

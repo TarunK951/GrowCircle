@@ -36,23 +36,22 @@ export type HostDraft = {
   title: string;
   description: string;
   cityId: string;
-  /** Max 3 preset category labels. */
+  /** Up to 3 preset labels → API `category` (first) + `tags` (rest + `tagsComma`). */
   categories: string[];
+  /** Optional comma-separated extra tags for the API `tags` field. */
+  tagsComma: string;
+  /** IANA tz (e.g. Asia/Kolkata) sent as `timezone` on create/update. */
+  timezone: string;
   addressLine: string;
   startsAt: string;
   capacity: number;
   venueName: string;
-  joinMode: "open" | "invite";
+  /** Maps to Circle `waitlist_enabled`. */
+  waitlistEnabled: boolean;
   listingVisibility: "public" | "private";
   priceCents: number;
   /** Up to 3 images; first is used as Circle `cover_image_url`. */
   coverSlots: HostCoverSlot[];
-  moreAbout: string;
-  whatsIncludedLines: string[];
-  guestSuggestions: string[];
-  allowedAndNotes: string;
-  houseDos: string[];
-  houseDonts: string[];
   faqs: { q: string; a: string }[];
   /** Draft rows; ids assigned on publish. */
   preJoinQuestions: { prompt: string; options: string[] }[];
@@ -148,20 +147,16 @@ const initialHostDraft = (): HostDraft => ({
   description: "",
   cityId: "blr",
   categories: ["Social"],
+  tagsComma: "",
+  timezone: "Asia/Kolkata",
   addressLine: "",
   startsAt: "",
   capacity: 16,
   venueName: "",
-  joinMode: "open",
+  waitlistEnabled: true,
   listingVisibility: "public",
   priceCents: 0,
   coverSlots: [{ dataUrl: null, url: "" }],
-  moreAbout: "",
-  whatsIncludedLines: [""],
-  guestSuggestions: [""],
-  allowedAndNotes: "",
-  houseDos: [""],
-  houseDonts: [""],
   faqs: [{ q: "", a: "" }],
   preJoinQuestions: [],
 });
@@ -190,6 +185,7 @@ export function normalizeHostDraft(raw: unknown): HostDraft {
     }
   }
 
+  const legacyJoinInvite = o.joinMode === "invite";
   const next: HostDraft = {
     ...base,
     title: typeof o.title === "string" ? o.title : base.title,
@@ -198,6 +194,8 @@ export function normalizeHostDraft(raw: unknown): HostDraft {
     categories: Array.isArray(o.categories)
       ? (o.categories as string[]).filter((c) => typeof c === "string")
       : base.categories,
+    tagsComma: typeof o.tagsComma === "string" ? o.tagsComma : base.tagsComma,
+    timezone: typeof o.timezone === "string" && o.timezone.trim() ? o.timezone : base.timezone,
     addressLine: typeof o.addressLine === "string" ? o.addressLine : base.addressLine,
     startsAt: typeof o.startsAt === "string" ? o.startsAt : base.startsAt,
     capacity:
@@ -205,28 +203,18 @@ export function normalizeHostDraft(raw: unknown): HostDraft {
         ? o.capacity
         : base.capacity,
     venueName: typeof o.venueName === "string" ? o.venueName : base.venueName,
-    joinMode: o.joinMode === "invite" ? "invite" : "open",
+    waitlistEnabled:
+      typeof o.waitlistEnabled === "boolean"
+        ? o.waitlistEnabled
+        : legacyJoinInvite
+          ? true
+          : base.waitlistEnabled,
     listingVisibility: o.listingVisibility === "private" ? "private" : "public",
     priceCents:
       typeof o.priceCents === "number" && Number.isFinite(o.priceCents)
         ? Math.max(0, o.priceCents)
         : base.priceCents,
     coverSlots,
-    moreAbout: typeof o.moreAbout === "string" ? o.moreAbout : base.moreAbout,
-    whatsIncludedLines: Array.isArray(o.whatsIncludedLines)
-      ? (o.whatsIncludedLines as string[]).map((x) => (typeof x === "string" ? x : ""))
-      : base.whatsIncludedLines,
-    guestSuggestions: Array.isArray(o.guestSuggestions)
-      ? (o.guestSuggestions as string[]).map((x) => (typeof x === "string" ? x : ""))
-      : base.guestSuggestions,
-    allowedAndNotes:
-      typeof o.allowedAndNotes === "string" ? o.allowedAndNotes : base.allowedAndNotes,
-    houseDos: Array.isArray(o.houseDos)
-      ? (o.houseDos as string[]).map((x) => (typeof x === "string" ? x : ""))
-      : base.houseDos,
-    houseDonts: Array.isArray(o.houseDonts)
-      ? (o.houseDonts as string[]).map((x) => (typeof x === "string" ? x : ""))
-      : base.houseDonts,
     faqs: Array.isArray(o.faqs)
       ? (o.faqs as { q: string; a: string }[])
           .filter((f) => f && typeof f === "object")

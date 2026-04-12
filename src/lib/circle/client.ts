@@ -34,6 +34,17 @@ type InternalRequestOpts = RequestOpts & {
   _authRetryDone?: boolean;
 };
 
+/** Refresh near-expired / expired JWTs before the first network call (see `ensureCircleAccessToken`). */
+async function applyProactiveTokenRefresh(
+  opts: InternalRequestOpts,
+): Promise<InternalRequestOpts> {
+  if (!opts.accessToken) return opts;
+  const { ensureCircleAccessToken } = await import("@/lib/circle/sessionBridge");
+  const fresh = await ensureCircleAccessToken();
+  if (fresh) return { ...opts, accessToken: fresh };
+  return opts;
+}
+
 function isAuthFailureRetryable(err: CircleApiError): boolean {
   const m = (err.message || "").toLowerCase();
   if (err.status === 401) return true;
@@ -136,7 +147,9 @@ export async function circleRequest<T>(
   path: string,
   opts: RequestOpts = {},
 ): Promise<T> {
-  const o = opts as InternalRequestOpts;
+  const o = (await applyProactiveTokenRefresh(
+    opts as InternalRequestOpts,
+  )) as InternalRequestOpts;
   try {
     return await circleRequestOnce<T>(path, o);
   } catch (e) {
@@ -232,7 +245,9 @@ export async function circleRequestList<T>(
   path: string,
   opts: RequestOptsNoBody & { accessToken: string },
 ): Promise<{ data: T[]; meta: CircleListMeta }> {
-  const o = opts as typeof opts & InternalRequestOpts;
+  const o = (await applyProactiveTokenRefresh(
+    opts as typeof opts & InternalRequestOpts,
+  )) as typeof opts & InternalRequestOpts;
   try {
     return await circleRequestListOnce<T>(path, o);
   } catch (e) {
@@ -285,8 +300,12 @@ export async function circleRequestBlob(
   path: string,
   accessToken: string,
 ): Promise<Blob> {
+  const refreshed = await applyProactiveTokenRefresh({
+    accessToken,
+  } as InternalRequestOpts);
+  const token = refreshed.accessToken ?? accessToken;
   try {
-    return await circleRequestBlobOnce(path, accessToken);
+    return await circleRequestBlobOnce(path, token);
   } catch (e) {
     if (!(e instanceof CircleApiError)) throw e;
     if (!isAuthFailureRetryable(e)) throw e;
@@ -301,3 +320,4 @@ export async function circleRequestBlob(
     return circleRequestBlobOnce(path, next);
   }
 }
+
