@@ -95,7 +95,7 @@ export default function ReportsPage() {
     return (
       <div className="max-w-lg">
         <h1 className="text-2xl font-semibold tracking-tight">Reports</h1>
-        <p className="mt-2 text-sm text-neutral-600">
+        <p className="mt-2 text-sm text-neutral-900">
           Connect to the Circle API and sign in to submit and view reports.
         </p>
       </div>
@@ -107,7 +107,7 @@ export default function ReportsPage() {
       <h1 className="font-onest text-2xl font-semibold tracking-tight sm:text-3xl">
         Reports
       </h1>
-      <p className="mt-2 text-sm text-neutral-700">
+      <p className="mt-2 text-sm text-neutral-900">
         Report inappropriate behavior or issues. Submissions are sent to Circle
         for review.
       </p>
@@ -117,7 +117,7 @@ export default function ReportsPage() {
         className="mt-8 space-y-4 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm"
       >
         <div>
-          <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+          <label className="text-xs font-bold uppercase tracking-wider text-neutral-900">
             Target type
           </label>
           <select
@@ -133,7 +133,7 @@ export default function ReportsPage() {
           </select>
         </div>
         <div>
-          <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+          <label className="text-xs font-bold uppercase tracking-wider text-neutral-900">
             Target id
           </label>
           <input
@@ -145,7 +145,7 @@ export default function ReportsPage() {
           />
         </div>
         <div>
-          <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+          <label className="text-xs font-bold uppercase tracking-wider text-neutral-900">
             Event id (optional)
           </label>
           <input
@@ -156,7 +156,7 @@ export default function ReportsPage() {
           />
         </div>
         <div>
-          <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+          <label className="text-xs font-bold uppercase tracking-wider text-neutral-900">
             Reason
           </label>
           <input
@@ -167,7 +167,7 @@ export default function ReportsPage() {
           />
         </div>
         <div>
-          <label className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+          <label className="text-xs font-bold uppercase tracking-wider text-neutral-900">
             Description (optional)
           </label>
           <textarea
@@ -189,10 +189,10 @@ export default function ReportsPage() {
       <div className="mt-10">
         <h2 className="text-lg font-semibold text-neutral-900">Your reports</h2>
         {loading && (
-          <p className="mt-4 text-sm text-neutral-600">Loading…</p>
+          <p className="mt-4 text-sm text-neutral-900">Loading…</p>
         )}
         {!loading && rows.length === 0 && (
-          <p className="mt-4 text-sm text-neutral-600">No reports yet.</p>
+          <p className="mt-4 text-sm text-neutral-900">No reports yet.</p>
         )}
         <ul className="mt-4 max-h-[min(480px,50vh)] space-y-3 overflow-y-auto pr-1">
           {rows.map((r) => (
@@ -204,9 +204,9 @@ export default function ReportsPage() {
                 {r.target_type} · {r.status ?? "pending"}
               </p>
               {r.reason && (
-                <p className="mt-1 text-neutral-800">{r.reason}</p>
+                <p className="mt-1 text-neutral-900">{r.reason}</p>
               )}
-              <p className="mt-2 text-xs text-neutral-600">
+              <p className="mt-2 text-xs text-neutral-900">
                 {r.created_at
                   ? new Date(r.created_at).toLocaleString()
                   : ""}

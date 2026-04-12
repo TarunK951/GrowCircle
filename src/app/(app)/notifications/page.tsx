@@ -126,7 +126,7 @@ export default function NotificationsPage() {
             <h1 className="font-onest text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl">
               Notifications
             </h1>
-            <p className="mt-2 text-sm font-medium text-neutral-700">
+            <p className="mt-2 text-sm font-medium text-neutral-900">
               Updates from Circle — mark as read or open a linked event.
             </p>
           </div>
@@ -141,11 +141,11 @@ export default function NotificationsPage() {
         </div>
 
         {loading && (
-          <p className="mt-8 text-sm text-neutral-600">Loading…</p>
+          <p className="mt-8 text-sm text-neutral-900">Loading…</p>
         )}
 
         {!loading && items.length === 0 && (
-          <p className="mt-8 text-sm text-neutral-600">No notifications yet.</p>
+          <p className="mt-8 text-sm text-neutral-900">No notifications yet.</p>
         )}
 
         <ul className="mt-8 space-y-3">
@@ -174,7 +174,7 @@ export default function NotificationsPage() {
                   <p className="mt-1 text-sm font-medium leading-relaxed text-neutral-900">
                     {n.message}
                   </p>
-                  <p className="mt-2 text-xs font-medium text-neutral-600">
+                  <p className="mt-2 text-xs font-medium text-neutral-900">
                     {n.type} · {new Date(n.created_at).toLocaleString()}
                   </p>
                 </button>
@@ -202,7 +202,7 @@ export default function NotificationsPage() {
             >
               Previous
             </button>
-            <span className="text-neutral-600">
+            <span className="text-neutral-900">
               Page {meta.page} of {totalPages} ({meta.total} total)
             </span>
             <button
@@ -244,7 +244,7 @@ export default function NotificationsPage() {
               <p className="mt-1 text-sm font-medium leading-relaxed text-neutral-900">
                 {n.body}
               </p>
-              <p className="mt-2 text-xs font-medium text-neutral-800">
+              <p className="mt-2 text-xs font-medium text-neutral-900">
                 {new Date(n.createdAt).toLocaleString()}
               </p>
             </button>

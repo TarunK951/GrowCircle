@@ -21,7 +21,7 @@ export default function OnboardingPage() {
   return (
     <div className="max-w-lg">
       <h1 className="text-2xl font-semibold tracking-tight">Welcome aboard</h1>
-      <p className="mt-2 text-muted">
+      <p className="mt-2 text-neutral-900">
         Tell us a bit about you — stored only in this browser session.
       </p>
       <div className="mt-8 space-y-4 rounded-2xl border border-primary/10 bg-white/50 p-6">

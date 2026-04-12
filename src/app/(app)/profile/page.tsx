@@ -67,7 +67,7 @@ export default function ProfilePage() {
         <h1 className="font-onest text-3xl font-semibold tracking-tight text-neutral-900">
           Profile
         </h1>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-800">
+        <p className="mt-2 text-sm leading-relaxed text-neutral-900">
           Update how you appear to hosts and guests.
           {circleSync
             ? " Display name is saved to your Circle account."
@@ -87,7 +87,7 @@ export default function ProfilePage() {
                 sizes="112px"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-2xl font-semibold text-neutral-500">
+              <div className="flex h-full w-full items-center justify-center text-2xl font-semibold text-neutral-900">
                 {(user?.name ?? "?").slice(0, 1).toUpperCase()}
               </div>
             )}
@@ -96,7 +96,7 @@ export default function ProfilePage() {
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
               user?.verified
                 ? "bg-emerald-100 text-emerald-900"
-                : "bg-neutral-200 text-neutral-800"
+                : "bg-neutral-200 text-neutral-900"
             }`}
           >
             <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
@@ -161,10 +161,10 @@ export default function ProfilePage() {
           </div>
           <div>
             <p className="text-sm font-semibold text-neutral-900">Email</p>
-            <p className="mt-2 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-800">
+            <p className="mt-2 rounded-xl border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900">
               {user?.email ?? "—"}
             </p>
-            <p className="mt-2 text-xs text-neutral-700">
+            <p className="mt-2 text-xs text-neutral-900">
               {circleSync
                 ? "Managed by your Circle account. Contact support to change it."
                 : "Contact support to change email when using a connected account."}

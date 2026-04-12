@@ -30,11 +30,11 @@ export default function SettingsPage() {
   return (
     <div className="max-w-lg">
       <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-      <p className="mt-2 text-muted">
+      <p className="mt-2 text-neutral-900">
         Local preferences — not synced to a server.
       </p>
       <div className="mt-6 rounded-2xl border border-neutral-200 bg-white/80 p-5 shadow-sm">
-        <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+        <p className="text-xs font-bold uppercase tracking-wider text-neutral-900">
           Safety
         </p>
         <Link
@@ -45,7 +45,7 @@ export default function SettingsPage() {
         </Link>
       </div>
       <div className="mt-8 space-y-5 rounded-2xl border border-neutral-200 bg-white/80 p-6 shadow-sm">
-        <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+        <p className="text-xs font-bold uppercase tracking-wider text-neutral-900">
           Notifications (mock)
         </p>
         {row("Weekly digest email", uiPrefs.weeklyDigestEmail, (v) =>
@@ -58,7 +58,7 @@ export default function SettingsPage() {
           setUiPrefs({ eventRecommendationsMock: v }),
         )}
         <div className="border-t border-neutral-200 pt-5">
-          <p className="text-xs font-bold uppercase tracking-wider text-neutral-500">
+          <p className="text-xs font-bold uppercase tracking-wider text-neutral-900">
             Appearance
           </p>
           <div className="mt-3 space-y-5">

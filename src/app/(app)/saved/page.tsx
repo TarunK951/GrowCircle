@@ -63,10 +63,10 @@ export default function SavedPage() {
                 >
                   <div className="aspect-4/3 w-full bg-neutral-200" />
                   <div className="border-t border-neutral-200 p-5">
-                    <p className="font-onest text-lg font-semibold text-neutral-700">
+                    <p className="font-onest text-lg font-semibold text-neutral-900">
                       No longer available
                     </p>
-                    <p className="mt-2 text-sm text-neutral-600">
+                    <p className="mt-2 text-sm text-neutral-900">
                       This meet was removed by the host or is no longer listed.
                     </p>
                   </div>

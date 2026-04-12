@@ -12,12 +12,12 @@ export default function VerifyProfilePage() {
   return (
     <div className="max-w-lg">
       <h1 className="text-2xl font-semibold tracking-tight">Verify profile</h1>
-      <p className="mt-2 text-muted">
+      <p className="mt-2 text-neutral-900">
         Verify to earn a trusted badge on your profile. Simulated steps — no
         SMS or document upload hits a server.
       </p>
       <div className="mt-8 rounded-2xl border border-primary/10 bg-white/50 p-6">
-        <p className="text-xs font-semibold uppercase text-muted">
+        <p className="text-xs font-semibold uppercase text-neutral-900">
           Step {step + 1} / 2
         </p>
         {step === 0 && (

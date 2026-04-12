@@ -138,7 +138,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     sizes="48px"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-neutral-500">
+                  <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-neutral-900">
                     {(user?.name ?? "G").slice(0, 1).toUpperCase()}
                   </div>
                 )}
@@ -147,7 +147,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <p className="truncate text-sm font-semibold text-neutral-900">
                   {user?.name ?? "Guest"}
                 </p>
-                <p className="mt-0.5 truncate text-xs font-medium text-neutral-600">
+                <p className="mt-0.5 truncate text-xs font-medium text-neutral-900">
                   {user?.email ?? "—"}
                 </p>
               </div>

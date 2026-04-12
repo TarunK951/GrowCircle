@@ -98,7 +98,7 @@ export default function MessagesPage() {
             </div>
           </>
         ) : (
-          <p className="text-sm text-muted">Select a thread</p>
+          <p className="text-sm text-neutral-900">Select a thread</p>
         )}
       </div>
     </div>

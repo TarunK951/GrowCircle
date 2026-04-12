@@ -101,15 +101,15 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="font-onest text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+      <h1 className="font-onest text-2xl font-semibold tracking-tight text-neutral-900 sm:text-3xl">
         Hello, {user?.name?.split(" ")[0] ?? "there"}
       </h1>
-      <p className="mt-2 text-muted">
+      <p className="mt-2 text-neutral-900">
         {backendConnected
           ? "Your dashboard — bookings and hosting sync with the Circle API when you sign in with your phone."
           : "Your local dashboard — bookings and hosting update in the browser."}
       </p>
-      <p className="mt-2 text-sm">
+      <p className="mt-2 text-sm text-neutral-900">
         <Link className="font-medium text-primary hover:underline" href="/bookings">
           Open Bookings
         </Link>{" "}
@@ -117,14 +117,14 @@ export default function DashboardPage() {
       </p>
       <div className="mt-8 grid gap-6 md:grid-cols-2">
         <div className="liquid-glass-surface liquid-glass-interactive">
-          <h2 className="text-base font-semibold text-foreground">
+          <h2 className="text-base font-semibold text-neutral-900">
             Upcoming bookings
           </h2>
           {circleListLoading ? (
-            <p className="mt-3 text-sm text-muted">Loading your applications…</p>
+            <p className="mt-3 text-sm text-neutral-900">Loading your applications…</p>
           ) : useBackendBookings ? (
             circleUpcoming.length === 0 ? (
-              <p className="mt-3 text-sm text-muted">
+              <p className="mt-3 text-sm text-neutral-900">
                 No active applications —{" "}
                 <Link
                   className="font-medium text-primary hover:underline"
@@ -152,9 +152,9 @@ export default function DashboardPage() {
                           {title}
                         </Link>
                       ) : (
-                        <span className="font-medium text-foreground">{title}</span>
+                        <span className="font-medium text-neutral-900">{title}</span>
                       )}
-                      <span className="text-xs text-muted">
+                      <span className="text-xs text-neutral-900">
                         {humanizeStatus(a.status)}
                       </span>
                     </li>
@@ -163,7 +163,7 @@ export default function DashboardPage() {
               </ul>
             )
           ) : upcoming.length === 0 ? (
-            <p className="mt-3 text-sm text-muted">
+            <p className="mt-3 text-sm text-neutral-900">
               No bookings yet —{" "}
               <Link className="font-medium text-primary hover:underline" href="/explore">
                 explore meets
@@ -186,9 +186,9 @@ export default function DashboardPage() {
           )}
         </div>
         <div className="liquid-glass-surface liquid-glass-interactive">
-          <h2 className="text-base font-semibold text-foreground">Hosting</h2>
+          <h2 className="text-base font-semibold text-neutral-900">Hosting</h2>
           {hostingPreview.length === 0 ? (
-            <p className="mt-3 text-sm text-muted">
+            <p className="mt-3 text-sm text-neutral-900">
               Nothing listed —{" "}
               <Link href="/host" className="font-medium text-primary hover:underline">
                 host a meet

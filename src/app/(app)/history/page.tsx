@@ -156,7 +156,7 @@ export default function HistoryPage() {
                     {new Date(row.at).toLocaleString()}
                   </p>
                   {ev && (
-                    <p className="text-xs font-medium text-neutral-800">
+                    <p className="text-xs font-medium text-neutral-900">
                       {ev.venueName ? `${ev.venueName} · ` : ""}
                       {hostLabelForEvent(ev, user)}
                     </p>

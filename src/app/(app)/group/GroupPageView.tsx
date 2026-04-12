@@ -19,7 +19,7 @@ export function GroupPageView({ id }: { id: string }) {
   const { event, loading } = useResolvedEvent(id);
   if (loading) {
     return (
-      <p className="text-sm text-neutral-600">Loading…</p>
+      <p className="text-sm text-neutral-900">Loading…</p>
     );
   }
   if (!event) notFound();
@@ -37,19 +37,19 @@ export function GroupPageView({ id }: { id: string }) {
 
   return (
     <div>
-      <p className="text-sm font-semibold uppercase tracking-wider text-secondary">
+      <p className="text-sm font-semibold uppercase tracking-wider text-neutral-900">
         Your group
       </p>
       <h1 className="font-onest mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
         {event.title}
       </h1>
-      <p className="mt-2 text-muted">
+      <p className="mt-2 text-neutral-900">
         {event.displayLocation ?? city?.name ?? "City"} ·{" "}
         {new Date(event.startsAt).toLocaleString()}
       </p>
 
       <section className="mt-10">
-        <h2 className="text-lg font-semibold text-foreground">Who&apos;s coming</h2>
+        <h2 className="text-lg font-semibold text-neutral-900">Who&apos;s coming</h2>
         <ul className="mt-4 space-y-3">
           {displayMembers.map((u) => (
             <li
@@ -64,8 +64,8 @@ export function GroupPageView({ id }: { id: string }) {
                 className="rounded-full object-cover"
               />
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-foreground">{u.name}</p>
-                <p className="text-xs text-muted">
+                <p className="font-medium text-neutral-900">{u.name}</p>
+                <p className="text-xs text-neutral-900">
                   {u.interests.slice(0, 2).join(" · ") || "Member"}
                 </p>
               </div>
@@ -80,8 +80,8 @@ export function GroupPageView({ id }: { id: string }) {
       </section>
 
       <section className="mt-10">
-        <h2 className="text-lg font-semibold text-foreground">Icebreakers</h2>
-        <ul className="mt-3 list-inside list-disc space-y-2 text-sm text-muted">
+        <h2 className="text-lg font-semibold text-neutral-900">Icebreakers</h2>
+        <ul className="mt-3 list-inside list-disc space-y-2 text-sm text-neutral-900">
           {icebreakers.map((q) => (
             <li key={q}>{q}</li>
           ))}

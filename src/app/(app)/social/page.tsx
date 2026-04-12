@@ -18,7 +18,7 @@ export default function SocialPage() {
         <h1 className="font-onest text-3xl font-semibold tracking-tight text-neutral-900">
           Social
         </h1>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-800">
+        <p className="mt-2 text-sm leading-relaxed text-neutral-900">
           Link accounts for your profile (demo only — toggles are stored in this
           browser). Open a platform in a new tab or use Connect to simulate
           linking.
@@ -49,13 +49,13 @@ export default function SocialPage() {
                       "rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide",
                       linked
                         ? "bg-emerald-100 text-emerald-900"
-                        : "bg-neutral-200 text-neutral-600",
+                        : "bg-neutral-200 text-neutral-900",
                     )}
                   >
                     {linked ? "Connected" : "Not connected"}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-neutral-600">
+                <p className="mt-1 text-xs text-neutral-900">
                   Opens the official {p.label} site in a new tab.
                 </p>
               </div>
