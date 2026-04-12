@@ -29,6 +29,7 @@ import {
   openRazorpayFromPayload,
 } from "@/lib/razorpay/loadCheckout";
 import { lookupUser } from "@/lib/userLookup";
+import { CalendarDays, Mic2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { selectAccessToken, selectUser } from "@/lib/store/authSlice";
 import { useMyApplicationsQuery } from "@/lib/store/circleApi";
@@ -88,6 +89,67 @@ function CircleStatusBadge({ status }: { status: string }) {
     <span className="inline-flex shrink-0 rounded-full border border-violet-700 bg-violet-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-violet-900">
       {humanizeCircleStatus(status)}
     </span>
+  );
+}
+
+/** Empty “My bookings” when the user has no Circle applications yet */
+function GuestBookingsEmptyState() {
+  return (
+    <div className="rounded-2xl border border-dashed border-violet-200/90 bg-linear-to-b from-violet-50/90 to-white px-5 py-10 text-center shadow-sm sm:px-8">
+      <div className="mx-auto flex max-w-md flex-col items-center gap-5">
+        <div
+          className="flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-100 text-violet-800 shadow-inner"
+          aria-hidden
+        >
+          <CalendarDays className="h-8 w-8" strokeWidth={1.75} />
+        </div>
+        <div className="space-y-2">
+          <p className="font-onest text-lg font-semibold text-neutral-900">
+            No bookings yet
+          </p>
+          <p className="text-sm leading-relaxed text-neutral-600">
+            When you apply to meets, your applications and tickets show up here.
+            Explore what&apos;s happening near you and join a meet in a few taps.
+          </p>
+        </div>
+        <Link
+          href="/explore"
+          className="inline-flex min-h-11 items-center justify-center rounded-full bg-neutral-900 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-neutral-800"
+        >
+          See available meets
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/** Empty “My hosting” */
+function HostBookingsEmptyState() {
+  return (
+    <div className="rounded-2xl border border-dashed border-neutral-200/90 bg-neutral-50/80 px-5 py-10 text-center sm:px-8">
+      <div className="mx-auto flex max-w-md flex-col items-center gap-5">
+        <div
+          className="flex h-16 w-16 items-center justify-center rounded-2xl bg-neutral-200/90 text-neutral-800"
+          aria-hidden
+        >
+          <Mic2 className="h-8 w-8" strokeWidth={1.75} />
+        </div>
+        <div className="space-y-2">
+          <p className="font-onest text-lg font-semibold text-neutral-900">
+            Not hosting yet
+          </p>
+          <p className="text-sm leading-relaxed text-neutral-600">
+            Create a meet, share the link, and manage guests from this tab.
+          </p>
+        </div>
+        <Link
+          href="/host-a-meet"
+          className="inline-flex min-h-11 items-center justify-center rounded-full bg-neutral-900 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-neutral-800"
+        >
+          Host a meet
+        </Link>
+      </div>
+    </div>
   );
 }
 
@@ -619,63 +681,55 @@ export function BookingsHub() {
                 <p className="text-sm text-neutral-600">Loading…</p>
               )}
               {!circleLoading && circleApps.length === 0 && (
-                <p className="text-sm font-medium text-neutral-700">
-                  No Circle applications yet.
-                </p>
+                <GuestBookingsEmptyState />
               )}
+              {!circleLoading && circleApps.length > 0 && (
+                <ul
+                  className={cn(
+                    "flex flex-col",
+                    compactBookingCards ? "gap-2" : "gap-4",
+                  )}
+                >
+                  {circleApps.map((app) => (
+                    <CircleGuestApplicationCard
+                      key={app.id}
+                      app={app}
+                      accessToken={accessToken!}
+                      hostedEvents={hostedEvents}
+                      circleCatalogEvents={circleCatalogEvents}
+                      onRefresh={() => void refetchCircleApps()}
+                      compactBookingCards={compactBookingCards}
+                    />
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
+          {!circleLoading &&
+            circleApps.length === 0 &&
+            !showCircleGuest && (
               <ul
                 className={cn(
                   "flex flex-col",
                   compactBookingCards ? "gap-2" : "gap-4",
                 )}
               >
-                {circleApps.map((app) => (
-                  <CircleGuestApplicationCard
-                    key={app.id}
-                    app={app}
-                    accessToken={accessToken!}
-                    hostedEvents={hostedEvents}
-                    circleCatalogEvents={circleCatalogEvents}
-                    onRefresh={() => void refetchCircleApps()}
-                    compactBookingCards={compactBookingCards}
-                  />
-                ))}
+                <li className="text-sm font-medium text-neutral-700">
+                  {!isCircleApiConfigured() ? (
+                    <>
+                      Set{" "}
+                      <code className="rounded bg-neutral-100 px-1 text-xs">
+                        NEXT_PUBLIC_CIRCLE_API_BASE
+                      </code>{" "}
+                      and sign in to load bookings from the server.
+                    </>
+                  ) : (
+                    <>Sign in to see your Circle applications and bookings.</>
+                  )}
+                </li>
               </ul>
-            </div>
-          )}
-
-          <ul
-            className={cn(
-              "flex flex-col",
-              compactBookingCards ? "gap-2" : "gap-4",
             )}
-          >
-          {!circleLoading &&
-            circleApps.length === 0 &&
-            !showCircleGuest &&
-            !isCircleApiConfigured() && (
-              <li className="text-sm font-medium text-neutral-700">
-                Set{" "}
-                <code className="rounded bg-neutral-100 px-1 text-xs">
-                  NEXT_PUBLIC_CIRCLE_API_BASE
-                </code>{" "}
-                and sign in to load bookings from the server.
-              </li>
-            )}
-          {!circleLoading &&
-            circleApps.length === 0 &&
-            !showCircleGuest &&
-            isCircleApiConfigured() && (
-              <li className="text-sm font-medium text-neutral-700">
-                Sign in to see your Circle applications and bookings.
-              </li>
-            )}
-          {!circleLoading && showCircleGuest && circleApps.length === 0 && (
-              <li className="text-sm font-medium text-neutral-700">
-                No applications yet — explore meets to join one.
-              </li>
-            )}
-        </ul>
         </div>
       )}
 
@@ -686,18 +740,7 @@ export function BookingsHub() {
             compactBookingCards ? "gap-2" : "gap-4",
           )}
         >
-          {myHosting.length === 0 && (
-            <p className="text-sm font-medium text-neutral-900">
-              You’re not hosting any meets yet —{" "}
-              <Link
-                href="/host-a-meet"
-                className="font-semibold text-primary underline-offset-4 hover:underline"
-              >
-                create one
-              </Link>
-              .
-            </p>
-          )}
+          {myHosting.length === 0 && <HostBookingsEmptyState />}
           {myHosting.map((ev) => (
             <HostMeetCard
               key={ev.id}
@@ -993,31 +1036,44 @@ function HostMeetCard({
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="text-xs font-semibold text-neutral-900">
-                  Title
-                  <input
-                    className="liquid-glass-input mt-1 w-full text-sm text-neutral-900"
-                    defaultValue={ev.title}
-                    onBlur={(e) =>
-                      updateHostedEvent(ev.id, { title: e.target.value })
-                    }
-                  />
-                </label>
-                <label className="text-xs font-semibold text-neutral-900">
-                  Capacity
-                  <input
-                    type="number"
-                    min={4}
-                    className="liquid-glass-input mt-1 w-full text-sm text-neutral-900"
-                    defaultValue={ev.capacity}
-                    onBlur={(e) =>
-                      updateHostedEvent(ev.id, {
-                        capacity: Number(e.target.value) || ev.capacity,
-                      })
-                    }
-                  />
-                </label>
+                <div>
+                  <p className="text-xs font-semibold text-neutral-900">Title</p>
+                  <p className="liquid-glass-input mt-1 w-full text-sm text-neutral-900">
+                    {ev.title}
+                  </p>
+                  <p className="mt-1 text-[10px] text-neutral-500">
+                    Title can&apos;t be changed after publishing.
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-neutral-900">
+                    Date &amp; time
+                  </p>
+                  <p className="liquid-glass-input mt-1 w-full text-sm text-neutral-900">
+                    {new Date(ev.startsAt).toLocaleString(undefined, {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </p>
+                  <p className="mt-1 text-[10px] text-neutral-500">
+                    Schedule can&apos;t be changed here.
+                  </p>
+                </div>
               </div>
+              <label className="block text-xs font-semibold text-neutral-900">
+                Capacity (max guests)
+                <input
+                  type="number"
+                  min={4}
+                  className="liquid-glass-input mt-1 w-full max-w-xs text-sm text-neutral-900"
+                  defaultValue={ev.capacity}
+                  onBlur={(e) =>
+                    updateHostedEvent(ev.id, {
+                      capacity: Number(e.target.value) || ev.capacity,
+                    })
+                  }
+                />
+              </label>
             </>
           )}
 

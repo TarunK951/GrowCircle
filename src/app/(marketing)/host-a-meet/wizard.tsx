@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import citiesData from "@/data/cities.json";
@@ -38,6 +38,13 @@ import {
   type HostDraft,
 } from "@/stores/session-store";
 import { HostMeetSelect } from "@/components/host/HostMeetSelect";
+import {
+  defaultScheduleParts,
+  joinDateTimeLocal,
+  nowHHMMLocal,
+  splitDateTimeLocal,
+  todayYYYYMMDDLocal,
+} from "@/lib/date/datetimeLocalParts";
 import { cn } from "@/lib/utils";
 import { Upload } from "lucide-react";
 
@@ -75,6 +82,10 @@ function isProbablyUrl(s: string): boolean {
 
 function validateDraft(d: HostDraft): string | null {
   if (!d.title.trim()) return "Add a title for your meet.";
+  if (!d.startsAt?.trim()) return "Choose a date and time for your meet.";
+  const startMs = new Date(d.startsAt).getTime();
+  if (Number.isNaN(startMs)) return "Enter a valid date and time.";
+  if (startMs <= Date.now()) return "Schedule the meet in the future (today’s time must be after now).";
   if (!d.categories.length) return "Pick at least one category.";
   if (d.preJoinQuestions.length > 5) return "At most 5 pre-join questions.";
   for (let i = 0; i < d.preJoinQuestions.length; i++) {
@@ -134,6 +145,13 @@ export function HostWizard() {
   }, []);
 
   useEffect(() => {
+    if (step !== 2) return;
+    if (draft.startsAt.trim()) return;
+    const { date, time } = defaultScheduleParts();
+    setDraft((d) => ({ ...d, startsAt: joinDateTimeLocal(date, time) }));
+  }, [step, draft.startsAt]);
+
+  useEffect(() => {
     if (!persistReady) return;
     try {
       setHostDraft(draft);
@@ -179,6 +197,25 @@ export function HostWizard() {
   const next = () => setStep((s) => Math.min(s + 1, STEPS - 1));
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
+  const scheduleParts = useMemo(
+    () => splitDateTimeLocal(draft.startsAt),
+    [draft.startsAt],
+  );
+  const todayMin = todayYYYYMMDDLocal();
+  const minTimeIfToday =
+    scheduleParts.date === todayMin ? nowHHMMLocal() : undefined;
+
+  const setScheduleFromParts = (date: string, time: string) => {
+    let nextTime = time;
+    if (date === todayMin && nextTime < nowHHMMLocal()) {
+      nextTime = nowHHMMLocal();
+    }
+    setDraft((d) => ({
+      ...d,
+      startsAt: joinDateTimeLocal(date, nextTime),
+    }));
+  };
+
   const toggleCategory = (label: string) => {
     setDraft((d) => {
       const set = new Set(d.categories);
@@ -202,9 +239,7 @@ export function HostWizard() {
         return;
       }
 
-      const startsAtIso = draft.startsAt
-        ? new Date(draft.startsAt).toISOString()
-        : new Date(Date.now() + 864e5).toISOString();
+      const startsAtIso = new Date(draft.startsAt).toISOString();
 
       const cats = draft.categories.slice(0, 3);
       const primaryCategory = cats[0] ?? "Social";
@@ -471,15 +506,53 @@ export function HostWizard() {
       {step === 2 && (
         <div className="mt-4 space-y-4">
           <div>
-            <label className="text-sm font-semibold text-neutral-900">Starts at</label>
-            <input
-              type="datetime-local"
-              className={inputClass}
-              value={draft.startsAt}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, startsAt: e.target.value }))
-              }
-            />
+            <p className="text-sm font-semibold text-neutral-900">Starts at</p>
+            <p className="mt-1 text-xs text-neutral-600">
+              Pick a date (past days are disabled) and a start time. If you choose
+              today, only times after now are allowed.
+            </p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="host-meet-date"
+                  className="text-xs font-medium text-neutral-700"
+                >
+                  Date
+                </label>
+                <input
+                  id="host-meet-date"
+                  type="date"
+                  min={todayMin}
+                  className={inputClass}
+                  value={scheduleParts.date}
+                  onChange={(e) => {
+                    const nextDate = e.target.value;
+                    if (!nextDate) return;
+                    setScheduleFromParts(nextDate, scheduleParts.time);
+                  }}
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="host-meet-time"
+                  className="text-xs font-medium text-neutral-700"
+                >
+                  Time
+                </label>
+                <input
+                  id="host-meet-time"
+                  type="time"
+                  className={inputClass}
+                  value={scheduleParts.time}
+                  min={minTimeIfToday}
+                  onChange={(e) => {
+                    const nextTime = e.target.value;
+                    if (!nextTime) return;
+                    setScheduleFromParts(scheduleParts.date, nextTime);
+                  }}
+                />
+              </div>
+            </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
