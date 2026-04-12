@@ -19,10 +19,17 @@ import { circleApi } from "@/lib/store/circleApi";
 import { store } from "@/lib/store/store";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { ZUSTAND_SESSION_KEY } from "@/lib/persistKeys";
 
 function authUser() {
   return store.getState().auth.user;
 }
+
+/** One cover slot: file preview (`dataUrl`) and/or HTTPS URL. Up to 3 slots total. */
+export type HostCoverSlot = {
+  dataUrl: string | null;
+  url: string;
+};
 
 export type HostDraft = {
   title: string;
@@ -37,8 +44,8 @@ export type HostDraft = {
   joinMode: "open" | "invite";
   listingVisibility: "public" | "private";
   priceCents: number;
-  imageUrl: string;
-  imageDataUrl: string | null;
+  /** Up to 3 images; first is used as Circle `cover_image_url`. */
+  coverSlots: HostCoverSlot[];
   moreAbout: string;
   whatsIncludedLines: string[];
   guestSuggestions: string[];
@@ -81,6 +88,9 @@ type SessionState = {
   toggleSocialConnection: (platformId: string) => void;
   notificationsRead: Record<string, boolean>;
   hostDraft: HostDraft | null;
+  /** Persisted wizard step index (0-based). */
+  hostWizardStep: number;
+  setHostWizardStep: (n: number) => void;
   /** Public events fetched from Circle API (merged into explore / detail). */
   circleCatalogEvents: MeetEvent[];
   setCircleCatalogEvents: (events: MeetEvent[]) => void;
@@ -140,8 +150,7 @@ const initialHostDraft = (): HostDraft => ({
   joinMode: "open",
   listingVisibility: "public",
   priceCents: 0,
-  imageUrl: "",
-  imageDataUrl: null,
+  coverSlots: [{ dataUrl: null, url: "" }],
   moreAbout: "",
   whatsIncludedLines: [""],
   guestSuggestions: [""],
@@ -151,6 +160,100 @@ const initialHostDraft = (): HostDraft => ({
   faqs: [{ q: "", a: "" }],
   preJoinQuestions: [],
 });
+
+/** Merge persisted or partial JSON into a full `HostDraft` (legacy single-image fields → slot 0). */
+export function normalizeHostDraft(raw: unknown): HostDraft {
+  const base = initialHostDraft();
+  if (!raw || typeof raw !== "object") return base;
+  const o = raw as Record<string, unknown>;
+
+  let coverSlots = base.coverSlots;
+  if (Array.isArray(o.coverSlots)) {
+    coverSlots = (o.coverSlots as HostCoverSlot[])
+      .slice(0, 3)
+      .map((s) => ({
+        dataUrl: typeof s?.dataUrl === "string" ? s.dataUrl : null,
+        url: typeof s?.url === "string" ? s.url : "",
+      }));
+    if (coverSlots.length === 0) coverSlots = [{ dataUrl: null, url: "" }];
+  } else {
+    const legacyUrl = typeof o.imageUrl === "string" ? o.imageUrl : "";
+    const legacyData =
+      typeof o.imageDataUrl === "string" ? o.imageDataUrl : null;
+    if (legacyUrl || legacyData) {
+      coverSlots = [{ dataUrl: legacyData, url: legacyUrl }];
+    }
+  }
+
+  const next: HostDraft = {
+    ...base,
+    title: typeof o.title === "string" ? o.title : base.title,
+    description: typeof o.description === "string" ? o.description : base.description,
+    cityId: typeof o.cityId === "string" ? o.cityId : base.cityId,
+    categories: Array.isArray(o.categories)
+      ? (o.categories as string[]).filter((c) => typeof c === "string")
+      : base.categories,
+    addressLine: typeof o.addressLine === "string" ? o.addressLine : base.addressLine,
+    startsAt: typeof o.startsAt === "string" ? o.startsAt : base.startsAt,
+    capacity:
+      typeof o.capacity === "number" && Number.isFinite(o.capacity)
+        ? o.capacity
+        : base.capacity,
+    venueName: typeof o.venueName === "string" ? o.venueName : base.venueName,
+    joinMode: o.joinMode === "invite" ? "invite" : "open",
+    listingVisibility: o.listingVisibility === "private" ? "private" : "public",
+    priceCents:
+      typeof o.priceCents === "number" && Number.isFinite(o.priceCents)
+        ? Math.max(0, o.priceCents)
+        : base.priceCents,
+    coverSlots,
+    moreAbout: typeof o.moreAbout === "string" ? o.moreAbout : base.moreAbout,
+    whatsIncludedLines: Array.isArray(o.whatsIncludedLines)
+      ? (o.whatsIncludedLines as string[]).map((x) => (typeof x === "string" ? x : ""))
+      : base.whatsIncludedLines,
+    guestSuggestions: Array.isArray(o.guestSuggestions)
+      ? (o.guestSuggestions as string[]).map((x) => (typeof x === "string" ? x : ""))
+      : base.guestSuggestions,
+    allowedAndNotes:
+      typeof o.allowedAndNotes === "string" ? o.allowedAndNotes : base.allowedAndNotes,
+    houseDos: Array.isArray(o.houseDos)
+      ? (o.houseDos as string[]).map((x) => (typeof x === "string" ? x : ""))
+      : base.houseDos,
+    houseDonts: Array.isArray(o.houseDonts)
+      ? (o.houseDonts as string[]).map((x) => (typeof x === "string" ? x : ""))
+      : base.houseDonts,
+    faqs: Array.isArray(o.faqs)
+      ? (o.faqs as { q: string; a: string }[])
+          .filter((f) => f && typeof f === "object")
+          .map((f) => ({
+            q: typeof f.q === "string" ? f.q : "",
+            a: typeof f.a === "string" ? f.a : "",
+          }))
+      : base.faqs,
+    preJoinQuestions: Array.isArray(o.preJoinQuestions)
+      ? (o.preJoinQuestions as { prompt: string; options: string[] }[])
+          .filter((r) => r && typeof r === "object")
+          .map((r) => ({
+            prompt: typeof r.prompt === "string" ? r.prompt : "",
+            options: Array.isArray(r.options)
+              ? r.options.map((x) => (typeof x === "string" ? x : ""))
+              : [""],
+          }))
+      : base.preJoinQuestions,
+  };
+  return next;
+}
+
+function stripDraftForPersist(d: HostDraft | null): HostDraft | null {
+  if (!d) return null;
+  return {
+    ...d,
+    coverSlots: d.coverSlots.map((s) => ({
+      dataUrl: null,
+      url: s.url,
+    })),
+  };
+}
 
 function bookingOccupiesSeat(b: Booking): boolean {
   return b.status === "confirmed" || b.status === "attended";
@@ -217,6 +320,9 @@ export const useSessionStore = create<SessionState>()(
         })),
       notificationsRead: {},
       hostDraft: null,
+      hostWizardStep: 0,
+      setHostWizardStep: (n) =>
+        set({ hostWizardStep: Math.max(0, Math.min(9, Math.floor(n))) }),
       chatExtras: {},
       circleCatalogEvents: [],
       setCircleCatalogEvents: (events) => set({ circleCatalogEvents: events }),
@@ -342,6 +448,7 @@ export const useSessionStore = create<SessionState>()(
         set({
           hostedEvents: [...get().hostedEvents, event],
           hostDraft: null,
+          hostWizardStep: 0,
         }),
       syncHostedEventsFromApi: (apiRows) =>
         set((s) => {
@@ -504,7 +611,7 @@ export const useSessionStore = create<SessionState>()(
       },
     }),
     {
-      name: "connectsphere-session",
+      name: ZUSTAND_SESSION_KEY,
       partialize: (state) => ({
         bookings: state.bookings,
         hostedEvents: state.hostedEvents,
@@ -512,7 +619,8 @@ export const useSessionStore = create<SessionState>()(
         uiPrefs: state.uiPrefs,
         socialConnections: state.socialConnections,
         notificationsRead: state.notificationsRead,
-        hostDraft: state.hostDraft,
+        hostDraft: stripDraftForPersist(state.hostDraft),
+        hostWizardStep: state.hostWizardStep,
         chatExtras: state.chatExtras,
         circleCatalogEvents: state.circleCatalogEvents,
         guestReviewsWritten: state.guestReviewsWritten,
@@ -529,6 +637,13 @@ export const useSessionStore = create<SessionState>()(
             ...emptySocialConnections(),
             ...p?.socialConnections,
           },
+          hostDraft:
+            p?.hostDraft === undefined
+              ? current.hostDraft
+              : p.hostDraft === null
+                ? null
+                : normalizeHostDraft(p.hostDraft),
+          hostWizardStep: p?.hostWizardStep ?? current.hostWizardStep,
           circleCatalogEvents: p?.circleCatalogEvents ?? current.circleCatalogEvents,
           guestReviewsWritten: p?.guestReviewsWritten ?? current.guestReviewsWritten,
           hostReviewsReceived: p?.hostReviewsReceived ?? current.hostReviewsReceived,

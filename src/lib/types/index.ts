@@ -32,6 +32,8 @@ export type MeetEvent = {
   /** Up to 3 labels for display and explore filters. */
   categories?: string[];
   image: string;
+  /** Extra gallery URLs (local merge after publish; not returned by Circle API). */
+  additionalImages?: string[];
   priceCents: number;
   venueName?: string;
   /** Street / full address shown with venue. */

@@ -1,5 +1,6 @@
 import { Container } from "@/components/layout/Container";
 import { MarketingPageIntro } from "@/components/layout/MarketingPageIntro";
+import { HostMeetCircleBanner } from "@/components/host/HostMeetCircleBanner";
 import { HostWizard } from "./wizard";
 
 export default function HostAMeetPage() {
@@ -10,8 +11,9 @@ export default function HostAMeetPage() {
           align="center"
           eyebrow="Host"
           title="Host a meet"
-          description="Walk through a lightweight host wizard. Data is stored in browser state only — perfect for demos and stakeholder reviews."
+          description="Walk through the host wizard. Your progress is saved in this browser (local storage) so you can continue after sign-in or refresh. Sign in with Circle to publish."
         />
+        <HostMeetCircleBanner />
         <HostWizard />
       </div>
     </Container>

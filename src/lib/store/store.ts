@@ -10,11 +10,12 @@ import {
   persistStore,
 } from "redux-persist";
 import storage from "redux-persist/lib/storage";
+import { REDUX_PERSIST_AUTH_KEY } from "@/lib/persistKeys";
 import { authSlice } from "./authSlice";
 import { circleApi } from "./circleApi";
 
 const authPersistConfig = {
-  key: "growcircle-auth",
+  key: REDUX_PERSIST_AUTH_KEY,
   storage,
   whitelist: ["user", "accessToken", "refreshToken"],
 };

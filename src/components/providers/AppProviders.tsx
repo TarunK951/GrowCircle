@@ -19,9 +19,11 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       {children}
       <Toaster
         position="bottom-right"
+        duration={3000}
         richColors
         closeButton
         toastOptions={{
+          duration: 3000,
           classNames: {
             toast:
               "bg-white/90 backdrop-blur-md border border-primary/15 text-foreground shadow-lg",

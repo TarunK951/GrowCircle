@@ -133,28 +133,63 @@ export function EventMeetDetail({
           Photo and meet summary
         </h2>
         <div className="grid gap-8 lg:grid-cols-2 lg:items-stretch lg:gap-10">
-          <figure className="relative min-h-[min(72vw,22rem)] w-full overflow-hidden rounded-[var(--radius-section)] border border-white/70 shadow-[0_8px_40px_-12px_rgba(30,59,189,0.18)] lg:min-h-0 lg:h-full">
-            {/* Mobile: fixed aspect. Desktop: stretch to match details column; image fills via absolute inset */}
-            <div className="relative aspect-4/3 w-full lg:absolute lg:inset-0 lg:aspect-auto lg:h-full lg:min-h-0">
-              {coverIsDataUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element -- data URLs from host upload
-                <img
-                  src={event.image}
-                  alt=""
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-              ) : (
-                <Image
-                  src={event.image}
-                  alt=""
-                  fill
-                  priority
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                />
-              )}
-            </div>
-          </figure>
+          <div className="flex min-h-0 flex-col gap-3 lg:h-full">
+            <figure className="relative min-h-[min(72vw,22rem)] w-full overflow-hidden rounded-[var(--radius-section)] border border-white/70 shadow-[0_8px_40px_-12px_rgba(30,59,189,0.18)] lg:min-h-0 lg:flex-1">
+              {/* Mobile: fixed aspect. Desktop: stretch to match details column; image fills via absolute inset */}
+              <div className="relative aspect-4/3 w-full lg:absolute lg:inset-0 lg:aspect-auto lg:h-full lg:min-h-0">
+                {coverIsDataUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- data URLs from host upload
+                  <img
+                    src={event.image}
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                ) : (
+                  <Image
+                    src={event.image}
+                    alt=""
+                    fill
+                    priority
+                    className="object-cover"
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                  />
+                )}
+              </div>
+            </figure>
+            {event.additionalImages && event.additionalImages.length > 0 ? (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {event.additionalImages.map((url, i) => {
+                  const extraIsData = url.startsWith("data:");
+                  return (
+                    <div
+                      key={`${i}-${url.slice(0, 32)}`}
+                      className="relative h-16 w-28 shrink-0 overflow-hidden rounded-xl border border-neutral-200/80 bg-neutral-100 shadow-sm"
+                    >
+                      {extraIsData ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={url}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <Image
+                          src={url}
+                          alt=""
+                          fill
+                          className="object-cover"
+                          sizes="112px"
+                          unoptimized={
+                            url.includes("localhost") || url.startsWith("http://")
+                          }
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
 
           <aside className="flex flex-col justify-between rounded-[var(--radius-section)] border border-primary/10 bg-white/75 p-6 shadow-sm backdrop-blur-sm sm:p-8">
             <div>

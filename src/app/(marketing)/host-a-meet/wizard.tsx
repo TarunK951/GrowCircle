@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import citiesData from "@/data/cities.json";
@@ -24,9 +24,12 @@ import { useAppSelector } from "@/lib/store/hooks";
 import { store } from "@/lib/store/store";
 import {
   initialHostDraft,
+  normalizeHostDraft,
   useSessionStore,
+  type HostCoverSlot,
   type HostDraft,
 } from "@/stores/session-store";
+import { HostMeetSelect } from "@/components/host/HostMeetSelect";
 import { cn } from "@/lib/utils";
 import { Upload } from "lucide-react";
 
@@ -39,6 +42,7 @@ const MAX_IMAGE_BYTES = 750 * 1024;
 /** Larger cap when publishing via Circle + S3 presigned upload */
 const MAX_IMAGE_BYTES_CIRCLE = 5 * 1024 * 1024;
 const STEPS = 10;
+const MAX_COVER_SLOTS = 3;
 
 async function dataUrlToBlob(
   dataUrl: string,
@@ -79,19 +83,61 @@ function validateDraft(d: HostDraft): string | null {
   return null;
 }
 
+function slotHasVisual(s: HostCoverSlot): boolean {
+  return Boolean(
+    (s.dataUrl && s.dataUrl.length > 0) ||
+      (s.url.trim() && isProbablyUrl(s.url)),
+  );
+}
+
 export function HostWizard() {
   const router = useRouter();
   const user = useAppSelector(selectUser);
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const accessToken = useAppSelector(selectAccessToken);
   const publishHostedEvent = useSessionStore((s) => s.publishHostedEvent);
-  const [publishing, setPublishing] = useState(false);
-  const [step, setStep] = useState(0);
-  const [draft, setDraft] = useState(initialHostDraft());
-  const coverFileInputRef = useRef<HTMLInputElement>(null);
-  const [coverDragActive, setCoverDragActive] = useState(false);
+  const setHostDraft = useSessionStore((s) => s.setHostDraft);
+  const setHostWizardStep = useSessionStore((s) => s.setHostWizardStep);
 
-  const applyCoverFile = (file: File) => {
+  const [publishing, setPublishing] = useState(false);
+  const [persistReady, setPersistReady] = useState(false);
+  const [step, setStep] = useState(0);
+  const [draft, setDraft] = useState<HostDraft>(() => initialHostDraft());
+
+  const coverFileInputRef = useRef<HTMLInputElement>(null);
+  const [fileTargetSlot, setFileTargetSlot] = useState(0);
+  const [coverDragSlot, setCoverDragSlot] = useState<number | null>(null);
+
+  useEffect(() => {
+    const applyHydrated = () => {
+      const { hostDraft, hostWizardStep } = useSessionStore.getState();
+      if (hostDraft != null) {
+        setDraft(normalizeHostDraft(hostDraft));
+        setStep(hostWizardStep ?? 0);
+      }
+      setPersistReady(true);
+    };
+
+    if (useSessionStore.persist.hasHydrated()) {
+      applyHydrated();
+    } else {
+      return useSessionStore.persist.onFinishHydration(applyHydrated);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!persistReady) return;
+    try {
+      setHostDraft(draft);
+      setHostWizardStep(step);
+    } catch {
+      toast.error(
+        "Could not save draft (storage may be full). Try image URLs instead of large uploads.",
+      );
+    }
+  }, [persistReady, draft, step, setHostDraft, setHostWizardStep]);
+
+  const applyCoverFile = (slotIndex: number, file: File) => {
     if (!file.type.startsWith("image/")) {
       toast.error("Please choose an image file (PNG, JPG, WebP, …).");
       return;
@@ -109,11 +155,15 @@ export function HostWizard() {
     }
     const reader = new FileReader();
     reader.onload = () => {
-      setDraft((d) => ({
-        ...d,
-        imageDataUrl: reader.result as string,
-        imageUrl: "",
-      }));
+      setDraft((d) => {
+        const next = [...d.coverSlots];
+        if (!next[slotIndex]) return d;
+        next[slotIndex] = {
+          dataUrl: reader.result as string,
+          url: "",
+        };
+        return { ...d, coverSlots: next };
+      });
     };
     reader.readAsDataURL(file);
   };
@@ -151,12 +201,6 @@ export function HostWizard() {
       const cats = draft.categories.slice(0, 3);
       const primaryCategory = cats[0] ?? "Social";
 
-      let image = DEFAULT_COVER;
-      if (draft.imageDataUrl) image = draft.imageDataUrl;
-      else if (draft.imageUrl.trim() && isProbablyUrl(draft.imageUrl)) {
-        image = draft.imageUrl.trim();
-      }
-
       const whatsIncluded = trimLines(draft.whatsIncludedLines);
       const guestSuggestions = trimLines(draft.guestSuggestions);
       const dos = trimLines(draft.houseDos);
@@ -173,27 +217,31 @@ export function HostWizard() {
         }),
       );
 
-      if (!isCircleApiConfigured() || !accessToken) {
+      // Publishing uses Circle HTTP API + bearer token (see `src/lib/circle/config.ts`).
+      if (!isCircleApiConfigured()) {
         toast.error(
-          "Publishing requires the Circle API. Set NEXT_PUBLIC_CIRCLE_API_BASE in .env.local and sign in.",
+          "Circle API URL is not set. Add NEXT_PUBLIC_CIRCLE_API_BASE to .env.local, restart the dev server, then try again.",
         );
+        return;
+      }
+      if (!accessToken) {
+        toast.error("Sign in with Circle to publish (access token missing).");
+        router.push("/login?returnUrl=/host-a-meet");
         return;
       }
 
       setPublishing(true);
       try {
-          const location =
-            [draft.venueName, draft.addressLine]
-              .map((s) => s.trim())
-              .filter(Boolean)
-              .join(", ") || "TBD";
+        const location =
+          [draft.venueName, draft.addressLine]
+            .map((s) => s.trim())
+            .filter(Boolean)
+            .join(", ") || "TBD";
 
-          let coverUrl: string | undefined;
-          if (
-            draft.imageDataUrl &&
-            draft.imageDataUrl.startsWith("data:")
-          ) {
-            const { blob, mime } = await dataUrlToBlob(draft.imageDataUrl);
+        const resolvedUrls: string[] = [];
+        for (const slot of draft.coverSlots) {
+          if (slot.dataUrl?.startsWith("data:")) {
+            const { blob, mime } = await dataUrlToBlob(slot.dataUrl);
             const ext = mime.includes("png")
               ? "png"
               : mime.includes("webp")
@@ -202,7 +250,7 @@ export function HostWizard() {
             const { uploadUrl, fileUrl } = await getMediaUploadUrl(
               accessToken,
               {
-                fileName: `event-cover-${Date.now()}.${ext}`,
+                fileName: `event-cover-${Date.now()}-${resolvedUrls.length}.${ext}`,
                 fileType: mime || "image/jpeg",
                 folder: "events",
               },
@@ -212,66 +260,68 @@ export function HostWizard() {
               blob,
               mime || "image/jpeg",
             );
-            coverUrl = fileUrl;
-          } else if (
-            !draft.imageDataUrl &&
-            draft.imageUrl.trim() &&
-            isProbablyUrl(draft.imageUrl)
-          ) {
-            coverUrl = draft.imageUrl.trim();
-          } else if (!draft.imageDataUrl && image.startsWith("http")) {
-            coverUrl = image;
+            resolvedUrls.push(fileUrl);
+          } else if (slot.url.trim() && isProbablyUrl(slot.url)) {
+            resolvedUrls.push(slot.url.trim());
           }
+        }
 
-          const created = await createEvent(accessToken, {
-            title: draft.title.trim() || "Untitled meet",
-            description: draft.description.trim() || "—",
-            max_capacity: Math.max(4, draft.capacity),
-            price: Math.max(0, draft.priceCents) / 100,
-            event_date: startsAtIso,
-            location,
-            ...(coverUrl ? { cover_image_url: coverUrl } : {}),
-            visibility: draft.listingVisibility,
-            waitlist_enabled: true,
+        const coverUrl = resolvedUrls[0] ?? DEFAULT_COVER;
+        const additionalImages = resolvedUrls.slice(1);
+
+        const created = await createEvent(accessToken, {
+          title: draft.title.trim() || "Untitled meet",
+          description: draft.description.trim() || "—",
+          max_capacity: Math.max(4, draft.capacity),
+          price: Math.max(0, draft.priceCents) / 100,
+          event_date: startsAtIso,
+          location,
+          cover_image_url: coverUrl,
+          visibility: draft.listingVisibility,
+          waitlist_enabled: true,
+        });
+
+        for (let i = 0; i < draft.preJoinQuestions.length; i++) {
+          const row = draft.preJoinQuestions[i];
+          const opts = row.options.map((o) => o.trim()).filter(Boolean);
+          if (opts.length < 2) continue;
+          await addEventQuestion(accessToken, created.id, {
+            question_text: row.prompt.trim(),
+            question_type: "single_select",
+            options: opts.slice(0, 6),
+            is_required: true,
+            sort_order: i + 1,
           });
+        }
 
-          for (let i = 0; i < draft.preJoinQuestions.length; i++) {
-            const row = draft.preJoinQuestions[i];
-            const opts = row.options.map((o) => o.trim()).filter(Boolean);
-            if (opts.length < 2) continue;
-            await addEventQuestion(accessToken, created.id, {
-              question_text: row.prompt.trim(),
-              question_type: "single_select",
-              options: opts.slice(0, 6),
-              is_required: true,
-              sort_order: i + 1,
-            });
-          }
-
-          const published = await publishEvent(accessToken, created.id);
-          const ev = circleEventToMeetEvent(published);
-          publishHostedEvent({
-            ...ev,
-            category: primaryCategory,
-            categories: cats,
-            cityId: draft.cityId,
-            moreAbout: draft.moreAbout.trim() || undefined,
-            whatsIncluded: whatsIncluded.length ? whatsIncluded : undefined,
-            guestSuggestions: guestSuggestions.length
-              ? guestSuggestions
-              : undefined,
-            allowedAndNotes: draft.allowedAndNotes.trim() || undefined,
-            houseRules:
-              dos.length || donts.length ? { dos, donts } : undefined,
-            faqs: faqs.length ? faqs : undefined,
-            preJoinQuestions: preJoinQuestions.length
-              ? preJoinQuestions
-              : undefined,
-            joinMode: draft.joinMode,
-            shareToken: generateShareToken(),
-          });
-          toast.success("Meet published — manage it under Bookings.");
-          router.push("/bookings");
+        const published = await publishEvent(accessToken, created.id);
+        const ev = circleEventToMeetEvent(published);
+        publishHostedEvent({
+          ...ev,
+          category: primaryCategory,
+          categories: cats,
+          cityId: draft.cityId,
+          moreAbout: draft.moreAbout.trim() || undefined,
+          whatsIncluded: whatsIncluded.length ? whatsIncluded : undefined,
+          guestSuggestions: guestSuggestions.length
+            ? guestSuggestions
+            : undefined,
+          allowedAndNotes: draft.allowedAndNotes.trim() || undefined,
+          houseRules:
+            dos.length || donts.length ? { dos, donts } : undefined,
+          faqs: faqs.length ? faqs : undefined,
+          preJoinQuestions: preJoinQuestions.length
+            ? preJoinQuestions
+            : undefined,
+          joinMode: draft.joinMode,
+          shareToken: generateShareToken(),
+          additionalImages:
+            additionalImages.length > 0 ? additionalImages : undefined,
+        });
+        setDraft(initialHostDraft());
+        setStep(0);
+        toast.success("Meet published — manage it under Bookings.");
+        router.push("/bookings");
       } catch (e) {
         toast.error(
           e instanceof Error ? e.message : "Could not publish to Circle API",
@@ -284,9 +334,14 @@ export function HostWizard() {
 
   const inputClass = cn(
     "mt-2 w-full rounded-xl border border-neutral-300 bg-white px-3 py-2.5 text-sm text-neutral-900 shadow-sm outline-none transition",
-    "placeholder:text-neutral-400",
+    "placeholder:text-neutral-700",
     "focus-visible:border-neutral-900 focus-visible:ring-2 focus-visible:ring-neutral-900/10",
   );
+
+  const rupeesValue =
+    draft.priceCents === 0
+      ? ""
+      : (draft.priceCents / 100).toString();
 
   return (
     <div className="mt-10 w-full rounded-(--radius-section) border border-neutral-200 bg-white/90 p-5 shadow-sm sm:p-6 md:p-8">
@@ -339,22 +394,12 @@ export function HostWizard() {
 
       {step === 1 && (
         <div className="mt-4 space-y-4">
-          <div>
-            <label className="text-sm font-semibold text-neutral-900">City</label>
-            <select
-              className={inputClass}
-              value={draft.cityId}
-              onChange={(e) =>
-                setDraft((d) => ({ ...d, cityId: e.target.value }))
-              }
-            >
-              {cities.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <HostMeetSelect
+            label="City"
+            value={draft.cityId}
+            options={cities.map((c) => ({ value: c.id, label: c.name }))}
+            onChange={(cityId) => setDraft((d) => ({ ...d, cityId }))}
+          />
           <div>
             <label className="text-sm font-semibold text-neutral-900">Venue name</label>
             <input
@@ -409,22 +454,29 @@ export function HostWizard() {
               />
             </div>
             <div>
-              <label className="text-sm font-semibold text-neutral-900">Price (cents)</label>
+              <label className="text-sm font-semibold text-neutral-900">Price (rupees)</label>
               <input
                 type="number"
                 min={0}
-                step={100}
+                step={0.01}
                 className={inputClass}
-                value={draft.priceCents}
-                onChange={(e) =>
+                value={rupeesValue}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === "") {
+                    setDraft((d) => ({ ...d, priceCents: 0 }));
+                    return;
+                  }
+                  const n = Number.parseFloat(raw);
+                  if (Number.isNaN(n)) return;
                   setDraft((d) => ({
                     ...d,
-                    priceCents: Math.max(0, Number(e.target.value) || 0),
-                  }))
-                }
+                    priceCents: Math.max(0, Math.round(n * 100)),
+                  }));
+                }}
               />
-              <p className="mt-1 text-xs text-muted">
-                e.g. 2500 = ₹25 (amount in paise; charged via Razorpay when paid).
+              <p className="mt-1 text-xs text-neutral-900">
+                e.g. ₹25.00 = 2500 paise (charged via Razorpay when paid).
               </p>
             </div>
           </div>
@@ -433,180 +485,236 @@ export function HostWizard() {
 
       {step === 3 && (
         <div className="mt-4 space-y-4">
-          <div>
-            <label className="text-sm font-semibold text-neutral-900">Join policy</label>
-            <select
-              className={inputClass}
-              value={draft.joinMode}
-              onChange={(e) =>
-                setDraft((d) => ({
-                  ...d,
-                  joinMode: e.target.value as "open" | "invite",
-                }))
-              }
-            >
-              <option value="open">Open — anyone can join instantly</option>
-              <option value="invite">
-                Invite — guests request; you approve
-              </option>
-            </select>
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-neutral-900">Listing</label>
-            <select
-              className={inputClass}
-              value={draft.listingVisibility}
-              onChange={(e) =>
-                setDraft((d) => ({
-                  ...d,
-                  listingVisibility: e.target.value as "public" | "private",
-                }))
-              }
-            >
-              <option value="public">Public — shown on Explore</option>
-              <option value="private">Private — link only</option>
-            </select>
-          </div>
+          <HostMeetSelect
+            label="Join policy"
+            value={draft.joinMode}
+            options={[
+              {
+                value: "open",
+                label: "Open — anyone can join instantly",
+              },
+              {
+                value: "invite",
+                label: "Invite — guests request; you approve",
+              },
+            ]}
+            onChange={(v) =>
+              setDraft((d) => ({
+                ...d,
+                joinMode: v as "open" | "invite",
+              }))
+            }
+          />
+          <HostMeetSelect
+            label="Listing"
+            value={draft.listingVisibility}
+            options={[
+              { value: "public", label: "Public — shown on Explore" },
+              { value: "private", label: "Private — link only" },
+            ]}
+            onChange={(v) =>
+              setDraft((d) => ({
+                ...d,
+                listingVisibility: v as "public" | "private",
+              }))
+            }
+          />
         </div>
       )}
 
       {step === 4 && (
         <div className="mt-4 space-y-5">
+          <input
+            ref={coverFileInputRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            aria-label="Upload cover image"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) applyCoverFile(fileTargetSlot, file);
+              e.target.value = "";
+            }}
+          />
+
           <div>
-            <p className="text-sm font-semibold text-neutral-900">Cover image</p>
-            <p className="mt-1 text-xs leading-relaxed text-neutral-600">
-              Upload a file from your device, or paste an HTTPS image URL below.
-              Uploads stay in this browser only (demo).
+            <p className="text-sm font-semibold text-neutral-900">Images (up to 3)</p>
+            <p className="mt-1 text-xs leading-relaxed text-neutral-900">
+              Upload files or paste HTTPS URLs. The first image is the main cover. Large
+              file previews may not persist after refresh — use URLs for reliability.
             </p>
-
-            <input
-              ref={coverFileInputRef}
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              aria-label="Upload cover image"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) applyCoverFile(file);
-                e.target.value = "";
-              }}
-            />
-
-            <div
-              role="button"
-              tabIndex={0}
-              onDragEnter={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setCoverDragActive(true);
-              }}
-              onDragLeave={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setCoverDragActive(false);
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setCoverDragActive(false);
-                const file = e.dataTransfer.files?.[0];
-                if (file) applyCoverFile(file);
-              }}
-              onClick={() => coverFileInputRef.current?.click()}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  coverFileInputRef.current?.click();
-                }
-              }}
-              className={cn(
-                "mt-3 flex w-full min-h-[168px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-8 text-center transition outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/20",
-                coverDragActive
-                  ? "border-neutral-900 bg-neutral-100"
-                  : "border-neutral-300 bg-neutral-50 hover:border-neutral-500 hover:bg-neutral-100/90",
-              )}
-            >
-              <Upload
-                className="h-10 w-10 text-neutral-500"
-                strokeWidth={1.5}
-                aria-hidden
-              />
-              <span className="mt-3 text-sm font-semibold text-neutral-900">
-                {coverDragActive ? "Drop image here" : "Click to upload"}
-              </span>
-              <span className="mt-1 text-xs text-neutral-600">
-                or drag and drop — PNG, JPG, WebP · max 750KB
-              </span>
-            </div>
-
-            {draft.imageDataUrl ? (
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => coverFileInputRef.current?.click()}
-                  className="text-xs font-semibold text-neutral-900 underline-offset-2 hover:underline"
-                >
-                  Replace image
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setDraft((d) => ({ ...d, imageDataUrl: null }))
-                  }
-                  className="text-xs font-semibold text-red-700 underline-offset-2 hover:underline"
-                >
-                  Remove upload
-                </button>
-              </div>
-            ) : null}
           </div>
 
-          <div>
-            <label
-              htmlFor="host-cover-image-url"
-              className="text-sm font-semibold text-neutral-900"
+          {draft.coverSlots.map((slot, slotIndex) => (
+            <div
+              key={slotIndex}
+              className="rounded-2xl border border-neutral-200 bg-neutral-50/50 p-4"
             >
-              Image URL (optional)
-            </label>
-            <p className="mt-1 text-xs text-neutral-600">
-              Use a direct link if you prefer not to upload. Entering a URL
-              clears an uploaded file.
-            </p>
-            <input
-              id="host-cover-image-url"
-              className={inputClass}
-              value={draft.imageUrl}
-              placeholder="https://…"
-              onChange={(e) =>
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">
+                Image {slotIndex + 1}
+                {slotIndex === 0 ? " (cover)" : ""}
+              </p>
+              <div
+                role="button"
+                tabIndex={0}
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setCoverDragSlot(slotIndex);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setCoverDragSlot(null);
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setCoverDragSlot(null);
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) applyCoverFile(slotIndex, file);
+                }}
+                onClick={() => {
+                  setFileTargetSlot(slotIndex);
+                  coverFileInputRef.current?.click();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setFileTargetSlot(slotIndex);
+                    coverFileInputRef.current?.click();
+                  }
+                }}
+                className={cn(
+                  "mt-2 flex w-full min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/20",
+                  coverDragSlot === slotIndex
+                    ? "border-neutral-900 bg-neutral-100"
+                    : "border-neutral-300 bg-white hover:border-neutral-500 hover:bg-neutral-100/90",
+                )}
+              >
+                <Upload
+                  className="h-8 w-8 text-neutral-500"
+                  strokeWidth={1.5}
+                  aria-hidden
+                />
+                <span className="mt-2 text-sm font-semibold text-neutral-900">
+                  {coverDragSlot === slotIndex ? "Drop image here" : "Click to upload"}
+                </span>
+                <span className="mt-1 text-xs text-neutral-900">
+                  PNG, JPG, WebP · max{" "}
+                  {isCircleApiConfigured() && store.getState().auth.accessToken
+                    ? "5MB"
+                    : "750KB"}
+                </span>
+              </div>
+
+              {slot.dataUrl ? (
+                <div className="mt-2 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFileTargetSlot(slotIndex);
+                      coverFileInputRef.current?.click();
+                    }}
+                    className="text-xs font-semibold text-neutral-900 underline-offset-2 hover:underline"
+                  >
+                    Replace image
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDraft((d) => {
+                        const next = [...d.coverSlots];
+                        next[slotIndex] = { dataUrl: null, url: "" };
+                        return { ...d, coverSlots: next };
+                      })
+                    }
+                    className="text-xs font-semibold text-red-700 underline-offset-2 hover:underline"
+                  >
+                    Remove upload
+                  </button>
+                </div>
+              ) : null}
+
+              <label
+                className="mt-3 block text-sm font-semibold text-neutral-900"
+                htmlFor={`host-cover-url-${slotIndex}`}
+              >
+                Image URL (optional)
+              </label>
+              <p className="mt-1 text-xs text-neutral-900">
+                Direct HTTPS link. Entering a URL clears an uploaded file for this slot.
+              </p>
+              <input
+                id={`host-cover-url-${slotIndex}`}
+                className={inputClass}
+                value={slot.url}
+                placeholder="https://…"
+                onChange={(e) =>
+                  setDraft((d) => {
+                    const next = [...d.coverSlots];
+                    next[slotIndex] = {
+                      dataUrl: e.target.value ? null : next[slotIndex].dataUrl,
+                      url: e.target.value,
+                    };
+                    return { ...d, coverSlots: next };
+                  })
+                }
+              />
+
+              {slotHasVisual(slot) ? (
+                <div className="mt-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">
+                    Preview
+                  </p>
+                  <div className="relative mt-2 aspect-4/3 w-full max-w-md overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 shadow-sm">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={slot.dataUrl ?? slot.url.trim()}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ))}
+
+          {draft.coverSlots.length < MAX_COVER_SLOTS ? (
+            <button
+              type="button"
+              className="text-sm font-semibold text-primary hover:underline"
+              onClick={() =>
                 setDraft((d) => ({
                   ...d,
-                  imageUrl: e.target.value,
-                  imageDataUrl: e.target.value ? null : d.imageDataUrl,
+                  coverSlots: [...d.coverSlots, { dataUrl: null, url: "" }],
                 }))
               }
-            />
-          </div>
+            >
+              + Add another image ({draft.coverSlots.length}/{MAX_COVER_SLOTS})
+            </button>
+          ) : null}
 
-          {(draft.imageDataUrl ||
-            (draft.imageUrl.trim() && isProbablyUrl(draft.imageUrl))) && (
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-600">
-                Preview
-              </p>
-              <div className="relative mt-2 aspect-4/3 w-full max-w-md overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 shadow-sm">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={draft.imageDataUrl ?? draft.imageUrl.trim()}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-              </div>
-            </div>
-          )}
+          {draft.coverSlots.length > 1 ? (
+            <button
+              type="button"
+              className="text-sm font-medium text-neutral-700 hover:underline"
+              onClick={() =>
+                setDraft((d) => ({
+                  ...d,
+                  coverSlots: d.coverSlots.slice(0, -1).length
+                    ? d.coverSlots.slice(0, -1)
+                    : [{ dataUrl: null, url: "" }],
+                }))
+              }
+            >
+              Remove last image slot
+            </button>
+          ) : null}
         </div>
       )}
 
@@ -625,7 +733,7 @@ export function HostWizard() {
           </div>
           <div>
             <p className="text-sm font-semibold text-neutral-900">What&apos;s included</p>
-            <p className="mt-1 text-xs text-muted">
+            <p className="mt-1 text-xs text-neutral-900">
               One line per item (empty lines are ignored).
             </p>
             <div className="mt-2 space-y-2">
@@ -674,7 +782,7 @@ export function HostWizard() {
           </div>
           <div>
             <p className="text-sm font-semibold text-neutral-900">Suggestions for guests</p>
-            <p className="mt-1 text-xs text-muted">
+            <p className="mt-1 text-xs text-neutral-900">
               Short tips (one per line); shown on the event page if set.
             </p>
             <div className="mt-2 space-y-2">
@@ -825,7 +933,7 @@ export function HostWizard() {
 
       {step === 7 && (
         <div className="mt-4 space-y-3">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-neutral-900">
             Pick up to three categories. These appear on Explore and on your event
             page.
           </p>
@@ -848,7 +956,7 @@ export function HostWizard() {
               );
             })}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-neutral-900">
             Selected: {draft.categories.length ? draft.categories.join(" · ") : "—"}
           </p>
         </div>
@@ -856,7 +964,7 @@ export function HostWizard() {
 
       {step === 8 && (
         <div className="mt-4 space-y-4">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-neutral-900">
             Add question and answer pairs for the FAQ accordion on the event page.
           </p>
           {draft.faqs.map((row, i) => (
@@ -913,7 +1021,7 @@ export function HostWizard() {
 
       {step === 9 && (
         <div className="mt-4 space-y-4">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-neutral-900">
             Optional: up to 5 multiple-choice questions guests must answer before
             joining. Each needs a prompt and at least two options.
           </p>
@@ -932,7 +1040,7 @@ export function HostWizard() {
                   setDraft((d) => ({ ...d, preJoinQuestions: next }));
                 }}
               />
-              <p className="text-xs font-medium text-muted-foreground">
+              <p className="text-xs font-medium text-neutral-900">
                 Answer options (radios)
               </p>
               {pq.options.map((opt, oi) => (
