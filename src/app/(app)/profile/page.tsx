@@ -11,6 +11,7 @@ import { ShieldCheck } from "lucide-react";
 import { getMyProfile, updateMyProfile } from "@/lib/circle/api";
 import { CircleApiError } from "@/lib/circle/client";
 import { isCircleApiConfigured } from "@/lib/circle/config";
+import { circleUsernameSchema } from "@/lib/auth/circleUsernameSchema";
 import { circleProfileToUser } from "@/lib/circle/mappers";
 import {
   selectAccessToken,
@@ -21,7 +22,7 @@ import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
 
 const schema = z.object({
-  name: z.string().min(2),
+  name: circleUsernameSchema,
 });
 
 type Form = z.infer<typeof schema>;
@@ -158,7 +159,11 @@ export default function ProfilePage() {
               id="profile-name"
               className="mt-2 w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
               {...register("name")}
+              autoComplete="username"
             />
+            <p className="mt-1.5 text-xs text-neutral-600">
+              Letters and numbers only — no spaces or symbols.
+            </p>
             {errors.name && (
               <p className="mt-2 text-xs font-medium text-red-600">
                 {errors.name.message}

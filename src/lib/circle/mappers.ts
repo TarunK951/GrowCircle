@@ -30,9 +30,18 @@ export function circleProfileToUser(profile: CircleProfile): User {
   };
 }
 
+export type CircleEventToMeetOpts = {
+  /** When the API omits `host` (some publish / my-events payloads), use the signed-in user id. */
+  defaultHostUserId?: string;
+};
+
 /** Map published API event to `MeetEvent` for existing UI */
-export function circleEventToMeetEvent(api: CircleEvent): MeetEvent {
-  const hostId = api.host?.id ?? "unknown_host";
+export function circleEventToMeetEvent(
+  api: CircleEvent,
+  opts?: CircleEventToMeetOpts,
+): MeetEvent {
+  const hostId =
+    api.host?.id ?? opts?.defaultHostUserId ?? "unknown_host";
   const priceCents = priceStringToCents(api.price);
   const image =
     api.cover_image_url?.trim() ||

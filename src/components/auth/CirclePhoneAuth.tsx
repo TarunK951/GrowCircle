@@ -25,6 +25,7 @@ import {
   getCircleGoogleAuthUrl,
   isCircleApiConfigured,
 } from "@/lib/circle/config";
+import { circleUsernameSchema } from "@/lib/auth/circleUsernameSchema";
 import { circleProfileToUser } from "@/lib/circle/mappers";
 import { store } from "@/lib/store/store";
 import { useSessionStore } from "@/stores/session-store";
@@ -48,7 +49,7 @@ function toE164India(nationalDigits: string): string {
 const otpSchema = z.string().trim().regex(/^\d{4,8}$/, "Enter the code you received");
 
 const profileSchema = z.object({
-  username: z.string().trim().min(2, "Username is required"),
+  username: circleUsernameSchema,
   email: z.string().trim().email(),
   dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"),
 });
@@ -648,6 +649,9 @@ export function CirclePhoneAuth() {
               onChange={(e) => setUsername(e.target.value)}
               autoComplete="username"
             />
+            <p className="mt-1.5 text-xs text-neutral-600">
+              Letters and numbers only — no spaces or symbols.
+            </p>
           </div>
           <div>
             <label className="text-sm font-medium text-neutral-700">

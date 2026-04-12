@@ -20,6 +20,7 @@ import {
 } from "@/lib/circle/sessionBridge";
 import { getMediaUploadUrl, uploadToPresignedUrl } from "@/lib/circle/mediaApi";
 import { circleEventToMeetEvent } from "@/lib/circle/mappers";
+import { circleApi } from "@/lib/store/circleApi";
 import { generateShareToken } from "@/lib/eventsCatalog";
 import type { City, PreJoinQuestion } from "@/lib/types";
 import {
@@ -335,7 +336,9 @@ export function HostWizard() {
         }
 
         const published = await publishEvent(token, created.id);
-        const ev = circleEventToMeetEvent(published);
+        const ev = circleEventToMeetEvent(published, {
+          defaultHostUserId: user.id,
+        });
         publishHostedEvent({
           ...ev,
           category: primaryCategory,
@@ -358,6 +361,9 @@ export function HostWizard() {
           additionalImages:
             additionalImages.length > 0 ? additionalImages : undefined,
         });
+        store.dispatch(
+          circleApi.util.invalidateTags([{ type: "HostedEvents", id: "LIST" }]),
+        );
         setDraft(initialHostDraft());
         setStep(0);
         toast.success("Meet published — manage it under Bookings.");

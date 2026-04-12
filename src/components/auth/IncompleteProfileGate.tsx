@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { z } from "zod";
+import { circleUsernameSchema } from "@/lib/auth/circleUsernameSchema";
 import {
   completeProfile,
   getMyProfile,
@@ -21,7 +22,7 @@ import { useSessionStore } from "@/stores/session-store";
 import { cn } from "@/lib/utils";
 
 const profileSchema = z.object({
-  username: z.string().trim().min(2, "Username is required"),
+  username: circleUsernameSchema,
   email: z.string().trim().email(),
   dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"),
 });
@@ -175,8 +176,11 @@ export function IncompleteProfileGate() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               autoComplete="username"
-              placeholder="your_handle"
+              placeholder="lettersandnumbers"
             />
+            <p className="mt-1.5 text-xs text-neutral-600">
+              Letters and numbers only — no spaces or symbols.
+            </p>
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-neutral-700">

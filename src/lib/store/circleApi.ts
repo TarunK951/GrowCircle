@@ -58,7 +58,7 @@ export const circleApi = createApi({
             page,
             limit,
           });
-          return { data: data.map(circleEventToMeetEvent) };
+          return { data: data.map((row) => circleEventToMeetEvent(row)) };
         } catch (e) {
           return err(e);
         }
@@ -68,13 +68,19 @@ export const circleApi = createApi({
 
     hostedEvents: builder.query<MeetEvent[], void>({
       async queryFn(_arg, { getState }) {
-        const token = (getState() as AuthSliceRoot).auth.accessToken;
+        const state = getState() as AuthSliceRoot;
+        const token = state.auth.accessToken;
+        const defaultHostUserId = state.auth.user?.id;
         if (!token || !isCircleApiConfigured()) {
           return { data: [] };
         }
         try {
           const rows = await getMyHostedEvents(token);
-          return { data: rows.map(circleEventToMeetEvent) };
+          return {
+            data: rows.map((row) =>
+              circleEventToMeetEvent(row, { defaultHostUserId }),
+            ),
+          };
         } catch (e) {
           return err(e);
         }
