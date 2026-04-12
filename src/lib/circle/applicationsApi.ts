@@ -149,7 +149,7 @@ export function getEventCheckinStatus(accessToken: string, eventId: string) {
   );
 }
 
-/** True when Circle API base is set (for UI branching). */
+/** True when Circle applications API is available (always when this bundle is built for Circle). */
 export function canUseCircleApplicationsApi(): boolean {
-  return getCircleApiBase() !== null;
+  return true;
 }

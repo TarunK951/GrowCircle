@@ -8,9 +8,6 @@ import type { CircleHealthData } from "@/lib/circle/types";
  */
 export async function getHealth(): Promise<CircleHealthData> {
   const base = getCircleApiBase();
-  if (!base) {
-    throw new CircleApiError("Circle API is not configured", 0);
-  }
   const root = base.replace(/\/api\/?$/, "");
   const url = `${root}/health`;
   const res = await fetch(url);

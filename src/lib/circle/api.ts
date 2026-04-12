@@ -81,9 +81,6 @@ export type ListPublicEventsParams = {
 /** §3.1 — envelope includes top-level `meta` (not inside `data`) */
 export async function listPublicEvents(params: ListPublicEventsParams = {}) {
   const base = getCircleApiBase();
-  if (!base) {
-    throw new CircleApiError("Circle API is not configured", 0);
-  }
   const sp = new URLSearchParams();
   if (params.page != null) sp.set("page", String(params.page));
   if (params.limit != null) sp.set("limit", String(params.limit));

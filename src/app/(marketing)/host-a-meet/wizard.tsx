@@ -475,9 +475,6 @@ export function HostWizard() {
                   }));
                 }}
               />
-              <p className="mt-1 text-xs text-neutral-900">
-                e.g. ₹25.00 = 2500 paise (charged via Razorpay when paid).
-              </p>
             </div>
           </div>
         </div>
@@ -539,170 +536,200 @@ export function HostWizard() {
 
           <div>
             <p className="text-sm font-semibold text-neutral-900">Images (up to 3)</p>
-            <p className="mt-1 text-xs leading-relaxed text-neutral-900">
-              Upload files or paste HTTPS URLs. The first image is the main cover. Large
-              file previews may not persist after refresh — use URLs for reliability.
+            <p className="mt-1 text-xs text-neutral-900">
+              First image is the cover. Paste a URL or upload — max{" "}
+              {isCircleApiConfigured() && store.getState().auth.accessToken
+                ? "5MB"
+                : "750KB"}{" "}
+              per file.
             </p>
           </div>
 
-          {draft.coverSlots.map((slot, slotIndex) => (
-            <div
-              key={slotIndex}
-              className="rounded-2xl border border-neutral-200 bg-neutral-50/50 p-4"
-            >
-              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">
-                Image {slotIndex + 1}
-                {slotIndex === 0 ? " (cover)" : ""}
-              </p>
+          {draft.coverSlots.map((slot, slotIndex) => {
+            const hasVisual = slotHasVisual(slot);
+            const maxLabel =
+              isCircleApiConfigured() && store.getState().auth.accessToken
+                ? "5MB"
+                : "750KB";
+
+            return (
               <div
-                role="button"
-                tabIndex={0}
-                onDragEnter={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setCoverDragSlot(slotIndex);
-                }}
-                onDragLeave={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setCoverDragSlot(null);
-                }}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setCoverDragSlot(null);
-                  const file = e.dataTransfer.files?.[0];
-                  if (file) applyCoverFile(slotIndex, file);
-                }}
-                onClick={() => {
-                  setFileTargetSlot(slotIndex);
-                  coverFileInputRef.current?.click();
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setFileTargetSlot(slotIndex);
-                    coverFileInputRef.current?.click();
-                  }
-                }}
-                className={cn(
-                  "mt-2 flex w-full min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/20",
-                  coverDragSlot === slotIndex
-                    ? "border-neutral-900 bg-neutral-100"
-                    : "border-neutral-300 bg-white hover:border-neutral-500 hover:bg-neutral-100/90",
-                )}
+                key={slotIndex}
+                className="rounded-xl border border-neutral-200 bg-neutral-50/50 p-3"
               >
-                <Upload
-                  className="h-8 w-8 text-neutral-500"
-                  strokeWidth={1.5}
-                  aria-hidden
-                />
-                <span className="mt-2 text-sm font-semibold text-neutral-900">
-                  {coverDragSlot === slotIndex ? "Drop image here" : "Click to upload"}
-                </span>
-                <span className="mt-1 text-xs text-neutral-900">
-                  PNG, JPG, WebP · max{" "}
-                  {isCircleApiConfigured() && store.getState().auth.accessToken
-                    ? "5MB"
-                    : "750KB"}
-                </span>
-              </div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">
+                  Image {slotIndex + 1}
+                  {slotIndex === 0 ? " (cover)" : ""}
+                </p>
 
-              {slot.dataUrl ? (
-                <div className="mt-2 flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFileTargetSlot(slotIndex);
-                      coverFileInputRef.current?.click();
-                    }}
-                    className="text-xs font-semibold text-neutral-900 underline-offset-2 hover:underline"
-                  >
-                    Replace image
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setDraft((d) => {
-                        const next = [...d.coverSlots];
-                        next[slotIndex] = { dataUrl: null, url: "" };
-                        return { ...d, coverSlots: next };
-                      })
-                    }
-                    className="text-xs font-semibold text-red-700 underline-offset-2 hover:underline"
-                  >
-                    Remove upload
-                  </button>
-                </div>
-              ) : null}
-
-              <label
-                className="mt-3 block text-sm font-semibold text-neutral-900"
-                htmlFor={`host-cover-url-${slotIndex}`}
-              >
-                Image URL (optional)
-              </label>
-              <p className="mt-1 text-xs text-neutral-900">
-                Direct HTTPS link. Entering a URL clears an uploaded file for this slot.
-              </p>
-              <input
-                id={`host-cover-url-${slotIndex}`}
-                className={inputClass}
-                value={slot.url}
-                placeholder="https://…"
-                onChange={(e) =>
-                  setDraft((d) => {
-                    const next = [...d.coverSlots];
-                    next[slotIndex] = {
-                      dataUrl: e.target.value ? null : next[slotIndex].dataUrl,
-                      url: e.target.value,
-                    };
-                    return { ...d, coverSlots: next };
-                  })
-                }
-              />
-
-              {slotHasVisual(slot) ? (
-                <div className="mt-3">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">
-                    Preview
-                  </p>
-                  <div className="relative mt-2 aspect-4/3 w-full max-w-md overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100 shadow-sm">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={slot.dataUrl ?? slot.url.trim()}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
+                {hasVisual ? (
+                  <div className="mt-2 flex flex-wrap items-stretch gap-3 sm:flex-nowrap">
+                    <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={slot.dataUrl ?? slot.url.trim()}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFileTargetSlot(slotIndex);
+                            coverFileInputRef.current?.click();
+                          }}
+                          className="rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-900 shadow-sm hover:bg-neutral-50"
+                        >
+                          Replace
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDraft((d) => {
+                              const next = [...d.coverSlots];
+                              next[slotIndex] = { dataUrl: null, url: "" };
+                              return { ...d, coverSlots: next };
+                            })
+                          }
+                          className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 shadow-sm hover:bg-red-50"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <input
+                        id={`host-cover-url-${slotIndex}`}
+                        className={cn(inputClass, "mt-0")}
+                        value={slot.url}
+                        placeholder="HTTPS image URL (optional)"
+                        onChange={(e) =>
+                          setDraft((d) => {
+                            const next = [...d.coverSlots];
+                            next[slotIndex] = {
+                              dataUrl: e.target.value
+                                ? null
+                                : next[slotIndex].dataUrl,
+                              url: e.target.value,
+                            };
+                            return { ...d, coverSlots: next };
+                          })
+                        }
+                      />
+                    </div>
                   </div>
-                </div>
-              ) : null}
-            </div>
-          ))}
+                ) : (
+                  <>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onDragEnter={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setCoverDragSlot(slotIndex);
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setCoverDragSlot(null);
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setCoverDragSlot(null);
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) applyCoverFile(slotIndex, file);
+                      }}
+                      onClick={() => {
+                        setFileTargetSlot(slotIndex);
+                        coverFileInputRef.current?.click();
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setFileTargetSlot(slotIndex);
+                          coverFileInputRef.current?.click();
+                        }
+                      }}
+                      className={cn(
+                        "mt-2 flex min-h-[72px] w-full cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed px-3 py-2.5 transition outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/20",
+                        coverDragSlot === slotIndex
+                          ? "border-neutral-900 bg-neutral-100"
+                          : "border-neutral-300 bg-white hover:border-neutral-500 hover:bg-neutral-50",
+                      )}
+                    >
+                      <Upload
+                        className="h-6 w-6 shrink-0 text-neutral-500"
+                        strokeWidth={1.5}
+                        aria-hidden
+                      />
+                      <div className="min-w-0 flex-1 text-left">
+                        <p className="text-sm font-semibold text-neutral-900">
+                          {coverDragSlot === slotIndex
+                            ? "Drop image here"
+                            : "Upload or click"}
+                        </p>
+                        <p className="text-xs text-neutral-900">
+                          PNG, JPG, WebP · max {maxLabel}
+                        </p>
+                      </div>
+                    </div>
+                    <label
+                      className="mt-2 block text-xs font-semibold text-neutral-900"
+                      htmlFor={`host-cover-url-${slotIndex}`}
+                    >
+                      Or paste URL
+                    </label>
+                    <input
+                      id={`host-cover-url-${slotIndex}`}
+                      className={inputClass}
+                      value={slot.url}
+                      placeholder="https://…"
+                      onChange={(e) =>
+                        setDraft((d) => {
+                          const next = [...d.coverSlots];
+                          next[slotIndex] = {
+                            dataUrl: e.target.value
+                              ? null
+                              : next[slotIndex].dataUrl,
+                            url: e.target.value,
+                          };
+                          return { ...d, coverSlots: next };
+                        })
+                      }
+                    />
+                  </>
+                )}
+              </div>
+            );
+          })}
 
           {draft.coverSlots.length < MAX_COVER_SLOTS ? (
             <button
               type="button"
-              className="text-sm font-semibold text-primary hover:underline"
               onClick={() =>
                 setDraft((d) => ({
                   ...d,
                   coverSlots: [...d.coverSlots, { dataUrl: null, url: "" }],
                 }))
               }
+              className={cn(
+                "flex w-full min-h-[72px] items-center justify-center gap-2 rounded-lg border-2 border-dashed border-neutral-300 bg-white px-3 py-2.5 text-sm font-semibold text-neutral-900 transition hover:border-neutral-500 hover:bg-neutral-50",
+              )}
             >
-              + Add another image ({draft.coverSlots.length}/{MAX_COVER_SLOTS})
+              <Upload className="h-5 w-5 text-neutral-500" strokeWidth={1.5} />
+              Add another image ({draft.coverSlots.length}/{MAX_COVER_SLOTS})
             </button>
           ) : null}
 
           {draft.coverSlots.length > 1 ? (
             <button
               type="button"
-              className="text-sm font-medium text-neutral-700 hover:underline"
+              className="text-xs font-medium text-neutral-600 hover:text-neutral-900 hover:underline"
               onClick={() =>
                 setDraft((d) => ({
                   ...d,
@@ -712,7 +739,7 @@ export function HostWizard() {
                 }))
               }
             >
-              Remove last image slot
+              Remove last slot
             </button>
           ) : null}
         </div>

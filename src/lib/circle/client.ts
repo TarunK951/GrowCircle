@@ -25,9 +25,6 @@ export async function circleRequest<T>(
   opts: RequestOpts = {},
 ): Promise<T> {
   const base = getCircleApiBase();
-  if (!base) {
-    throw new CircleApiError("Circle API is not configured", 0);
-  }
 
   const url = path.startsWith("http")
     ? path
@@ -112,9 +109,6 @@ export async function circleRequestList<T>(
   opts: RequestOptsNoBody & { accessToken: string },
 ): Promise<{ data: T[]; meta: CircleListMeta }> {
   const base = getCircleApiBase();
-  if (!base) {
-    throw new CircleApiError("Circle API is not configured", 0);
-  }
   const url = path.startsWith("http")
     ? path
     : `${base}${path.startsWith("/") ? "" : "/"}${path}`;
@@ -180,7 +174,6 @@ export async function circleRequestBlob(
   accessToken: string,
 ): Promise<Blob> {
   const base = getCircleApiBase();
-  if (!base) throw new CircleApiError("Circle API is not configured", 0);
   const url = `${base}${path.startsWith("/") ? "" : "/"}${path}`;
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}` },

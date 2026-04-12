@@ -18,13 +18,21 @@ import { circleProfileToUser } from "@/lib/circle/mappers";
 import { store } from "@/lib/store/store";
 import { useSessionStore } from "@/stores/session-store";
 
+/** E.164 after default country code +91 (India). */
 const phoneSchema = z
   .string()
   .trim()
   .regex(
-    /^\+[1-9]\d{6,14}$/,
-    "Use international format with + (e.g. +919876543210)",
+    /^\+91[6-9]\d{9}$/,
+    "Enter a valid 10-digit mobile number (without leading 0).",
   );
+
+const DEFAULT_CC = "91";
+
+function toE164India(nationalDigits: string): string {
+  const digits = nationalDigits.replace(/\D/g, "").replace(/^0+/, "").slice(0, 10);
+  return `+${DEFAULT_CC}${digits}`;
+}
 
 const otpSchema = z.string().trim().regex(/^\d{4,8}$/, "Enter the code you received");
 
@@ -49,7 +57,12 @@ export function CirclePhoneAuth() {
   const loginWithCircle = useSessionStore((s) => s.loginWithCircle);
 
   const [step, setStep] = useState<Step>("phone");
-  const [phone, setPhone] = useState("");
+  /** National part only (10 digits); full number is always `+91` + this. */
+  const [phoneNational, setPhoneNational] = useState("");
+  const phoneE164 = useMemo(
+    () => toE164India(phoneNational),
+    [phoneNational],
+  );
   const [otp, setOtp] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -65,7 +78,7 @@ export function CirclePhoneAuth() {
   }, [mode, returnUrl]);
 
   const send = async () => {
-    const parsed = phoneSchema.safeParse(phone);
+    const parsed = phoneSchema.safeParse(phoneE164);
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? "Invalid phone");
       return;
@@ -83,7 +96,7 @@ export function CirclePhoneAuth() {
   };
 
   const verify = async () => {
-    const p = phoneSchema.safeParse(phone);
+    const p = phoneSchema.safeParse(phoneE164);
     const o = otpSchema.safeParse(otp);
     if (!p.success || !o.success) {
       toast.error("Check phone number and OTP");
@@ -140,7 +153,10 @@ export function CirclePhoneAuth() {
     }
   };
 
-  const googleUrl = getCircleGoogleAuthUrl();
+  const googleUrl = useMemo(
+    () => getCircleGoogleAuthUrl(returnUrl),
+    [returnUrl],
+  );
 
   return (
     <div className="mx-auto w-full max-w-md text-left">
@@ -157,19 +173,34 @@ export function CirclePhoneAuth() {
         <div className="mt-8 space-y-5">
           <div>
             <label
-              htmlFor="circle-phone"
+              htmlFor="circle-phone-national"
               className="text-sm font-medium text-neutral-700"
             >
               Phone
             </label>
-            <input
-              id="circle-phone"
-              autoComplete="tel"
-              placeholder="+919876543210"
-              className={`mt-2 ${inputClass}`}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-            />
+            <div className="mt-2 flex min-w-0 gap-2">
+              <span
+                className="flex shrink-0 items-center rounded-xl border border-neutral-200/90 bg-neutral-100/90 px-3.5 py-2.5 text-sm font-medium tabular-nums text-neutral-900"
+                aria-hidden
+              >
+                +{DEFAULT_CC}
+              </span>
+              <input
+                id="circle-phone-national"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                placeholder="9876543210"
+                className={`min-w-0 flex-1 ${inputClass}`}
+                value={phoneNational}
+                onChange={(e) =>
+                  setPhoneNational(e.target.value.replace(/\D/g, "").slice(0, 10))
+                }
+              />
+            </div>
+            <p className="mt-1.5 text-xs text-neutral-500">
+              Country code +{DEFAULT_CC} is set by default.
+            </p>
           </div>
           <button
             type="button"
@@ -285,9 +316,8 @@ export function CirclePhoneAuth() {
 
           <button
             type="button"
-            disabled={!googleUrl}
             onClick={() => {
-              if (googleUrl) window.location.assign(googleUrl);
+              window.location.assign(googleUrl);
             }}
             className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-neutral-200 bg-white py-3 text-sm font-medium text-neutral-800 shadow-sm transition hover:bg-neutral-50 disabled:opacity-50"
           >
