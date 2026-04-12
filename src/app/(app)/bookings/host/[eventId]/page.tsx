@@ -85,6 +85,7 @@ function detailsFromEvent(event: {
   allowedAndNotes?: string;
   houseRules?: { dos?: string[]; donts?: string[] };
   faqs?: { q: string; a: string }[];
+  refundPolicy?: string;
 }): EditableDetailDraft {
   return {
     moreAbout: event.moreAbout ?? "",
