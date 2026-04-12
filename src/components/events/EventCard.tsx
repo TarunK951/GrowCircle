@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { formatCategoryEyebrow } from "@/lib/eventCategories";
 import type { MeetEvent } from "@/lib/types";
+import { formatInrFromCents } from "@/lib/formatCurrency";
 import { cn } from "@/lib/utils";
 
 export function EventCard({
@@ -21,10 +22,7 @@ export function EventCard({
   /** Ended, cancelled, or otherwise dimmed (grayscale). */
   inactive?: boolean;
 }) {
-  const price =
-    event.priceCents === 0
-      ? "Free"
-      : `$${(event.priceCents / 100).toFixed(0)}`;
+  const price = formatInrFromCents(event.priceCents);
 
   const subtitle = hostName?.trim() || cityName;
   const coverIsDataUrl = event.image.startsWith("data:");

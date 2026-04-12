@@ -67,7 +67,7 @@ export async function loginMock(email: string, password: string): Promise<User> 
     email,
     avatar:
       "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=128&h=128&fit=crop",
-    cityId: "sf",
+    cityId: "blr",
     interests: [],
     verified: false,
   };
@@ -85,7 +85,7 @@ export async function signupMock(input: {
     email: input.email,
     avatar:
       "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=128&h=128&fit=crop",
-    cityId: "sf",
+    cityId: "blr",
     interests: [],
     verified: false,
   };

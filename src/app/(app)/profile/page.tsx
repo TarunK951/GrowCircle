@@ -62,7 +62,7 @@ export default function ProfilePage() {
     isCircleApiConfigured() && Boolean(accessToken && refreshToken);
 
   return (
-    <div className="mx-auto max-w-2xl text-neutral-900">
+    <div className="mx-auto min-h-0 max-w-2xl text-neutral-900">
       <div className="border-b border-neutral-200 pb-8">
         <h1 className="font-onest text-3xl font-semibold tracking-tight text-neutral-900">
           Profile

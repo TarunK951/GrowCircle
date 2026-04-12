@@ -129,7 +129,7 @@ type SessionState = {
 const initialHostDraft = (): HostDraft => ({
   title: "",
   description: "",
-  cityId: "sf",
+  cityId: "blr",
   categories: ["Social"],
   addressLine: "",
   startsAt: "",
@@ -443,7 +443,7 @@ export const useSessionStore = create<SessionState>()(
           title: "Coffee & sketch — demo hosting",
           description:
             "Sunday morning doodling. Sample row for testing host tools.",
-          cityId: "sf",
+          cityId: "blr",
           startsAt,
           hostUserId: user.id,
           capacity: 12,

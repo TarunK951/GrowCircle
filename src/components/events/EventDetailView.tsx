@@ -6,6 +6,7 @@ import { useResolvedEvent } from "@/hooks/useResolvedEvent";
 import { resolveEventDetail } from "@/lib/eventDetail";
 import { hostLabelForEvent } from "@/lib/hostName";
 import { useSessionStore } from "@/stores/session-store";
+import { formatInrFromCents } from "@/lib/formatCurrency";
 import citiesData from "@/data/cities.json";
 import type { City } from "@/lib/types";
 
@@ -53,12 +54,9 @@ export function EventDetailView({ id }: { id: string }) {
   const city = cities.find((c) => c.id === event.cityId);
   const hostName = hostLabelForEvent(event, user ?? null);
 
-  const price =
-    event.priceCents === 0
-      ? "Free"
-      : `$${(event.priceCents / 100).toFixed(2)}`;
+  const price = formatInrFromCents(event.priceCents, { decimals: 2 });
 
-  const whenLabel = new Date(event.startsAt).toLocaleString("en-US", {
+  const whenLabel = new Date(event.startsAt).toLocaleString("en-IN", {
     weekday: "short",
     month: "short",
     day: "numeric",

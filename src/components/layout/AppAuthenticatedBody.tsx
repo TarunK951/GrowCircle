@@ -26,7 +26,7 @@ export function AppAuthenticatedBody({
   return (
     <>
       <CircleSessionBridge />
-      <div className="mx-auto w-full max-w-6xl">
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col">
         <AppShell>{children}</AppShell>
       </div>
     </>

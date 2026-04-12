@@ -1,8 +1,15 @@
 [
   { "id": "circle", "name": "Circle", "slug": "circle" },
+  { "id": "blr", "name": "Bengaluru", "slug": "bengaluru" },
+  { "id": "mum", "name": "Mumbai", "slug": "mumbai" },
+  { "id": "del", "name": "Delhi NCR", "slug": "delhi" },
+  { "id": "hyd", "name": "Hyderabad", "slug": "hyderabad" },
+  { "id": "chen", "name": "Chennai", "slug": "chennai" },
+  { "id": "kol", "name": "Kolkata", "slug": "kolkata" },
+  { "id": "pun", "name": "Pune", "slug": "pune" },
+  { "id": "ahm", "name": "Ahmedabad", "slug": "ahmedabad" },
   { "id": "sf", "name": "San Francisco", "slug": "san-francisco" },
   { "id": "nyc", "name": "New York", "slug": "new-york" },
   { "id": "lon", "name": "London", "slug": "london" },
-  { "id": "blr", "name": "Bengaluru", "slug": "bengaluru" },
   { "id": "sg", "name": "Singapore", "slug": "singapore" }
 ]

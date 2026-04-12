@@ -50,7 +50,7 @@ export function toPublicUser(u: StoredUser): User {
     name: u.name,
     email: u.email,
     avatar: DEFAULT_AVATAR,
-    cityId: "sf",
+    cityId: "blr",
     interests: [],
     verified: false,
   };

@@ -447,7 +447,7 @@ export function HostWizard() {
                 }
               />
               <p className="mt-1 text-xs text-muted">
-                e.g. 2500 = $25.00 (mock — no real charge).
+                e.g. 2500 = ₹25 (amount in paise; mock — no real charge).
               </p>
             </div>
           </div>

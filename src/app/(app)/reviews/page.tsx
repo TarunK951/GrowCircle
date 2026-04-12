@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Star } from "lucide-react";
+import { formatInrDateTime } from "@/lib/formatCurrency";
 import { useSessionStore } from "@/stores/session-store";
 import { cn } from "@/lib/utils";
 
@@ -71,6 +72,14 @@ function StarInput({
   );
 }
 
+type TabId = "about" | "write" | "posted";
+
+const tabs: { id: TabId; label: string }[] = [
+  { id: "about", label: "About you" },
+  { id: "write", label: "Review a guest" },
+  { id: "posted", label: "Your reviews" },
+];
+
 export default function ReviewsPage() {
   const user = useSessionStore((s) => s.user);
   const written = useSessionStore((s) => s.guestReviewsWritten);
@@ -78,6 +87,7 @@ export default function ReviewsPage() {
   const addGuestReviewWritten = useSessionStore((s) => s.addGuestReviewWritten);
   const seedDemoReviewsIfEmpty = useSessionStore((s) => s.seedDemoReviewsIfEmpty);
 
+  const [tab, setTab] = useState<TabId>("about");
   const [guestName, setGuestName] = useState("");
   const [eventTitle, setEventTitle] = useState("");
   const [rating, setRating] = useState(0);
@@ -110,11 +120,12 @@ export default function ReviewsPage() {
     setEventTitle("");
     setRating(0);
     setComment("");
+    setTab("posted");
   };
 
   return (
     <div className="mx-auto max-w-3xl text-neutral-900">
-      <div className="border-b border-neutral-200 pb-8">
+      <div className="border-b border-neutral-200 pb-6">
         <h1 className="font-onest text-3xl font-semibold tracking-tight text-neutral-900">
           Reviews
         </h1>
@@ -124,162 +135,213 @@ export default function ReviewsPage() {
         </p>
       </div>
 
-      <section className="mt-10 rounded-2xl border border-neutral-200 bg-neutral-50/80 p-6 sm:p-8">
-        <h2 className="text-lg font-semibold text-neutral-900">
-          Your overall rating
-        </h2>
-        <p className="mt-1 text-sm text-neutral-900">
-          Average from reviews guests left about you (out of 5).
-        </p>
-        <div className="mt-6 flex flex-wrap items-center gap-4">
-          <StarsDisplay value={average} size="lg" />
-          <div>
-            <p className="text-3xl font-bold tabular-nums text-neutral-900">
-              {received.length ? average.toFixed(1) : "—"}
-            </p>
-            <p className="text-sm font-medium text-neutral-900">
-              {received.length} review{received.length === 1 ? "" : "s"}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="mt-10">
-        <h2 className="text-lg font-semibold text-neutral-900">
-          Reviews about you
-        </h2>
-        <ul className="mt-4 space-y-4">
-          {received.length === 0 ? (
-            <li className="rounded-xl border border-dashed border-neutral-300 bg-white px-4 py-6 text-sm font-medium text-neutral-900">
-              No reviews yet — when guests leave feedback, it will show here.
-            </li>
-          ) : (
-            received.map((r) => (
-              <li
-                key={r.id}
-                className="rounded-xl border border-neutral-200 bg-white px-4 py-4 shadow-sm"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-neutral-900">{r.reviewerName}</p>
-                    <p className="text-sm font-medium text-neutral-900">
-                      {r.eventTitle}
-                    </p>
-                  </div>
-                  <StarsDisplay value={r.rating} />
-                </div>
-                <p className="mt-3 text-sm leading-relaxed text-neutral-900">
-                  {r.comment}
-                </p>
-                <p className="mt-2 text-xs font-medium text-neutral-900">
-                  {new Date(r.createdAt).toLocaleString()}
-                </p>
-              </li>
-            ))
-          )}
-        </ul>
-      </section>
-
-      <section className="mt-12">
-        <h2 className="text-lg font-semibold text-neutral-900">
-          Review a guest
-        </h2>
-        <p className="mt-1 text-sm text-neutral-900">
-          Saved locally in this browser — share honest feedback after your meet.
-        </p>
-        <form
-          onSubmit={onSubmit}
-          className="mt-6 space-y-4 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm"
-        >
-          <div>
-            <label className="text-sm font-semibold text-neutral-900" htmlFor="g-name">
-              Guest name
-            </label>
-            <input
-              id="g-name"
-              value={guestName}
-              onChange={(e) => setGuestName(e.target.value)}
-              className="mt-2 w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm text-neutral-900 outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
-              placeholder="e.g. Sam P."
-              required
-            />
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-neutral-900" htmlFor="g-event">
-              Meet / event title
-            </label>
-            <input
-              id="g-event"
-              value={eventTitle}
-              onChange={(e) => setEventTitle(e.target.value)}
-              className="mt-2 w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm text-neutral-900 outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
-              placeholder="e.g. Sunday brunch circle"
-              required
-            />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-neutral-900">Rating</p>
-            <div className="mt-2">
-              <StarInput value={rating} onChange={setRating} />
-            </div>
-          </div>
-          <div>
-            <label className="text-sm font-semibold text-neutral-900" htmlFor="g-comment">
-              Comment
-            </label>
-            <textarea
-              id="g-comment"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              rows={4}
-              className="mt-2 w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm text-neutral-900 outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
-              placeholder="What stood out?"
-              required
-            />
-          </div>
+      <div
+        className="mt-6 flex flex-wrap gap-1 rounded-xl border border-neutral-200 bg-neutral-100/80 p-1"
+        role="tablist"
+        aria-label="Reviews sections"
+      >
+        {tabs.map((t) => (
           <button
-            type="submit"
-            disabled={!user || rating < 1}
-            className="rounded-xl bg-neutral-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50"
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            onClick={() => setTab(t.id)}
+            className={cn(
+              "min-h-10 flex-1 rounded-lg px-3 py-2 text-center text-sm font-semibold transition",
+              tab === t.id
+                ? "bg-white text-neutral-900 shadow-sm"
+                : "text-neutral-600 hover:text-neutral-900",
+            )}
           >
-            Post review
+            {t.label}
           </button>
-        </form>
-      </section>
+        ))}
+      </div>
 
-      <section className="mt-12">
-        <h2 className="text-lg font-semibold text-neutral-900">
-          Reviews you&apos;ve posted
-        </h2>
-        <ul className="mt-4 space-y-4">
-          {written.length === 0 ? (
-            <li className="rounded-xl border border-dashed border-neutral-300 bg-white px-4 py-6 text-sm font-medium text-neutral-900">
-              You haven&apos;t posted any guest reviews yet.
-            </li>
-          ) : (
-            written.map((r) => (
-              <li
-                key={r.id}
-                className="rounded-xl border border-neutral-200 bg-white px-4 py-4 shadow-sm"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-neutral-900">{r.guestName}</p>
-                    <p className="text-sm font-medium text-neutral-900">{r.eventTitle}</p>
-                  </div>
-                  <StarsDisplay value={r.rating} />
+      <div className="mt-8" role="tabpanel">
+        {tab === "about" && (
+          <div className="space-y-10">
+            <section className="rounded-2xl border border-neutral-200 bg-neutral-50/80 p-6 sm:p-8">
+              <h2 className="text-lg font-semibold text-neutral-900">
+                Your overall rating
+              </h2>
+              <p className="mt-1 text-sm text-neutral-900">
+                Average from reviews guests left about you (out of 5).
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-4">
+                <StarsDisplay value={average} size="lg" />
+                <div>
+                  <p className="text-3xl font-bold tabular-nums text-neutral-900">
+                    {received.length ? average.toFixed(1) : "—"}
+                  </p>
+                  <p className="text-sm font-medium text-neutral-900">
+                    {received.length} review{received.length === 1 ? "" : "s"}
+                  </p>
                 </div>
-                <p className="mt-3 text-sm leading-relaxed text-neutral-900">
-                  {r.comment}
-                </p>
-                <p className="mt-2 text-xs font-medium text-neutral-900">
-                  {new Date(r.createdAt).toLocaleString()}
-                </p>
-              </li>
-            ))
-          )}
-        </ul>
-      </section>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-neutral-900">
+                Reviews about you
+              </h2>
+              <ul className="mt-4 space-y-4">
+                {received.length === 0 ? (
+                  <li className="rounded-xl border border-dashed border-neutral-300 bg-white px-4 py-6 text-sm font-medium text-neutral-900">
+                    No reviews yet — when guests leave feedback, it will show
+                    here.
+                  </li>
+                ) : (
+                  received.map((r) => (
+                    <li
+                      key={r.id}
+                      className="rounded-xl border border-neutral-200 bg-white px-4 py-4 shadow-sm"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="font-semibold text-neutral-900">
+                            {r.reviewerName}
+                          </p>
+                          <p className="text-sm font-medium text-neutral-900">
+                            {r.eventTitle}
+                          </p>
+                        </div>
+                        <StarsDisplay value={r.rating} />
+                      </div>
+                      <p className="mt-3 text-sm leading-relaxed text-neutral-900">
+                        {r.comment}
+                      </p>
+                      <p className="mt-2 text-xs font-medium text-neutral-900">
+                        {formatInrDateTime(r.createdAt)}
+                      </p>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </section>
+          </div>
+        )}
+
+        {tab === "write" && (
+          <section>
+            <h2 className="text-lg font-semibold text-neutral-900">
+              Review a guest
+            </h2>
+            <p className="mt-1 text-sm text-neutral-900">
+              Saved locally in this browser — share honest feedback after your
+              meet.
+            </p>
+            <form
+              onSubmit={onSubmit}
+              className="mt-6 space-y-4 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm"
+            >
+              <div>
+                <label
+                  className="text-sm font-semibold text-neutral-900"
+                  htmlFor="g-name"
+                >
+                  Guest name
+                </label>
+                <input
+                  id="g-name"
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm text-neutral-900 outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
+                  placeholder="e.g. Sam P."
+                  required
+                />
+              </div>
+              <div>
+                <label
+                  className="text-sm font-semibold text-neutral-900"
+                  htmlFor="g-event"
+                >
+                  Meet / event title
+                </label>
+                <input
+                  id="g-event"
+                  value={eventTitle}
+                  onChange={(e) => setEventTitle(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm text-neutral-900 outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
+                  placeholder="e.g. Sunday brunch circle"
+                  required
+                />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-neutral-900">Rating</p>
+                <div className="mt-2">
+                  <StarInput value={rating} onChange={setRating} />
+                </div>
+              </div>
+              <div>
+                <label
+                  className="text-sm font-semibold text-neutral-900"
+                  htmlFor="g-comment"
+                >
+                  Comment
+                </label>
+                <textarea
+                  id="g-comment"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  rows={4}
+                  className="mt-2 w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm text-neutral-900 outline-none focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10"
+                  placeholder="What stood out?"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!user || rating < 1}
+                className="rounded-xl bg-neutral-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:opacity-50"
+              >
+                Post review
+              </button>
+            </form>
+          </section>
+        )}
+
+        {tab === "posted" && (
+          <section>
+            <h2 className="text-lg font-semibold text-neutral-900">
+              Reviews you&apos;ve posted
+            </h2>
+            <ul className="mt-4 space-y-4">
+              {written.length === 0 ? (
+                <li className="rounded-xl border border-dashed border-neutral-300 bg-white px-4 py-6 text-sm font-medium text-neutral-900">
+                  You haven&apos;t posted any guest reviews yet.
+                </li>
+              ) : (
+                written.map((r) => (
+                  <li
+                    key={r.id}
+                    className="rounded-xl border border-neutral-200 bg-white px-4 py-4 shadow-sm"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-neutral-900">
+                          {r.guestName}
+                        </p>
+                        <p className="text-sm font-medium text-neutral-900">
+                          {r.eventTitle}
+                        </p>
+                      </div>
+                      <StarsDisplay value={r.rating} />
+                    </div>
+                    <p className="mt-3 text-sm leading-relaxed text-neutral-900">
+                      {r.comment}
+                    </p>
+                    <p className="mt-2 text-xs font-medium text-neutral-900">
+                      {formatInrDateTime(r.createdAt)}
+                    </p>
+                  </li>
+                ))
+              )}
+            </ul>
+          </section>
+        )}
+      </div>
     </div>
   );
 }

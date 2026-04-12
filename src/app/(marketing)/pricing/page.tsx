@@ -6,17 +6,17 @@ import { Reveal } from "@/components/providers/Reveal";
 const tiers = [
   {
     name: "Starter",
-    price: "$0",
+    price: "₹0",
     blurb: "Discover meets, save favourites, and chat with mock threads.",
   },
   {
     name: "Host",
-    price: "$12",
+    price: "₹499",
     blurb: "Publish recurring meets, priority placement in discover (mock).",
   },
   {
     name: "Circle",
-    price: "$29",
+    price: "₹999",
     blurb: "Matchmaking-style suggestions + verification badge (mock).",
   },
 ];
