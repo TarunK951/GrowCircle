@@ -127,6 +127,10 @@ type SessionState = {
   resetNotificationsRead: () => void;
   chatExtras: Record<string, ChatMessage[]>;
   appendChatMessage: (threadId: string, msg: ChatMessage) => void;
+  /** Local-only: hidden message threads (e.g. blocked). */
+  blockedMessageThreadIds: string[];
+  blockMessageThread: (threadId: string) => void;
+  unblockMessageThread: (threadId: string) => void;
   /** Reviews you posted about guests (as host). */
   guestReviewsWritten: GuestReviewWritten[];
   /** Reviews from guests about you (as host). */
@@ -325,6 +329,7 @@ export const useSessionStore = create<SessionState>()(
       setHostWizardStep: (n) =>
         set({ hostWizardStep: Math.max(0, Math.min(9, Math.floor(n))) }),
       chatExtras: {},
+      blockedMessageThreadIds: [],
       circleCatalogEvents: [],
       setCircleCatalogEvents: (events) => set({ circleCatalogEvents: events }),
       upsertCircleCatalogEvent: (event) =>
@@ -352,6 +357,7 @@ export const useSessionStore = create<SessionState>()(
           hostedEvents: [],
           savedEventIds: [],
           chatExtras: {},
+          blockedMessageThreadIds: [],
           uiPrefs: s.uiPrefs,
           socialConnections: s.socialConnections,
           guestReviewsWritten: [],
@@ -576,6 +582,18 @@ export const useSessionStore = create<SessionState>()(
           },
         });
       },
+      blockMessageThread: (threadId) =>
+        set((s) => ({
+          blockedMessageThreadIds: s.blockedMessageThreadIds.includes(threadId)
+            ? s.blockedMessageThreadIds
+            : [...s.blockedMessageThreadIds, threadId],
+        })),
+      unblockMessageThread: (threadId) =>
+        set((s) => ({
+          blockedMessageThreadIds: s.blockedMessageThreadIds.filter(
+            (id) => id !== threadId,
+          ),
+        })),
       guestReviewsWritten: [],
       hostReviewsReceived: [],
       attendeeMeetReviews: [],
@@ -627,6 +645,7 @@ export const useSessionStore = create<SessionState>()(
         hostDraft: stripDraftForPersist(state.hostDraft),
         hostWizardStep: state.hostWizardStep,
         chatExtras: state.chatExtras,
+        blockedMessageThreadIds: state.blockedMessageThreadIds,
         circleCatalogEvents: state.circleCatalogEvents,
         guestReviewsWritten: state.guestReviewsWritten,
         hostReviewsReceived: state.hostReviewsReceived,
@@ -654,6 +673,8 @@ export const useSessionStore = create<SessionState>()(
           hostReviewsReceived: p?.hostReviewsReceived ?? current.hostReviewsReceived,
           attendeeMeetReviews:
             p?.attendeeMeetReviews ?? current.attendeeMeetReviews,
+          blockedMessageThreadIds:
+            p?.blockedMessageThreadIds ?? current.blockedMessageThreadIds,
         };
       },
     },
