@@ -4,7 +4,7 @@ import { HostWizard } from "./wizard";
 
 export default function HostAMeetPage() {
   return (
-    <Container className="page-shell">
+    <Container className="page-shell pt-4! pb-12! sm:pt-5! sm:pb-14! md:pt-6! md:pb-16!">
       <div className="mx-auto flex w-full max-w-2xl flex-col items-center">
         <MarketingPageIntro
           align="center"

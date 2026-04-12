@@ -8,12 +8,22 @@ import { cn } from "@/lib/utils";
 export function MarketingShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isHome = pathname === "/";
+  /** Host wizard: slimmer offset under fixed nav — page uses tighter `page-shell` too. */
+  const isHostWizard =
+    pathname === "/host-a-meet" || pathname === "/host";
 
   return (
     <>
       <MarketingNav />
       {/* Home: no top padding — hero is full-bleed under the fixed nav (no white strip). */}
-      <main className={cn("flex-1", isHome ? "pt-0" : "pt-20")}>{children}</main>
+      <main
+        className={cn(
+          "flex-1",
+          isHome ? "pt-0" : isHostWizard ? "pt-16" : "pt-20",
+        )}
+      >
+        {children}
+      </main>
       <SiteFooter />
     </>
   );
