@@ -10,6 +10,7 @@ import { isCircleApiConfigured } from "@/lib/circle/config";
 import type { CircleEventQuestion } from "@/lib/circle/types";
 import { getEventFromCatalog } from "@/lib/eventsCatalog";
 import {
+  buildMeetPaymentDescription,
   canOpenRazorpayCheckout,
   openRazorpayFromPayload,
 } from "@/lib/razorpay/loadCheckout";
@@ -236,9 +237,22 @@ export function JoinMeetButton({ event }: { event: MeetEvent }) {
       const pay = data.payment;
       const needsPay = canOpenRazorpayCheckout(pay);
       if (needsPay) {
+        const priceLabel =
+          latest.priceCents === 0
+            ? "Free"
+            : `₹${(latest.priceCents / 100).toFixed(0)}`;
         await openRazorpayFromPayload({
           payload: pay,
-          title: latest.title,
+          title: "Grow Circle",
+          description: buildMeetPaymentDescription({
+            eventTitle: latest.title,
+            startsAtIso: latest.startsAt,
+            venue: latest.venueName,
+            priceLabel,
+          }),
+          prefill: user
+            ? { name: user.name, email: user.email }
+            : undefined,
           onPaid: () => {
             toast.success(
               "Payment submitted — your booking will update shortly.",

@@ -131,10 +131,36 @@ export type RazorpayReadyPayload = CircleRazorpayOrderPayload & {
 export type OpenRazorpayFromPayloadParams = {
   /** Raw order payload from the API (camelCase or snake_case). */
   payload: CircleRazorpayOrderPayload | Record<string, unknown>;
+  /** Checkout title (usually merchant / product line). */
   title?: string;
+  /** Subtitle shown in Razorpay modal (meet details, amount summary). */
+  description?: string;
+  /** Prefill payer details when available. */
+  prefill?: { name?: string; email?: string; contact?: string };
   onPaid?: (response: RazorpayPaymentResponse) => void;
   onDismiss?: () => void;
 };
+
+/** Human-readable summary for the payment modal (keep short for Razorpay UI). */
+export function buildMeetPaymentDescription(parts: {
+  eventTitle: string;
+  startsAtIso: string;
+  venue?: string;
+  priceLabel: string;
+}): string {
+  const when = new Date(parts.startsAtIso).toLocaleString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const bits = [parts.eventTitle, when, parts.venue, parts.priceLabel].filter(
+    Boolean,
+  ) as string[];
+  const line = bits.join(" · ");
+  return line.length > 220 ? `${line.slice(0, 217)}…` : line;
+}
 
 export function canOpenRazorpayCheckout(
   payload: CircleRazorpayOrderPayload | Record<string, unknown> | null | undefined,
@@ -156,6 +182,8 @@ export function canOpenRazorpayCheckout(
 export async function openRazorpayFromPayload({
   payload: rawPayload,
   title = "GrowCircle",
+  description,
+  prefill,
   onPaid,
   onDismiss,
 }: OpenRazorpayFromPayloadParams): Promise<void> {
@@ -182,6 +210,8 @@ export async function openRazorpayFromPayload({
       currency,
       order_id: orderId,
       name: title,
+      ...(description ? { description } : {}),
+      ...(prefill && Object.keys(prefill).length > 0 ? { prefill } : {}),
       handler: (response) => {
         onPaid?.(response);
         resolve();

@@ -23,6 +23,7 @@ import {
   mergeEventCatalog,
 } from "@/lib/eventsCatalog";
 import {
+  buildMeetPaymentDescription,
   canOpenRazorpayCheckout,
   openRazorpayFromPayload,
 } from "@/lib/razorpay/loadCheckout";
@@ -200,6 +201,7 @@ function CircleGuestApplicationCard({
   onRefresh: () => void;
   compactBookingCards: boolean;
 }) {
+  const user = useSessionStore((s) => s.user);
   const eventId = app.event?.id ?? "";
   const ev = eventId
     ? getEventFromCatalog(eventId, hostedEvents, circleCatalogEvents)
@@ -280,9 +282,24 @@ function CircleGuestApplicationCard({
       const data = await acceptWaitlistOffer(accessToken, app.id);
       const pay = data.payment;
       if (canOpenRazorpayCheckout(pay)) {
+        const priceLabel =
+          ev && ev.priceCents > 0
+            ? `₹${(ev.priceCents / 100).toFixed(0)}`
+            : "Free";
         await openRazorpayFromPayload({
           payload: pay,
-          title: title,
+          title: "Grow Circle",
+          description: ev
+            ? buildMeetPaymentDescription({
+                eventTitle: title,
+                startsAtIso: ev.startsAt,
+                venue: ev.venueName,
+                priceLabel,
+              })
+            : title,
+          prefill: user
+            ? { name: user.name, email: user.email }
+            : undefined,
           onPaid: () =>
             toast.success("Payment submitted — refreshing your applications."),
         });

@@ -16,7 +16,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       <CustomCursor />
       {children}
       <Toaster
-        position="top-center"
+        position="bottom-right"
         richColors
         closeButton
         toastOptions={{

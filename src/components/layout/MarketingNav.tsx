@@ -51,11 +51,14 @@ export function MarketingNav() {
   const isAuthenticated = useSessionStore((s) => s.isAuthenticated);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const navItems = links.map((l) => ({
-    name: l.label,
-    link: l.href,
-    active: navActive(pathname, l.href, l.aliases),
-  }));
+  const navItems = links.map((l) => {
+    const link =
+      isAuthenticated && l.href === "/join" ? "/explore" : l.href;
+    const active =
+      navActive(pathname, l.href, l.aliases) ||
+      (l.href === "/join" && isAuthenticated && pathname === "/explore");
+    return { name: l.label, link, active };
+  });
 
   return (
     <div className="relative w-full">
