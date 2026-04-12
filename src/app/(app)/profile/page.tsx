@@ -13,6 +13,7 @@ import { CircleApiError } from "@/lib/circle/client";
 import { isCircleApiConfigured } from "@/lib/circle/config";
 import { circleUsernameSchema } from "@/lib/auth/circleUsernameSchema";
 import { ageFromIsoDate } from "@/lib/date/ageFromDob";
+import { cn } from "@/lib/utils";
 import { circleProfileToUser } from "@/lib/circle/mappers";
 import {
   selectAccessToken,
@@ -47,6 +48,8 @@ export default function ProfilePage() {
     isCircleApiConfigured() && Boolean(accessToken && refreshToken);
 
   const [phoneDisplay, setPhoneDisplay] = useState<string | null>(null);
+  /** Once the API returns a saved DOB, it cannot be edited (product policy). */
+  const [dobLocked, setDobLocked] = useState(false);
 
   const resolver = useMemo(
     () =>
@@ -91,6 +94,8 @@ export default function ProfilePage() {
         const dobStr = profile.dob?.trim() ?? "";
         const dob =
           /^\d{4}-\d{2}-\d{2}/.test(dobStr) ? dobStr.slice(0, 10) : "";
+        const hasSavedDob = /^\d{4}-\d{2}-\d{2}$/.test(dob);
+        setDobLocked(hasSavedDob);
         reset({
           name: profile.username?.trim() || u.name,
           ...(circleSync ? { dob } : {}),
@@ -139,9 +144,9 @@ export default function ProfilePage() {
           <p className="font-semibold text-amber-950">Visible to others</p>
           <p className="mt-1 text-amber-950/90">
             Your display name can show on meets, bookings, and messages. You may
-            change these details anytime — choose what you&apos;re comfortable
-            sharing publicly. Date of birth is used for age eligibility on
-            meets; keep it accurate.
+            change your display name anytime. Date of birth is used for age
+            eligibility on meets — after it&apos;s saved once, it can&apos;t be
+            changed here.
           </p>
         </div>
       </div>
@@ -192,7 +197,7 @@ export default function ProfilePage() {
               try {
                 const profile = await updateMyProfile(accessToken!, {
                   username: d.name.trim(),
-                  dob: d.dob,
+                  ...(dobLocked ? {} : { dob: d.dob }),
                 });
                 const u = circleProfileToUser(profile);
                 loginWithCircle(u, {
@@ -200,6 +205,10 @@ export default function ProfilePage() {
                   refreshToken: refreshToken!,
                 });
                 setPhoneDisplay(profile.phone);
+                const saved = profile.dob?.trim() ?? "";
+                if (/^\d{4}-\d{2}-\d{2}/.test(saved)) {
+                  setDobLocked(true);
+                }
                 toast.success("Profile updated");
               } catch (e) {
                 const msg =
@@ -210,7 +219,8 @@ export default function ProfilePage() {
                       : "Could not update profile";
                 if (
                   typeof msg === "string" &&
-                  /dob|birth|date/i.test(msg)
+                  /dob|birth|date/i.test(msg) &&
+                  !dobLocked
                 ) {
                   try {
                     const profile = await updateMyProfile(accessToken!, {
@@ -285,9 +295,21 @@ export default function ProfilePage() {
                 <input
                   id="profile-dob"
                   type="date"
-                  className="mt-2 w-full max-w-xs rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-neutral-900 focus:bg-white focus:ring-2 focus:ring-neutral-900/10"
+                  readOnly={dobLocked}
+                  aria-readonly={dobLocked}
+                  className={cn(
+                    "mt-2 w-full max-w-xs rounded-xl border border-neutral-200 px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-neutral-900 focus:bg-white focus:ring-2 focus:ring-neutral-900/10",
+                    dobLocked
+                      ? "cursor-not-allowed bg-neutral-100 text-neutral-700"
+                      : "bg-neutral-50/80",
+                  )}
                   {...register("dob" as const)}
                 />
+                {dobLocked && (
+                  <p className="mt-2 text-xs text-neutral-600">
+                    Date of birth was saved and can&apos;t be changed here.
+                  </p>
+                )}
                 {computedAge != null && (
                   <p className="mt-2 text-sm text-neutral-600">
                     Age shown on meets:{" "}
@@ -310,7 +332,9 @@ export default function ProfilePage() {
               Contact
             </h2>
             <p className="mt-1 text-xs text-neutral-500">
-              Email and phone are used for account security and notifications.
+              {circleSync
+                ? "While your account is connected to Circle, email and phone can’t be changed in this app."
+                : "Email and phone are used for account security and notifications."}
             </p>
             <dl className="mt-5 space-y-4">
               <div>
@@ -322,8 +346,8 @@ export default function ProfilePage() {
                 </dd>
                 <p className="mt-2 text-xs text-neutral-600">
                   {circleSync
-                    ? "Managed by your Circle account. Contact support to change it."
-                    : "Contact support to change email when using a connected account."}
+                    ? "Gmail / email is fixed for your connected account."
+                    : "Shown from your local account."}
                 </p>
               </div>
               {circleSync && (
@@ -339,7 +363,7 @@ export default function ProfilePage() {
                   </dd>
                   <p className="mt-2 text-xs text-neutral-600">
                     {phoneDisplay && phoneDisplay.length > 0
-                      ? "Linked via phone OTP sign-in."
+                      ? "Mobile number is fixed for your connected account."
                       : "Link a number by signing in with phone OTP from the login page (same account)."}
                   </p>
                 </div>

@@ -61,6 +61,8 @@ export function IncompleteProfileGate() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [dob, setDob] = useState("");
+  const [emailLocked, setEmailLocked] = useState(false);
+  const [dobLocked, setDobLocked] = useState(false);
 
   const onAuthFlow =
     pathname.startsWith("/login") ||
@@ -86,7 +88,12 @@ export function IncompleteProfileGate() {
       );
       setEmail(p.email?.trim() || reduxUser?.email || "");
       const dobStr = p.dob?.trim() ?? "";
-      setDob(/^\d{4}-\d{2}-\d{2}/.test(dobStr) ? dobStr.slice(0, 10) : "");
+      const dobIso = /^\d{4}-\d{2}-\d{2}/.test(dobStr)
+        ? dobStr.slice(0, 10)
+        : "";
+      setDob(dobIso);
+      setEmailLocked(Boolean(p.email?.trim()));
+      setDobLocked(/^\d{4}-\d{2}-\d{2}$/.test(dobIso));
     } catch {
       if (reduxUser) {
         setEmail(reduxUser.email ?? "");
@@ -162,8 +169,9 @@ export function IncompleteProfileGate() {
         </h2>
         <p className="mt-2 text-sm text-neutral-600">
           Add your username, email, and date of birth to host meets, join paid
-          events, and use your account fully. You can update these anytime in
-          settings.
+          events, and use your account fully. Email, phone, and date of birth
+          can&apos;t be changed after they&apos;re saved — update your display
+          name anytime in Profile.
         </p>
 
         <div className="mt-5 space-y-3">
@@ -187,23 +195,43 @@ export function IncompleteProfileGate() {
               Email
             </label>
             <input
-              className={inputClass}
+              className={cn(
+                inputClass,
+                emailLocked && "cursor-not-allowed bg-neutral-200/80 text-neutral-700",
+              )}
               type="email"
+              readOnly={emailLocked}
+              aria-readonly={emailLocked}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
             />
+            {emailLocked && (
+              <p className="mt-1.5 text-xs text-neutral-600">
+                Email can&apos;t be changed once set.
+              </p>
+            )}
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-neutral-700">
               Date of birth
             </label>
             <input
-              className={inputClass}
+              className={cn(
+                inputClass,
+                dobLocked && "cursor-not-allowed bg-neutral-200/80 text-neutral-700",
+              )}
               type="date"
+              readOnly={dobLocked}
+              aria-readonly={dobLocked}
               value={dob}
               onChange={(e) => setDob(e.target.value)}
             />
+            {dobLocked && (
+              <p className="mt-1.5 text-xs text-neutral-600">
+                Date of birth can&apos;t be changed once saved.
+              </p>
+            )}
           </div>
         </div>
 

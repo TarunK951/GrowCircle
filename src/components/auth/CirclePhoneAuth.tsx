@@ -106,6 +106,11 @@ export function CirclePhoneAuth() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [dob, setDob] = useState("");
+  /** Prefilled from Circle — fields can’t be edited once set. */
+  const [profileEmailLocked, setProfileEmailLocked] = useState(false);
+  const [profileDobLocked, setProfileDobLocked] = useState(false);
+  /** E.164 for read-only phone line on profile step (gate or post-OTP). */
+  const [displayPhoneE164, setDisplayPhoneE164] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   /** Countdown before "Resend code" is enabled again */
   const [resendIn, setResendIn] = useState(0);
@@ -183,7 +188,11 @@ export function CirclePhoneAuth() {
         setUsername(p.username ?? "");
         setEmail(p.email ?? "");
         const dobStr = p.dob?.trim() ?? "";
-        setDob(/^\d{4}-\d{2}-\d{2}/.test(dobStr) ? dobStr.slice(0, 10) : "");
+        const dobOk = /^\d{4}-\d{2}-\d{2}/.test(dobStr);
+        setDob(dobOk ? dobStr.slice(0, 10) : "");
+        setProfileEmailLocked(Boolean(p.email?.trim()));
+        setProfileDobLocked(dobOk);
+        setDisplayPhoneE164(p.phone?.trim() || null);
         setStep("profile");
         setAuthChannel("phone");
         toast.message("Complete your profile to continue.");
@@ -260,6 +269,12 @@ export function CirclePhoneAuth() {
         refreshToken: data.refreshToken,
       });
       if (data.isProfileComplete !== true) {
+        setProfileEmailLocked(Boolean(data.user.email?.trim()));
+        setProfileDobLocked(false);
+        setDisplayPhoneE164(p.data);
+        setUsername(data.user.username ?? "");
+        setEmail(data.user.email ?? "");
+        setDob("");
         setStep("profile");
         toast.success("Signed in — complete your profile");
         return;
@@ -639,6 +654,28 @@ export function CirclePhoneAuth() {
 
       {step === "profile" && (
         <div className="mt-8 space-y-4">
+          {(displayPhoneE164 || /^\+91[6-9]\d{9}$/.test(phoneE164)) && (
+            <div className="rounded-xl border border-neutral-200/90 bg-neutral-50/90 px-4 py-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+                Phone
+              </p>
+              <p className="mt-1 text-sm font-semibold text-neutral-900">
+                {(() => {
+                  const e164 = displayPhoneE164 ?? phoneE164;
+                  const digits = e164.replace(/\D/g, "");
+                  const national =
+                    digits.length >= 12 && digits.startsWith("91")
+                      ? digits.slice(2, 12)
+                      : digits.slice(0, 10);
+                  if (national.length < 10) return e164;
+                  return `+${DEFAULT_CC} ${maskNationalPhone(national)}`;
+                })()}
+              </p>
+              <p className="mt-1 text-xs text-neutral-600">
+                Verified at sign-in — can&apos;t be changed.
+              </p>
+            </div>
+          )}
           <div>
             <label className="text-sm font-medium text-neutral-700">
               Username
@@ -659,11 +696,21 @@ export function CirclePhoneAuth() {
             </label>
             <input
               type="email"
-              className={`mt-2 ${inputClass}`}
+              readOnly={profileEmailLocked}
+              aria-readonly={profileEmailLocked}
+              className={cn(
+                `mt-2 ${inputClass}`,
+                profileEmailLocked && "cursor-not-allowed bg-neutral-200/80 text-neutral-700",
+              )}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
             />
+            {profileEmailLocked && (
+              <p className="mt-1.5 text-xs text-neutral-600">
+                Email can&apos;t be changed once it&apos;s set on your account.
+              </p>
+            )}
           </div>
           <div>
             <label className="text-sm font-medium text-neutral-700">
@@ -671,10 +718,20 @@ export function CirclePhoneAuth() {
             </label>
             <input
               type="date"
-              className={`mt-2 ${inputClass}`}
+              readOnly={profileDobLocked}
+              aria-readonly={profileDobLocked}
+              className={cn(
+                `mt-2 ${inputClass}`,
+                profileDobLocked && "cursor-not-allowed bg-neutral-200/80 text-neutral-700",
+              )}
               value={dob}
               onChange={(e) => setDob(e.target.value)}
             />
+            {profileDobLocked && (
+              <p className="mt-1.5 text-xs text-neutral-600">
+                Date of birth can&apos;t be changed once saved.
+              </p>
+            )}
           </div>
           <button
             type="button"
