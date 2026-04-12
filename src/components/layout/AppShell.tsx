@@ -19,6 +19,7 @@ import {
   Bell,
   Settings,
   Share2,
+  Star,
   type LucideIcon,
 } from "lucide-react";
 
@@ -35,6 +36,7 @@ const nav: ShellNav[] = [
   { href: "/verify-profile", label: "Verify", icon: ShieldCheck },
   { href: "/history", label: "History", icon: History },
   { href: "/saved", label: "Saved", icon: Bookmark },
+  { href: "/reviews", label: "Reviews", icon: Star },
   {
     href: "/chat",
     label: "Messages",

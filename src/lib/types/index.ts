@@ -189,3 +189,23 @@ export type CareersContent = {
     items: CareersLifeItem[];
   };
 };
+
+/** Local-only reviews (persisted in the browser). */
+export type GuestReviewWritten = {
+  id: string;
+  createdAt: string;
+  guestName: string;
+  eventTitle: string;
+  /** 1–5 */
+  rating: number;
+  comment: string;
+};
+
+export type HostReviewReceived = {
+  id: string;
+  createdAt: string;
+  reviewerName: string;
+  eventTitle: string;
+  rating: number;
+  comment: string;
+};

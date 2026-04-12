@@ -59,7 +59,7 @@ export default function SavedPage() {
               return (
                 <div
                   key={id}
-                  className="flex flex-col overflow-hidden rounded-(--radius-section) border border-neutral-200 bg-neutral-50 grayscale"
+                  className="flex flex-col overflow-hidden rounded-(--radius-section) border border-neutral-200 bg-neutral-50 grayscale saturate-0 contrast-[0.92]"
                 >
                   <div className="aspect-4/3 w-full bg-neutral-200" />
                   <div className="border-t border-neutral-200 p-5">

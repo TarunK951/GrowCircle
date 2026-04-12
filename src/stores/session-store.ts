@@ -1,6 +1,13 @@
 "use client";
 
-import type { Booking, ChatMessage, MeetEvent, User } from "@/lib/types";
+import type {
+  Booking,
+  ChatMessage,
+  GuestReviewWritten,
+  HostReviewReceived,
+  MeetEvent,
+  User,
+} from "@/lib/types";
 import {
   generateAttendanceCode,
   generateShareToken,
@@ -111,6 +118,12 @@ type SessionState = {
   seedDemoBookingData: () => void;
   /** Seed Saved with sample event ids when empty (demo). */
   seedDemoSavedIfEmpty: () => void;
+  /** Reviews you posted about guests (as host). */
+  guestReviewsWritten: GuestReviewWritten[];
+  /** Reviews from guests about you (as host). */
+  hostReviewsReceived: HostReviewReceived[];
+  addGuestReviewWritten: (r: Omit<GuestReviewWritten, "id" | "createdAt">) => void;
+  seedDemoReviewsIfEmpty: () => void;
 };
 
 const initialHostDraft = (): HostDraft => ({
@@ -234,6 +247,8 @@ export const useSessionStore = create<SessionState>()(
           refreshToken: null,
           uiPrefs: s.uiPrefs,
           socialConnections: s.socialConnections,
+          guestReviewsWritten: [],
+          hostReviewsReceived: [],
         })),
       updateProfile: (partial) => {
         const u = get().user;
@@ -496,6 +511,44 @@ export const useSessionStore = create<SessionState>()(
           savedEventIds: ["evt_1", "evt_2", "evt_3"],
         });
       },
+      guestReviewsWritten: [],
+      hostReviewsReceived: [],
+      addGuestReviewWritten: (r) => {
+        const row: GuestReviewWritten = {
+          ...r,
+          id: `gr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          createdAt: new Date().toISOString(),
+        };
+        set({ guestReviewsWritten: [row, ...get().guestReviewsWritten] });
+      },
+      seedDemoReviewsIfEmpty: () => {
+        if (
+          get().hostReviewsReceived.length > 0 ||
+          get().guestReviewsWritten.length > 0
+        ) {
+          return;
+        }
+        const now = new Date().toISOString();
+        const received: HostReviewReceived[] = [
+          {
+            id: "hr_demo_1",
+            createdAt: now,
+            reviewerName: "Alex M.",
+            eventTitle: "Weekend sketch walk",
+            rating: 5,
+            comment: "Great host — clear directions and welcoming group.",
+          },
+          {
+            id: "hr_demo_2",
+            createdAt: now,
+            reviewerName: "Jordan K.",
+            eventTitle: "Coffee & sketch — demo hosting",
+            rating: 4,
+            comment: "Fun meet, would join again.",
+          },
+        ];
+        set({ hostReviewsReceived: received });
+      },
     }),
     {
       name: "connectsphere-session",
@@ -512,6 +565,8 @@ export const useSessionStore = create<SessionState>()(
           circleCatalogEvents: p?.circleCatalogEvents ?? current.circleCatalogEvents,
           accessToken: p?.accessToken ?? current.accessToken,
           refreshToken: p?.refreshToken ?? current.refreshToken,
+          guestReviewsWritten: p?.guestReviewsWritten ?? current.guestReviewsWritten,
+          hostReviewsReceived: p?.hostReviewsReceived ?? current.hostReviewsReceived,
         };
       },
     },

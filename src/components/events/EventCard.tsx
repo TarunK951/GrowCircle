@@ -36,16 +36,12 @@ export function EventCard({
       aria-label={event.title}
       className={cn(
         "event-card-depth group overflow-hidden rounded-(--radius-section) liquid-glass liquid-glass-card",
-        inactive && "opacity-90",
+        /* Full card black & white when ended / cancelled */
+        inactive && "grayscale opacity-95",
         className,
       )}
     >
-      <div
-        className={cn(
-          "relative aspect-4/3 w-full overflow-hidden rounded-t-(--radius-section)",
-          inactive && "grayscale",
-        )}
-      >
+      <div className="relative aspect-4/3 w-full overflow-hidden rounded-t-(--radius-section)">
         {coverIsDataUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
