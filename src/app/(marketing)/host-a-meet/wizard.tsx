@@ -484,21 +484,37 @@ export function HostWizard() {
       </p>
       <div
         className="mt-3 flex gap-1.5"
-        role="progressbar"
-        aria-valuenow={step + 1}
-        aria-valuemin={1}
-        aria-valuemax={STEPS}
-        aria-label="Wizard progress"
+        role="group"
+        aria-label={`Wizard steps, step ${step + 1} of ${STEPS}`}
       >
-        {Array.from({ length: STEPS }).map((_, i) => (
-          <div
-            key={i}
-            className={cn(
-              "h-1.5 flex-1 rounded-full transition-colors",
-              i <= step ? "bg-neutral-900" : "bg-neutral-200",
-            )}
-          />
-        ))}
+        {Array.from({ length: STEPS }).map((_, i) => {
+          const doneOrCurrent = i <= step;
+          const segmentClass = cn(
+            "h-1.5 flex-1 rounded-full transition-colors",
+            doneOrCurrent ? "bg-neutral-900" : "bg-neutral-200",
+            doneOrCurrent &&
+              "cursor-pointer hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/25 focus-visible:ring-offset-1",
+          );
+          if (!doneOrCurrent) {
+            return (
+              <div
+                key={i}
+                className={segmentClass}
+                aria-hidden
+              />
+            );
+          }
+          return (
+            <button
+              key={i}
+              type="button"
+              className={segmentClass}
+              onClick={() => setStep(i)}
+              aria-label={`Go to step ${i + 1} of ${STEPS}`}
+              aria-current={i === step ? "step" : undefined}
+            />
+          );
+        })}
       </div>
 
       {step === 0 && (
