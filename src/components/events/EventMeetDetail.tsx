@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Banknote,
+  Building2,
   Check,
   Clock,
   Lightbulb,
@@ -18,6 +19,7 @@ import { formatCategoryEyebrow } from "@/lib/eventCategories";
 import { cn } from "@/lib/utils";
 import { JoinMeetButton, SaveEventButton } from "@/components/events/EventMeetActions";
 import { meetEventGalleryUrls } from "@/lib/events/coverDisplay";
+import { labelForLocationType } from "@/lib/hostLocationTypes";
 
 function SectionTitle({
   id,
@@ -224,6 +226,11 @@ export function EventMeetDetail({
                 <MetaRow label="Where" icon={MapPin}>
                   {whereContent}
                 </MetaRow>
+                {event.locationType ? (
+                  <MetaRow label="Location type" icon={Building2}>
+                    {labelForLocationType(event.locationType)}
+                  </MetaRow>
+                ) : null}
                 <MetaRow label="Host" icon={User}>
                   {hostName}
                 </MetaRow>
@@ -348,9 +355,23 @@ export function EventMeetDetail({
         </section>
       ) : null}
 
+      {detail.eventRules ? (
+        <section
+          className="mt-12 sm:mt-14"
+          aria-labelledby="event-written-rules-heading"
+        >
+          <SectionTitle id="event-written-rules-heading">Rules</SectionTitle>
+          <div className="liquid-glass-surface mt-4 max-w-3xl">
+            <p className="text-base leading-relaxed text-muted-foreground whitespace-pre-wrap">
+              {detail.eventRules}
+            </p>
+          </div>
+        </section>
+      ) : null}
+
       {detail.houseRules.dos.length > 0 || detail.houseRules.donts.length > 0 ? (
         <section className="mt-12 sm:mt-14" aria-labelledby="event-rules-heading">
-          <SectionTitle id="event-rules-heading">House rules</SectionTitle>
+          <SectionTitle id="event-rules-heading">Do&apos;s &amp; don&apos;ts</SectionTitle>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             Quick dos and don&apos;ts so everyone enjoys the meet — clear
             expectations, zero guesswork.

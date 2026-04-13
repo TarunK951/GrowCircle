@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import citiesData from "@/data/cities.json";
 import { EVENT_CATEGORY_PRESETS } from "@/lib/eventCategories";
+import { HOST_LOCATION_TYPE_OPTIONS } from "@/lib/hostLocationTypes";
 import {
   addEventQuestion,
   createEvent,
@@ -55,7 +56,7 @@ const cities = citiesData as City[];
 const MAX_IMAGE_BYTES = 750 * 1024;
 /** Larger cap when publishing via Circle + S3 presigned upload */
 const MAX_IMAGE_BYTES_CIRCLE = 5 * 1024 * 1024;
-const STEPS = 5;
+const STEPS = 6;
 const MAX_COVER_SLOTS = 3;
 
 const TIMEZONE_OPTIONS = [
@@ -92,6 +93,10 @@ function isProbablyUrl(s: string): boolean {
   } catch {
     return false;
   }
+}
+
+function trimWizardLines(lines: string[]): string[] {
+  return lines.map((s) => s.trim()).filter(Boolean);
 }
 
 function validateDraft(d: HostDraft): string | null {
@@ -159,7 +164,7 @@ export function HostWizard() {
   }, []);
 
   useEffect(() => {
-    if (step !== 2) return;
+    if (step !== 3) return;
     if (draft.startsAt.trim()) return;
     const { date, time } = defaultScheduleParts();
     setDraft((d) => ({ ...d, startsAt: joinDateTimeLocal(date, time) }));
@@ -372,11 +377,31 @@ export function HostWizard() {
           waitlist_enabled: draft.waitlistEnabled,
         });
 
+        const whatsIncluded = trimWizardLines(draft.whatsIncluded);
+        const guestSuggestions = trimWizardLines(draft.guestSuggestions);
+        const houseDos = trimWizardLines(draft.houseDos);
+        const houseDonts = trimWizardLines(draft.houseDonts);
+        const moreAboutTrim = draft.moreAbout.trim();
+        const allowedTrim = draft.allowedAndNotes.trim();
+        const eventRulesTrim = draft.eventRules.trim();
+        const locationTypeTrim = draft.locationType.trim();
+
         await updateEvent(token, created.id, {
           timezone: draft.timezone.trim() || "Asia/Kolkata",
           ...(primaryCategory ? { category: primaryCategory } : {}),
           ...(tagPayload.length > 0 ? { tags: tagPayload } : {}),
           ...(faqs.length > 0 ? { faqs } : {}),
+          ...(moreAboutTrim ? { more_about: moreAboutTrim } : {}),
+          ...(whatsIncluded.length > 0 ? { whats_included: whatsIncluded } : {}),
+          ...(guestSuggestions.length > 0
+            ? { guest_suggestions: guestSuggestions }
+            : {}),
+          ...(allowedTrim ? { allowed_and_notes: allowedTrim } : {}),
+          ...(houseDos.length > 0 || houseDonts.length > 0
+            ? { house_rules: { dos: houseDos, donts: houseDonts } }
+            : {}),
+          ...(eventRulesTrim ? { event_rules: eventRulesTrim } : {}),
+          ...(locationTypeTrim ? { location_type: locationTypeTrim } : {}),
         });
 
         for (let i = 0; i < draft.preJoinQuestions.length; i++) {
@@ -407,6 +432,18 @@ export function HostWizard() {
           category: primaryCategory,
           categories: cats.length ? cats : ev.categories,
           cityId: draft.cityId,
+          moreAbout: moreAboutTrim || undefined,
+          whatsIncluded:
+            whatsIncluded.length > 0 ? whatsIncluded : undefined,
+          guestSuggestions:
+            guestSuggestions.length > 0 ? guestSuggestions : undefined,
+          allowedAndNotes: allowedTrim || undefined,
+          houseRules:
+            houseDos.length > 0 || houseDonts.length > 0
+              ? { dos: houseDos, donts: houseDonts }
+              : undefined,
+          eventRules: eventRulesTrim || undefined,
+          locationType: locationTypeTrim || undefined,
           preJoinQuestions: preJoinQuestions.length
             ? preJoinQuestions
             : undefined,
@@ -536,6 +573,287 @@ export function HostWizard() {
       )}
 
       {step === 1 && (
+        <div className="mt-4 space-y-5">
+          <p className="text-sm text-neutral-700">
+            This step is sent to the API as{" "}
+            <span className="font-medium">whats_included</span>,{" "}
+            <span className="font-medium">guest_suggestions</span>,{" "}
+            <span className="font-medium">house_rules</span> (do&apos;s / don&apos;ts),{" "}
+            <span className="font-medium">event_rules</span>, and{" "}
+            <span className="font-medium">allowed_and_notes</span>. Choose{" "}
+            <span className="font-medium">location type</span> in the next step — it
+            maps to <span className="font-medium">location_type</span>. Edit anytime
+            under Bookings.
+          </p>
+          <div>
+            <label className="text-sm font-semibold text-neutral-900">
+              More about the event
+            </label>
+            <p className="mt-1 text-xs text-neutral-600">
+              Longer story beyond the short description above (optional).
+            </p>
+            <textarea
+              className={`${inputClass} mt-2 min-h-[88px] resize-y`}
+              value={draft.moreAbout}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, moreAbout: e.target.value }))
+              }
+              placeholder="What makes this meet special?"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-neutral-900">
+              What&apos;s included / available
+            </label>
+            <p className="mt-1 text-xs text-neutral-600">
+              One item per line — e.g. snacks, materials, equipment.
+            </p>
+            <div className="mt-2 space-y-2">
+              {draft.whatsIncluded.map((line, idx) => (
+                <div key={`wi-${idx}`} className="flex gap-2">
+                  <input
+                    className={inputClass}
+                    value={line}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setDraft((d) => {
+                        const next = [...d.whatsIncluded];
+                        next[idx] = v;
+                        return { ...d, whatsIncluded: next };
+                      });
+                    }}
+                    placeholder="e.g. Tea and coffee"
+                  />
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-lg border border-neutral-200 px-2 text-xs text-neutral-600 hover:bg-neutral-50"
+                    onClick={() =>
+                      setDraft((d) => ({
+                        ...d,
+                        whatsIncluded:
+                          d.whatsIncluded.length > 1
+                            ? d.whatsIncluded.filter((_, i) => i !== idx)
+                            : [""],
+                      }))
+                    }
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="text-sm font-medium text-primary hover:underline"
+                onClick={() =>
+                  setDraft((d) => ({
+                    ...d,
+                    whatsIncluded: [...d.whatsIncluded, ""],
+                  }))
+                }
+              >
+                + Add line
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-neutral-900">
+              Suggestions for guests
+            </label>
+            <p className="mt-1 text-xs text-neutral-600">
+              Shown as tips — API field <span className="font-mono text-[11px]">guest_suggestions</span>.
+            </p>
+            <div className="mt-2 space-y-2">
+              {draft.guestSuggestions.map((line, idx) => (
+                <div key={`gs-${idx}`} className="flex gap-2">
+                  <input
+                    className={inputClass}
+                    value={line}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setDraft((d) => {
+                        const next = [...d.guestSuggestions];
+                        next[idx] = v;
+                        return { ...d, guestSuggestions: next };
+                      });
+                    }}
+                    placeholder="e.g. Wear comfortable shoes"
+                  />
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-lg border border-neutral-200 px-2 text-xs text-neutral-600 hover:bg-neutral-50"
+                    onClick={() =>
+                      setDraft((d) => ({
+                        ...d,
+                        guestSuggestions:
+                          d.guestSuggestions.length > 1
+                            ? d.guestSuggestions.filter((_, i) => i !== idx)
+                            : [""],
+                      }))
+                    }
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                className="text-sm font-medium text-primary hover:underline"
+                onClick={() =>
+                  setDraft((d) => ({
+                    ...d,
+                    guestSuggestions: [...d.guestSuggestions, ""],
+                  }))
+                }
+              >
+                + Add line
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-neutral-900">
+              Notes (what&apos;s allowed, accessibility, etc.)
+            </label>
+            <textarea
+              className={`${inputClass} mt-2 min-h-[72px] resize-y`}
+              value={draft.allowedAndNotes}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, allowedAndNotes: e.target.value }))
+              }
+              placeholder="Optional — parking, access, allergies…"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-semibold text-neutral-900">
+              Do&apos;s &amp; don&apos;ts (bullets)
+            </label>
+            <p className="mt-1 text-xs text-neutral-600">
+              Short lines — API <span className="font-mono text-[11px]">house_rules.dos</span> /{" "}
+              <span className="font-mono text-[11px]">house_rules.donts</span>.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="text-sm font-semibold text-neutral-900">Do&apos;s</label>
+              <div className="mt-2 space-y-2">
+                {draft.houseDos.map((line, idx) => (
+                  <div key={`do-${idx}`} className="flex gap-2">
+                    <input
+                      className={inputClass}
+                      value={line}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setDraft((d) => {
+                          const next = [...d.houseDos];
+                          next[idx] = v;
+                          return { ...d, houseDos: next };
+                        });
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="shrink-0 rounded-lg border border-neutral-200 px-2 text-xs text-neutral-600 hover:bg-neutral-50"
+                      onClick={() =>
+                        setDraft((d) => ({
+                          ...d,
+                          houseDos:
+                            d.houseDos.length > 1
+                              ? d.houseDos.filter((_, i) => i !== idx)
+                              : [""],
+                        }))
+                      }
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="text-sm font-medium text-primary hover:underline"
+                  onClick={() =>
+                    setDraft((d) => ({
+                      ...d,
+                      houseDos: [...d.houseDos, ""],
+                    }))
+                  }
+                >
+                  + Add
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-neutral-900">
+                Don&apos;ts
+              </label>
+              <div className="mt-2 space-y-2">
+                {draft.houseDonts.map((line, idx) => (
+                  <div key={`dont-${idx}`} className="flex gap-2">
+                    <input
+                      className={inputClass}
+                      value={line}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setDraft((d) => {
+                          const next = [...d.houseDonts];
+                          next[idx] = v;
+                          return { ...d, houseDonts: next };
+                        });
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="shrink-0 rounded-lg border border-neutral-200 px-2 text-xs text-neutral-600 hover:bg-neutral-50"
+                      onClick={() =>
+                        setDraft((d) => ({
+                          ...d,
+                          houseDonts:
+                            d.houseDonts.length > 1
+                              ? d.houseDonts.filter((_, i) => i !== idx)
+                              : [""],
+                        }))
+                      }
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  className="text-sm font-medium text-primary hover:underline"
+                  onClick={() =>
+                    setDraft((d) => ({
+                      ...d,
+                      houseDonts: [...d.houseDonts, ""],
+                    }))
+                  }
+                >
+                  + Add
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-semibold text-neutral-900">
+              Written rules (optional)
+            </label>
+            <p className="mt-1 text-xs text-neutral-600">
+              Overall rules in one place — API field{" "}
+              <span className="font-mono text-[11px]">event_rules</span> (separate from the
+              bullets above).
+            </p>
+            <textarea
+              className={`${inputClass} mt-2 min-h-[88px] resize-y`}
+              value={draft.eventRules}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, eventRules: e.target.value }))
+              }
+              placeholder="e.g. Age 18+, refunds, late entry…"
+            />
+          </div>
+        </div>
+      )}
+
+      {step === 2 && (
         <div className="mt-4 space-y-4">
           <HostMeetSelect
             label="City"
@@ -543,6 +861,18 @@ export function HostWizard() {
             options={cities.map((c) => ({ value: c.id, label: c.name }))}
             onChange={(cityId) => setDraft((d) => ({ ...d, cityId }))}
           />
+          <HostMeetSelect
+            label="Type of location"
+            value={draft.locationType}
+            options={HOST_LOCATION_TYPE_OPTIONS.map((o) => ({
+              value: o.value,
+              label: o.label,
+            }))}
+            onChange={(locationType) => setDraft((d) => ({ ...d, locationType }))}
+          />
+          <p className="text-xs text-neutral-600">
+            Sent as <span className="font-mono">location_type</span> on the event (slug).
+          </p>
           <div>
             <label className="text-sm font-semibold text-neutral-900">Venue name</label>
             <input
@@ -567,7 +897,7 @@ export function HostWizard() {
         </div>
       )}
 
-      {step === 2 && (
+      {step === 3 && (
         <div className="mt-4 space-y-4">
           <div>
             <p className="text-sm font-semibold text-neutral-900">Starts at</p>
@@ -667,7 +997,7 @@ export function HostWizard() {
         </div>
       )}
 
-      {step === 3 && (
+      {step === 4 && (
         <div className="mt-4 space-y-5">
           <HostMeetSelect
             label="Waitlist"
@@ -928,7 +1258,7 @@ export function HostWizard() {
         </div>
       )}
 
-      {step === 4 && (
+      {step === 5 && (
         <div className="mt-4 space-y-4">
           <p className="text-sm text-neutral-900">
             Add question and answer pairs for the FAQ accordion on the event page.

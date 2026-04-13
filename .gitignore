@@ -40,5 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local auth store (email/password accounts)
+# local auth store (email/password accounts, email OTP pending codes)
 /data/auth-users.json
+/data/email-otp.json

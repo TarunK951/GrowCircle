@@ -8,7 +8,8 @@ export type StoredUser = {
   id: string;
   email: string;
   name: string;
-  passwordHash: string;
+  /** Set when registered with password; omitted for email-OTP-only accounts. */
+  passwordHash?: string;
   createdAt: string;
 };
 
@@ -67,7 +68,7 @@ export async function findUserByEmail(
 export async function createStoredUser(input: {
   name: string;
   email: string;
-  passwordHash: string;
+  passwordHash?: string;
 }): Promise<StoredUser> {
   return locked(async () => {
     const store = await readStore();
@@ -79,8 +80,8 @@ export async function createStoredUser(input: {
       id: `u_${Math.random().toString(36).slice(2, 12)}`,
       email: em,
       name: input.name.trim(),
-      passwordHash: input.passwordHash,
       createdAt: new Date().toISOString(),
+      ...(input.passwordHash ? { passwordHash: input.passwordHash } : {}),
     };
     store.users.push(user);
     await writeStore(store);

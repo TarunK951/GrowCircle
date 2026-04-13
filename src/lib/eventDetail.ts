@@ -6,6 +6,8 @@ export type ResolvedEventDetail = {
   whatsIncluded: string[];
   allowedAndNotes: string;
   houseRules: { dos: string[]; donts: string[] };
+  /** API `event_rules` — overall written rules. */
+  eventRules: string;
   faqs: EventFaq[];
   refundPolicy: string;
 };
@@ -32,6 +34,8 @@ export function resolveEventDetail(
 
   const houseRules = event.houseRules ?? { dos: [], donts: [] };
 
+  const eventRules = event.eventRules?.trim() ?? "";
+
   const faqs: EventFaq[] = event.faqs?.length ? event.faqs : [];
   const refundPolicy = event.refundPolicy?.trim() ?? "";
 
@@ -41,6 +45,7 @@ export function resolveEventDetail(
     whatsIncluded,
     allowedAndNotes,
     houseRules,
+    eventRules,
     faqs,
     refundPolicy,
   };

@@ -166,6 +166,16 @@ export function circleEventToMeetEvent(
       .find((s) => typeof s === "string" && s.trim().length > 0)
       ?.trim() ?? undefined;
 
+  const eventRules =
+    [api.event_rules, api.eventRules, loose.event_rules, loose.eventRules]
+      .find((s) => typeof s === "string" && s.trim().length > 0)
+      ?.trim() ?? undefined;
+
+  const locationTypeRaw =
+    [api.location_type, api.locationType, loose.location_type, loose.locationType]
+      .find((s) => typeof s === "string" && s.trim().length > 0)
+      ?.trim() ?? undefined;
+
   const faqs = normalizeFaqs(api.faqs ?? loose.faqs);
   const houseRules = normalizeHouseRules(api, loose);
 
@@ -203,6 +213,7 @@ export function circleEventToMeetEvent(
     priceCents,
     venueName: api.location?.split(",")[0]?.trim() || undefined,
     addressLine: api.location?.trim() || undefined,
+    locationType: locationTypeRaw,
     joinMode: "open",
     listingVisibility:
       api.visibility === "private" ? "private" : "public",
@@ -212,6 +223,7 @@ export function circleEventToMeetEvent(
     guestSuggestions: guestSuggestions.length > 0 ? guestSuggestions : undefined,
     allowedAndNotes: allowedAndNotes || undefined,
     houseRules,
+    eventRules: eventRules || undefined,
     faqs: faqs.length > 0 ? faqs : undefined,
     refundPolicy: refundPolicy || undefined,
     preJoinQuestions: preJoin,

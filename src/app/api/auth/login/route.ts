@@ -25,7 +25,11 @@ export async function POST(req: Request) {
 
   try {
     const stored = await findUserByEmail(email);
-    if (!stored || !verifyPassword(password, stored.passwordHash)) {
+    if (
+      !stored ||
+      !stored.passwordHash ||
+      !verifyPassword(password, stored.passwordHash)
+    ) {
       return NextResponse.json(
         { error: "Invalid email or password." },
         { status: 401 },

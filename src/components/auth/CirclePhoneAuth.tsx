@@ -6,10 +6,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { z } from "zod";
 import {
-  loginWithEmailPasswordApi,
-  registerWithEmailPasswordApi,
+  requestEmailOtpApi,
+  verifyEmailOtpApi,
 } from "@/lib/auth/emailPasswordClient";
-import { Eye, EyeOff, Mail, Smartphone } from "lucide-react";
+import { Mail, Smartphone } from "lucide-react";
 import { GoogleGlyph } from "@/components/auth/GoogleGlyph";
 import { cn } from "@/lib/utils";
 import {
@@ -52,17 +52,6 @@ const profileSchema = z.object({
   username: circleUsernameSchema,
   email: z.string().trim().email(),
   dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"),
-});
-
-const localLoginSchema = z.object({
-  email: normalizedEmailSchema,
-  password: z.string().min(4, "Password must be at least 4 characters"),
-});
-
-const localSignupSchema = z.object({
-  name: z.string().trim().min(2, "Name is required"),
-  email: normalizedEmailSchema,
-  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 const inputClass =
@@ -114,11 +103,13 @@ export function CirclePhoneAuth() {
   const [busy, setBusy] = useState(false);
   /** Countdown before "Resend code" is enabled again */
   const [resendIn, setResendIn] = useState(0);
-  /** App-local email/password (not Circle backend). */
+  /** App-local email OTP (not Circle backend). */
   const [localEmail, setLocalEmail] = useState("");
-  const [localPassword, setLocalPassword] = useState("");
   const [localName, setLocalName] = useState("");
-  const [showLocalPassword, setShowLocalPassword] = useState(false);
+  const [localEmailOtpStep, setLocalEmailOtpStep] = useState<"form" | "otp">(
+    "form",
+  );
+  const [localEmailOtp, setLocalEmailOtp] = useState("");
 
   const otherHref = useMemo(() => {
     const q =
@@ -318,56 +309,70 @@ export function CirclePhoneAuth() {
     }
   };
 
-  const submitLocalEmailPassword = async () => {
+  const sendLocalEmailCode = async () => {
+    const parsedEmail = normalizedEmailSchema.safeParse(localEmail.trim());
+    if (!parsedEmail.success) {
+      toast.error("Enter a valid email address.");
+      return;
+    }
+    const em = parsedEmail.data;
+    if (mode === "signup" && localName.trim().length < 2) {
+      toast.error("Enter your name (at least 2 characters).");
+      return;
+    }
     setBusy(true);
     try {
-      if (mode === "login") {
-        const parsed = localLoginSchema.safeParse({
-          email: localEmail,
-          password: localPassword,
-        });
-        if (!parsed.success) {
-          toast.error(
-            parsed.error.issues[0]?.message ?? "Check your email and password.",
-          );
-          return;
-        }
-        const user = await loginWithEmailPasswordApi(
-          parsed.data.email,
-          parsed.data.password,
-        );
-        loginSession(user);
-        if (isCircleApiConfigured()) {
-          toast.message(
-            "Signed in for this app only. To publish meets or use Circle APIs, sign in with Phone OTP.",
-            { duration: 6500 },
-          );
-        }
-        toast.success("Signed in");
-        router.push(returnUrl);
-        return;
+      const purpose = mode === "login" ? "login" : "signup";
+      const { devOtp } = await requestEmailOtpApi(em, purpose);
+      setLocalEmail(em);
+      setLocalEmailOtpStep("otp");
+      setLocalEmailOtp("");
+      setResendIn(RESEND_COOLDOWN_SEC);
+      toast.success("Check your email for a sign-in code.");
+      if (devOtp) {
+        toast.message(`Dev OTP: ${devOtp}`, { duration: 12_000 });
       }
-      const parsed = localSignupSchema.safeParse({
-        name: localName,
-        email: localEmail,
-        password: localPassword,
-      });
-      if (!parsed.success) {
-        toast.error(parsed.error.issues[0]?.message ?? "Check the form");
-        return;
-      }
-      const user = await registerWithEmailPasswordApi(parsed.data);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not send code.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const verifyLocalEmail = async () => {
+    const code = localEmailOtp.trim();
+    if (!/^\d{6}$/.test(code)) {
+      toast.error("Enter the 6-digit code from your email.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const user =
+        mode === "signup"
+          ? await verifyEmailOtpApi({
+              email: localEmail,
+              purpose: "signup",
+              code,
+              name: localName.trim(),
+            })
+          : await verifyEmailOtpApi({
+              email: localEmail,
+              purpose: "login",
+              code,
+            });
       loginSession(user);
       if (isCircleApiConfigured()) {
         toast.message(
-          "Account created locally. To host with Circle, sign in with Phone OTP after onboarding.",
+          mode === "login"
+            ? "Signed in for this app only. To publish meets or use Circle APIs, sign in with Phone OTP."
+            : "Account created locally. To host with Circle, sign in with Phone OTP after onboarding.",
           { duration: 6500 },
         );
       }
-      toast.success("Account created");
-      router.push("/onboarding");
+      toast.success(mode === "login" ? "Signed in" : "Account created");
+      router.push(mode === "login" ? returnUrl : "/onboarding");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Something went wrong.");
+      toast.error(e instanceof Error ? e.message : "Could not verify code.");
     } finally {
       setBusy(false);
     }
@@ -383,9 +388,12 @@ export function CirclePhoneAuth() {
       return `Enter the code we sent to +${DEFAULT_CC} ${maskNationalPhone(phoneNational)}.`;
     }
     if (authChannel === "email") {
+      if (localEmailOtpStep === "otp") {
+        return `Enter the code we sent to ${localEmail}.`;
+      }
       return mode === "signup"
-        ? "Create an account with any email address and a password."
-        : "Sign in with the email and password you used when you registered.";
+        ? "Create an account — we’ll email you a one-time code."
+        : "Sign in with your email — we’ll send you a one-time code.";
     }
     return "Sign in with your phone — we’ll send a one-time code.";
   })();
@@ -433,7 +441,10 @@ export function CirclePhoneAuth() {
                 ? "bg-white text-neutral-950 shadow-sm"
                 : "text-neutral-500 hover:text-neutral-800",
             )}
-            onClick={() => setAuthChannel("phone")}
+            onClick={() => {
+              setAuthChannel("phone");
+              setLocalEmailOtpStep("form");
+            }}
           >
             <Smartphone className="h-4 w-4 shrink-0" aria-hidden />
             Phone
@@ -448,7 +459,10 @@ export function CirclePhoneAuth() {
                 ? "bg-white text-neutral-950 shadow-sm"
                 : "text-neutral-500 hover:text-neutral-800",
             )}
-            onClick={() => setAuthChannel("email")}
+            onClick={() => {
+              setAuthChannel("email");
+              setLocalEmailOtpStep("form");
+            }}
           >
             <Mail className="h-4 w-4 shrink-0" aria-hidden />
             Email
@@ -498,7 +512,7 @@ export function CirclePhoneAuth() {
         </div>
       )}
 
-      {authChannel === "email" && step === "phone" && (
+      {authChannel === "email" && step === "phone" && localEmailOtpStep === "form" && (
         <div className="mt-8 space-y-4">
           {mode === "signup" && (
             <div>
@@ -535,53 +549,82 @@ export function CirclePhoneAuth() {
               onChange={(e) => setLocalEmail(e.target.value)}
             />
           </div>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void sendLocalEmailCode()}
+            className="w-full rounded-xl bg-neutral-950 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-900 disabled:opacity-60"
+          >
+            {busy ? "Sending…" : "Send code"}
+          </button>
+        </div>
+      )}
+
+      {authChannel === "email" && step === "phone" && localEmailOtpStep === "otp" && (
+        <div className="mt-8 space-y-6">
           <div>
             <label
-              htmlFor="circle-local-password"
+              htmlFor="circle-local-email-otp"
               className="text-sm font-medium text-neutral-700"
             >
-              Password
+              One-time code
             </label>
-            <div className="relative mt-2">
-              <input
-                id="circle-local-password"
-                type={showLocalPassword ? "text" : "password"}
-                autoComplete={
-                  mode === "login" ? "current-password" : "new-password"
-                }
-                placeholder="••••••••"
-                className={`${inputClass} pr-11`}
-                value={localPassword}
-                onChange={(e) => setLocalPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                onClick={() => setShowLocalPassword((v) => !v)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-neutral-500 transition hover:bg-neutral-200/60 hover:text-neutral-800"
-                aria-label={showLocalPassword ? "Hide password" : "Show password"}
-              >
-                {showLocalPassword ? (
-                  <EyeOff className="h-4 w-4" strokeWidth={2} />
-                ) : (
-                  <Eye className="h-4 w-4" strokeWidth={2} />
-                )}
-              </button>
-            </div>
+            <input
+              id="circle-local-email-otp"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="000000"
+              className={`mt-2 ${inputClass} tabular-nums tracking-widest`}
+              value={localEmailOtp}
+              maxLength={6}
+              onChange={(e) =>
+                setLocalEmailOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
+              }
+            />
           </div>
           <button
             type="button"
             disabled={busy}
-            onClick={() => void submitLocalEmailPassword()}
-            className="w-full rounded-xl bg-neutral-950 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-900 disabled:opacity-60"
+            onClick={() => void verifyLocalEmail()}
+            className="w-full rounded-xl bg-neutral-950 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-900 disabled:opacity-60"
           >
             {busy
-              ? mode === "login"
-                ? "Signing in…"
-                : "Creating…"
+              ? "Verifying…"
               : mode === "login"
-                ? "Sign in with email"
+                ? "Verify & continue"
                 : "Create account"}
           </button>
+          <div className="rounded-2xl border border-neutral-200/90 bg-linear-to-b from-neutral-50/90 to-neutral-100/40 px-4 py-4 sm:px-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setLocalEmailOtpStep("form");
+                  setLocalEmailOtp("");
+                }}
+                className="order-2 inline-flex items-center justify-center gap-2 rounded-xl border border-neutral-200/90 bg-white px-4 py-3 text-sm font-semibold text-neutral-800 shadow-sm transition hover:bg-neutral-50 disabled:opacity-60 sm:order-1 sm:w-auto sm:py-2.5"
+              >
+                <span aria-hidden className="text-base leading-none text-neutral-400">
+                  ←
+                </span>
+                Change email
+              </button>
+              <div className="order-1 flex flex-col items-stretch gap-1 border-b border-neutral-200/80 pb-4 sm:order-2 sm:items-end sm:border-b-0 sm:pb-0">
+                <span className="text-xs font-medium text-neutral-500 sm:text-right">
+                  Didn&apos;t get the code?
+                </span>
+                <button
+                  type="button"
+                  disabled={busy || resendIn > 0}
+                  onClick={() => void sendLocalEmailCode()}
+                  className="text-left text-sm font-semibold text-brand underline decoration-brand/30 underline-offset-[3px] transition hover:decoration-brand disabled:cursor-not-allowed disabled:no-underline disabled:opacity-45 sm:text-right"
+                >
+                  {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

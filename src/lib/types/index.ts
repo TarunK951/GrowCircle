@@ -38,6 +38,8 @@ export type MeetEvent = {
   venueName?: string;
   /** Street / full address shown with venue. */
   addressLine?: string;
+  /** API `location_type` — slug, e.g. indoor_venue, outdoor, online (see `hostLocationTypes`). */
+  locationType?: string;
   /** Instant join vs request-to-join (host approves). */
   joinMode?: "open" | "invite";
   /** Listed on explore vs link-only. */
@@ -55,6 +57,8 @@ export type MeetEvent = {
     dos: string[];
     donts: string[];
   };
+  /** API `event_rules` — single block of overall rules (separate from do/don’t bullets). */
+  eventRules?: string;
   faqs?: EventFaq[];
   /** Shown before “What’s allowed”; short guest tips. */
   guestSuggestions?: string[];

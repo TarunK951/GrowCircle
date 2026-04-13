@@ -29,6 +29,7 @@ import { meetEventGalleryUrls } from "@/lib/events/coverDisplay";
 import citiesData from "@/data/cities.json";
 import type { PreJoinQuestion } from "@/lib/types";
 import type { City } from "@/lib/types";
+import { HOST_LOCATION_TYPE_OPTIONS } from "@/lib/hostLocationTypes";
 
 type Tab = "preview" | "questions" | "approve";
 type EditableQuestion = { id?: string; prompt: string; options: string[] };
@@ -40,6 +41,8 @@ type EditableDetailDraft = {
   allowedAndNotes: string;
   dos: string[];
   donts: string[];
+  eventRules: string;
+  locationType: string;
   faqs: EditableFaq[];
   refundPolicy: string;
 };
@@ -84,6 +87,8 @@ function detailsFromEvent(event: {
   guestSuggestions?: string[];
   allowedAndNotes?: string;
   houseRules?: { dos?: string[]; donts?: string[] };
+  eventRules?: string;
+  locationType?: string;
   faqs?: { q: string; a: string }[];
   refundPolicy?: string;
 }): EditableDetailDraft {
@@ -94,6 +99,8 @@ function detailsFromEvent(event: {
     allowedAndNotes: event.allowedAndNotes ?? "",
     dos: event.houseRules?.dos?.length ? event.houseRules.dos : [""],
     donts: event.houseRules?.donts?.length ? event.houseRules.donts : [""],
+    eventRules: event.eventRules ?? "",
+    locationType: event.locationType ?? "",
     faqs: event.faqs?.length ? event.faqs : [{ q: "", a: "" }],
     refundPolicy: event.refundPolicy ?? "",
   };
@@ -144,6 +151,8 @@ export default function HostManagePage() {
     allowedAndNotes: "",
     dos: [""],
     donts: [""],
+    eventRules: "",
+    locationType: "",
     faqs: [{ q: "", a: "" }],
     refundPolicy: "",
   });
@@ -239,6 +248,8 @@ export default function HostManagePage() {
       dos: trimLines(detailDraft.dos),
       donts: trimLines(detailDraft.donts),
     },
+    eventRules: detailDraft.eventRules.trim() || undefined,
+    locationType: detailDraft.locationType.trim() || undefined,
     faqs: detailDraft.faqs
       .map((row) => ({ q: row.q.trim(), a: row.a.trim() }))
       .filter((row) => row.q && row.a),
@@ -347,6 +358,8 @@ export default function HostManagePage() {
       const faqs = detailDraft.faqs
         .map((row) => ({ q: row.q.trim(), a: row.a.trim() }))
         .filter((row) => row.q && row.a);
+      const eventRulesTrim = detailDraft.eventRules.trim();
+      const locationTypeTrim = detailDraft.locationType.trim();
       updateHostedEvent(event.id, {
         moreAbout: detailDraft.moreAbout.trim() || undefined,
         whatsIncluded: whatsIncluded.length > 0 ? whatsIncluded : undefined,
@@ -354,12 +367,29 @@ export default function HostManagePage() {
         allowedAndNotes: detailDraft.allowedAndNotes.trim() || undefined,
         houseRules:
           dos.length > 0 || donts.length > 0 ? { dos, donts } : undefined,
+        eventRules: eventRulesTrim || undefined,
+        locationType: locationTypeTrim || undefined,
         faqs: faqs.length > 0 ? faqs : undefined,
         refundPolicy: detailDraft.refundPolicy.trim() || undefined,
       });
       if (circleMode && accessToken) {
+        const moreAbout = detailDraft.moreAbout.trim();
+        const allowedNotes = detailDraft.allowedAndNotes.trim();
+        const refundPolicy = detailDraft.refundPolicy.trim();
         await updateEvent(accessToken, event.id, {
           faqs: faqs.length > 0 ? faqs : [],
+          ...(moreAbout ? { more_about: moreAbout } : {}),
+          ...(whatsIncluded.length > 0 ? { whats_included: whatsIncluded } : {}),
+          ...(guestSuggestions.length > 0
+            ? { guest_suggestions: guestSuggestions }
+            : {}),
+          ...(allowedNotes ? { allowed_and_notes: allowedNotes } : {}),
+          ...(dos.length > 0 || donts.length > 0
+            ? { house_rules: { dos, donts } }
+            : {}),
+          ...(eventRulesTrim ? { event_rules: eventRulesTrim } : {}),
+          ...(locationTypeTrim ? { location_type: locationTypeTrim } : {}),
+          ...(refundPolicy ? { refund_policy: refundPolicy } : {}),
         });
       }
       toast.success("Preview content updated.");
@@ -814,6 +844,49 @@ export default function HostManagePage() {
                   }
                   placeholder="Share what is allowed and key notes"
                 />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-neutral-700">
+                  Rules (written)
+                </label>
+                <p className="mt-1 text-xs text-neutral-500">
+                  Overall rules in plain language — separate from the do/don&apos;t bullets above.
+                </p>
+                <textarea
+                  className={cn(editorTextareaClass, "mt-2 min-h-20")}
+                  value={detailDraft.eventRules}
+                  onChange={(e) =>
+                    setDetailDraft((prev) => ({ ...prev, eventRules: e.target.value }))
+                  }
+                  placeholder="e.g. Late entry policy, age requirements…"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="host-location-type"
+                  className="text-xs font-semibold uppercase tracking-[0.08em] text-neutral-700"
+                >
+                  Type of location
+                </label>
+                <select
+                  id="host-location-type"
+                  className={cn(editorInputClass, "mt-2")}
+                  value={detailDraft.locationType}
+                  onChange={(e) =>
+                    setDetailDraft((prev) => ({
+                      ...prev,
+                      locationType: e.target.value,
+                    }))
+                  }
+                >
+                  {HOST_LOCATION_TYPE_OPTIONS.map((o) => (
+                    <option key={o.value || "unset"} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

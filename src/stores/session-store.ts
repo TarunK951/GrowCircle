@@ -35,6 +35,22 @@ export type HostCoverSlot = {
 export type HostDraft = {
   title: string;
   description: string;
+  /** API `more_about` — longer story; `description` stays the short listing blurb. */
+  moreAbout: string;
+  /** API `whats_included` — one line per bullet. */
+  whatsIncluded: string[];
+  /** API `guest_suggestions`. */
+  guestSuggestions: string[];
+  /** API `allowed_and_notes` — what to bring, accessibility, etc. */
+  allowedAndNotes: string;
+  /** API `house_rules.dos` */
+  houseDos: string[];
+  /** API `house_rules.donts` */
+  houseDonts: string[];
+  /** API `event_rules` — overall written rules (optional). */
+  eventRules: string;
+  /** API `location_type` — slug from `HOST_LOCATION_TYPE_OPTIONS`. */
+  locationType: string;
   cityId: string;
   /** Up to 3 preset labels → API `category` (first) + `tags` (rest + `tagsComma`). */
   categories: string[];
@@ -145,6 +161,14 @@ type SessionState = {
 const initialHostDraft = (): HostDraft => ({
   title: "",
   description: "",
+  moreAbout: "",
+  whatsIncluded: [""],
+  guestSuggestions: [""],
+  allowedAndNotes: "",
+  houseDos: [""],
+  houseDonts: [""],
+  eventRules: "",
+  locationType: "",
   cityId: "blr",
   categories: ["Social"],
   tagsComma: "",
@@ -186,10 +210,31 @@ export function normalizeHostDraft(raw: unknown): HostDraft {
   }
 
   const legacyJoinInvite = o.joinMode === "invite";
+  const strList = (v: unknown, fallback: string[]): string[] => {
+    if (!Array.isArray(v)) return fallback;
+    const xs = v
+      .filter((x): x is string => typeof x === "string")
+      .map((s) => s);
+    return xs.length > 0 ? xs : fallback;
+  };
+
   const next: HostDraft = {
     ...base,
     title: typeof o.title === "string" ? o.title : base.title,
     description: typeof o.description === "string" ? o.description : base.description,
+    moreAbout: typeof o.moreAbout === "string" ? o.moreAbout : base.moreAbout,
+    whatsIncluded: strList(o.whatsIncluded, base.whatsIncluded),
+    guestSuggestions: strList(o.guestSuggestions, base.guestSuggestions),
+    allowedAndNotes:
+      typeof o.allowedAndNotes === "string"
+        ? o.allowedAndNotes
+        : base.allowedAndNotes,
+    houseDos: strList(o.houseDos, base.houseDos),
+    houseDonts: strList(o.houseDonts, base.houseDonts),
+    eventRules:
+      typeof o.eventRules === "string" ? o.eventRules : base.eventRules,
+    locationType:
+      typeof o.locationType === "string" ? o.locationType : base.locationType,
     cityId: typeof o.cityId === "string" ? o.cityId : base.cityId,
     categories: Array.isArray(o.categories)
       ? (o.categories as string[]).filter((c) => typeof c === "string")

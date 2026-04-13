@@ -67,6 +67,9 @@ export type CircleEvent = {
   /** Free-form labels; shape varies by backend — normalize in mapper */
   tags?: string[] | string | null;
   location?: string;
+  /** Slug: indoor_venue, outdoor, online, etc. */
+  location_type?: string;
+  locationType?: string;
   slug?: string;
   cover_image_url?: string | null;
   /** Some backends emit camelCase only */
@@ -98,6 +101,9 @@ export type CircleEvent = {
   allowedAndNotes?: string;
   house_rules?: { dos?: string[]; donts?: string[] };
   houseRules?: { dos?: string[]; donts?: string[] };
+  /** Overall rules paragraph (separate from `house_rules` bullets). */
+  event_rules?: string;
+  eventRules?: string;
   faqs?: { q: string; a: string }[];
   refund_policy?: string;
   refundPolicy?: string;
