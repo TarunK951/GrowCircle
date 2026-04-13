@@ -68,7 +68,11 @@ export function normalizeCircleProfile(raw: unknown): CircleProfile {
   const is_globally_banned =
     typeof o.is_globally_banned === "boolean" ? o.is_globally_banned : undefined;
   const is_profile_complete =
-    o.is_profile_complete === true || o.isProfileComplete === true;
+    typeof o.is_profile_complete === "boolean"
+      ? o.is_profile_complete
+      : typeof o.isProfileComplete === "boolean"
+        ? o.isProfileComplete
+        : undefined;
 
   const bio = pickNullableStr(o, "bio");
   const city = pickNullableStr(o, "city");

@@ -34,6 +34,15 @@ function displayLine(s: string | null | undefined): string {
   return t ? t : "—";
 }
 
+function formatApiWhen(iso: string | null | undefined): string {
+  if (!iso?.trim()) return "—";
+  try {
+    return new Date(iso).toLocaleString();
+  } catch {
+    return iso;
+  }
+}
+
 const circleFormSchema = z.object({
   name: circleUsernameSchema,
   dob: z
@@ -511,20 +520,18 @@ export default function ProfilePage() {
                 </div>
                 <div className="sm:col-span-2">
                   <dt className="text-xs font-medium text-neutral-500">
+                    Last active (API)
+                  </dt>
+                  <dd className="text-neutral-900">
+                    {formatApiWhen(fullProfile.last_active_at)}
+                  </dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-xs font-medium text-neutral-500">
                     Last updated (API)
                   </dt>
                   <dd className="text-neutral-900">
-                    {fullProfile.updated_at
-                      ? (() => {
-                          try {
-                            return new Date(
-                              fullProfile.updated_at!,
-                            ).toLocaleString();
-                          } catch {
-                            return fullProfile.updated_at;
-                          }
-                        })()
-                      : "—"}
+                    {formatApiWhen(fullProfile.updated_at)}
                   </dd>
                 </div>
               </dl>
