@@ -476,7 +476,7 @@ export function EventMeetDetail({
             <strong className="font-semibold text-foreground">
               Prototype notice:
             </strong>{" "}
-            ConnectSphere doesn&apos;t process real payments yet, so nothing is
+            Grow Circle doesn&apos;t process real payments yet, so nothing is
             charged and there&apos;s nothing to refund through this demo.
           </p>
           {detail.refundPolicy ? (

@@ -9,14 +9,14 @@ import {
   persistReducer,
   persistStore,
 } from "redux-persist";
-import storage from "redux-persist/lib/storage";
+import { reduxPersistStorage } from "@/lib/reduxPersistStorage";
 import { REDUX_PERSIST_AUTH_KEY } from "@/lib/persistKeys";
 import { authSlice } from "./authSlice";
 import { circleApi } from "./circleApi";
 
 const authPersistConfig = {
   key: REDUX_PERSIST_AUTH_KEY,
-  storage,
+  storage: reduxPersistStorage,
   whitelist: ["user", "accessToken", "refreshToken"],
 };
 
