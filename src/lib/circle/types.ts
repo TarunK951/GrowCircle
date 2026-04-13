@@ -107,6 +107,12 @@ export type CircleEvent = {
   faqs?: { q: string; a: string }[];
   refund_policy?: string;
   refundPolicy?: string;
+  terms_required?: boolean;
+  termsRequired?: boolean;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  registration_opens_at?: string | null;
+  registration_closes_at?: string | null;
 };
 
 export type CircleListMeta = {

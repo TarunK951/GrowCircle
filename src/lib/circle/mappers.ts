@@ -166,6 +166,74 @@ export function circleEventToMeetEvent(
       .find((s) => typeof s === "string" && s.trim().length > 0)
       ?.trim() ?? undefined;
 
+  const refundFullBeforeHours =
+    typeof api.refund_full_before_hours === "number"
+      ? api.refund_full_before_hours
+      : typeof loose.refund_full_before_hours === "number"
+        ? loose.refund_full_before_hours
+        : undefined;
+  const refundPartialBeforeHours =
+    typeof api.refund_partial_before_hours === "number"
+      ? api.refund_partial_before_hours
+      : typeof loose.refund_partial_before_hours === "number"
+        ? loose.refund_partial_before_hours
+        : undefined;
+  const refundPartialPercentage =
+    typeof api.refund_partial_percentage === "number"
+      ? api.refund_partial_percentage
+      : typeof loose.refund_partial_percentage === "number"
+        ? loose.refund_partial_percentage
+        : undefined;
+
+  const minAgeRaw =
+    typeof api.min_age === "number"
+      ? api.min_age
+      : typeof loose.min_age === "number"
+        ? loose.min_age
+        : undefined;
+  const minAge =
+    minAgeRaw != null && minAgeRaw > 0 ? Math.floor(minAgeRaw) : undefined;
+
+  const minVerificationTierRaw =
+    typeof api.min_verification_tier === "number"
+      ? api.min_verification_tier
+      : typeof loose.min_verification_tier === "number"
+        ? loose.min_verification_tier
+        : undefined;
+  const minVerificationTier =
+    minVerificationTierRaw != null && minVerificationTierRaw >= 0
+      ? minVerificationTierRaw
+      : undefined;
+
+  const termsRequired =
+    api.terms_required === true ||
+    loose.terms_required === true ||
+    loose.termsRequired === true
+      ? true
+      : undefined;
+
+  const contactEmailRaw =
+    api.contact_email ?? loose.contact_email ?? loose.contactEmail;
+  const contactEmail =
+    typeof contactEmailRaw === "string" && contactEmailRaw.trim().length > 0
+      ? contactEmailRaw.trim()
+      : undefined;
+  const contactPhoneRaw =
+    api.contact_phone ?? loose.contact_phone ?? loose.contactPhone;
+  const contactPhone =
+    typeof contactPhoneRaw === "string" && contactPhoneRaw.trim().length > 0
+      ? contactPhoneRaw.trim()
+      : undefined;
+
+  const registrationOpensAt =
+    [api.registration_opens_at, loose.registration_opens_at]
+      .find((s) => typeof s === "string" && s.trim().length > 0)
+      ?.trim() ?? undefined;
+  const registrationClosesAt =
+    [api.registration_closes_at, loose.registration_closes_at]
+      .find((s) => typeof s === "string" && s.trim().length > 0)
+      ?.trim() ?? undefined;
+
   const eventRules =
     [api.event_rules, api.eventRules, loose.event_rules, loose.eventRules]
       .find((s) => typeof s === "string" && s.trim().length > 0)
@@ -226,6 +294,16 @@ export function circleEventToMeetEvent(
     eventRules: eventRules || undefined,
     faqs: faqs.length > 0 ? faqs : undefined,
     refundPolicy: refundPolicy || undefined,
+    refundFullBeforeHours,
+    refundPartialBeforeHours,
+    refundPartialPercentage,
+    minAge,
+    minVerificationTier,
+    termsRequired,
+    contactEmail,
+    contactPhone,
+    registrationOpensAt,
+    registrationClosesAt,
     preJoinQuestions: preJoin,
     slug: api.slug,
   };

@@ -69,6 +69,18 @@ const TIMEZONE_OPTIONS = [
   "UTC",
 ] as const;
 
+const MIN_AGE_OPTIONS: { value: string; label: string }[] = [
+  { value: "none", label: "All ages" },
+  { value: "13", label: "13+" },
+  { value: "16", label: "16+" },
+  { value: "18", label: "18+" },
+  { value: "21", label: "21+" },
+];
+
+function looksLikeEmail(s: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
+}
+
 function tagsPayloadFromDraft(d: HostDraft): string[] {
   const fromCats = d.categories.slice(1);
   const fromComma = d.tagsComma
@@ -116,6 +128,21 @@ function validateDraft(d: HostDraft): string | null {
     }
     if (opts.length > 6) {
       return `Pre-join question ${i + 1}: at most six options per question.`;
+    }
+  }
+  if (d.priceCents > 0 && !d.refundPolicy.trim()) {
+    return "Add a refund policy (paid meets need clear refund terms).";
+  }
+  if (d.contactEmail.trim() && !looksLikeEmail(d.contactEmail)) {
+    return "Enter a valid event contact email, or leave it blank.";
+  }
+  const regOpen = d.registrationOpensAt.trim();
+  const regClose = d.registrationClosesAt.trim();
+  if (regOpen && regClose) {
+    const t0 = new Date(regOpen).getTime();
+    const t1 = new Date(regClose).getTime();
+    if (!Number.isNaN(t0) && !Number.isNaN(t1) && t1 < t0) {
+      return "Registration must close on or after it opens.";
     }
   }
   return null;
@@ -361,6 +388,18 @@ export function HostWizard() {
         const coverUrl = resolvedUrls[0]?.trim() ?? "";
         const additionalImages = resolvedUrls.slice(1);
 
+        const contactEmailTrim = draft.contactEmail.trim();
+        const contactPhoneTrim = draft.contactPhone.trim();
+        const regOpenTrim = draft.registrationOpensAt.trim();
+        const regCloseTrim = draft.registrationClosesAt.trim();
+        const regOpenIso = regOpenTrim
+          ? new Date(regOpenTrim).toISOString()
+          : null;
+        const regCloseIso = regCloseTrim
+          ? new Date(regCloseTrim).toISOString()
+          : null;
+        const refundPolicyTrim = draft.refundPolicy.trim();
+
         const created = await createEvent(token, {
           title: draft.title.trim() || "Untitled meet",
           description: draft.description.trim() || "—",
@@ -375,6 +414,17 @@ export function HostWizard() {
           ...(additionalImages.length > 0 ? { image_urls: additionalImages } : {}),
           visibility: draft.listingVisibility,
           waitlist_enabled: draft.waitlistEnabled,
+          ...(draft.minAge != null ? { min_age: draft.minAge } : {}),
+          min_verification_tier: draft.requireVerifiedGuests ? 1 : 0,
+          terms_required: draft.termsRequired,
+          ...(refundPolicyTrim ? { refund_policy: refundPolicyTrim } : {}),
+          refund_full_before_hours: draft.refundFullBeforeHours,
+          refund_partial_before_hours: draft.refundPartialBeforeHours,
+          refund_partial_percentage: draft.refundPartialPercentage,
+          ...(contactEmailTrim ? { contact_email: contactEmailTrim } : {}),
+          ...(contactPhoneTrim ? { contact_phone: contactPhoneTrim } : {}),
+          ...(regOpenIso ? { registration_opens_at: regOpenIso } : {}),
+          ...(regCloseIso ? { registration_closes_at: regCloseIso } : {}),
         });
 
         const whatsIncluded = trimWizardLines(draft.whatsIncluded);
@@ -402,6 +452,17 @@ export function HostWizard() {
             : {}),
           ...(eventRulesTrim ? { event_rules: eventRulesTrim } : {}),
           ...(locationTypeTrim ? { location_type: locationTypeTrim } : {}),
+          ...(draft.minAge != null ? { min_age: draft.minAge } : {}),
+          min_verification_tier: draft.requireVerifiedGuests ? 1 : 0,
+          terms_required: draft.termsRequired,
+          ...(refundPolicyTrim ? { refund_policy: refundPolicyTrim } : {}),
+          refund_full_before_hours: draft.refundFullBeforeHours,
+          refund_partial_before_hours: draft.refundPartialBeforeHours,
+          refund_partial_percentage: draft.refundPartialPercentage,
+          ...(contactEmailTrim ? { contact_email: contactEmailTrim } : {}),
+          ...(contactPhoneTrim ? { contact_phone: contactPhoneTrim } : {}),
+          ...(regOpenIso ? { registration_opens_at: regOpenIso } : {}),
+          ...(regCloseIso ? { registration_closes_at: regCloseIso } : {}),
         });
 
         for (let i = 0; i < draft.preJoinQuestions.length; i++) {
@@ -450,6 +511,17 @@ export function HostWizard() {
           shareToken: generateShareToken(),
           additionalImages:
             additionalImages.length > 0 ? additionalImages : undefined,
+          refundPolicy: refundPolicyTrim || undefined,
+          refundFullBeforeHours: draft.refundFullBeforeHours,
+          refundPartialBeforeHours: draft.refundPartialBeforeHours,
+          refundPartialPercentage: draft.refundPartialPercentage,
+          minAge: draft.minAge ?? undefined,
+          minVerificationTier: draft.requireVerifiedGuests ? 1 : 0,
+          termsRequired: draft.termsRequired,
+          contactEmail: contactEmailTrim || undefined,
+          contactPhone: contactPhoneTrim || undefined,
+          registrationOpensAt: regOpenIso ?? undefined,
+          registrationClosesAt: regCloseIso ?? undefined,
         });
         store.dispatch(
           circleApi.util.invalidateTags([{ type: "HostedEvents", id: "LIST" }]),
@@ -866,6 +938,90 @@ export function HostWizard() {
               placeholder="e.g. Age 18+, refunds, late entry…"
             />
           </div>
+
+          <div className="border-t border-neutral-200 pt-6 space-y-4">
+            <p className="text-sm font-semibold text-neutral-900">Refunds</p>
+            <p className="text-xs text-neutral-600">
+              Shown on the event page. Required for paid meets. Numeric windows map
+              to <span className="font-mono text-[11px]">refund_*</span> on the API.
+            </p>
+            <div>
+              <label className="text-sm font-semibold text-neutral-900">
+                Refund policy
+              </label>
+              <textarea
+                className={`${inputClass} mt-2 min-h-[88px] resize-y`}
+                value={draft.refundPolicy}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, refundPolicy: e.target.value }))
+                }
+                placeholder="e.g. Full refund up to 48h before start; partial after that…"
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label className="text-sm font-semibold text-neutral-900">
+                  Full refund (hours before)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  className={inputClass}
+                  value={draft.refundFullBeforeHours}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      refundFullBeforeHours: Math.max(
+                        0,
+                        Math.floor(Number(e.target.value)) || 0,
+                      ),
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-neutral-900">
+                  Partial refund (hours before)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  className={inputClass}
+                  value={draft.refundPartialBeforeHours}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      refundPartialBeforeHours: Math.max(
+                        0,
+                        Math.floor(Number(e.target.value)) || 0,
+                      ),
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-neutral-900">
+                  Partial refund (%)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  className={inputClass}
+                  value={draft.refundPartialPercentage}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      refundPartialPercentage: Math.min(
+                        100,
+                        Math.max(0, Math.round(Number(e.target.value)) || 0),
+                      ),
+                    }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1010,11 +1166,157 @@ export function HostWizard() {
               />
             </div>
           </div>
+
+          <div className="border-t border-neutral-200 pt-6 space-y-4">
+            <p className="text-sm font-semibold text-neutral-900">Who can join</p>
+            <HostMeetSelect
+              label="Minimum age"
+              value={draft.minAge === null ? "none" : String(draft.minAge)}
+              options={MIN_AGE_OPTIONS}
+              onChange={(v) =>
+                setDraft((d) => ({
+                  ...d,
+                  minAge: v === "none" ? null : Number.parseInt(v, 10),
+                }))
+              }
+            />
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 shadow-sm">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 shrink-0 rounded border-neutral-300 text-primary focus:ring-primary/30"
+                checked={draft.requireVerifiedGuests}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    requireVerifiedGuests: e.target.checked,
+                  }))
+                }
+              />
+              <span className="text-sm text-neutral-900">
+                <span className="font-semibold">Require verified guests</span>
+                <span className="block text-xs text-neutral-600">
+                  Only guests with a verified profile can register (
+                  <span className="font-mono text-[11px]">min_verification_tier</span>
+                  ).
+                </span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 shadow-sm">
+              <input
+                type="checkbox"
+                className="mt-1 h-4 w-4 shrink-0 rounded border-neutral-300 text-primary focus:ring-primary/30"
+                checked={draft.termsRequired}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    termsRequired: e.target.checked,
+                  }))
+                }
+              />
+              <span className="text-sm text-neutral-900">
+                <span className="font-semibold">Require terms acceptance</span>
+                <span className="block text-xs text-neutral-600">
+                  Guests must accept terms before joining (
+                  <span className="font-mono text-[11px]">terms_required</span>
+                  ).
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <div className="border-t border-neutral-200 pt-6 space-y-3">
+            <p className="text-sm font-semibold text-neutral-900">
+              Registration window (optional)
+            </p>
+            <p className="text-xs text-neutral-600">
+              Leave blank for no restriction. Times use your device clock; event
+              timezone is <span className="font-medium">{draft.timezone}</span>.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="host-reg-opens"
+                  className="text-xs font-medium text-neutral-700"
+                >
+                  Opens
+                </label>
+                <input
+                  id="host-reg-opens"
+                  type="datetime-local"
+                  className={inputClass}
+                  value={draft.registrationOpensAt}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      registrationOpensAt: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="host-reg-closes"
+                  className="text-xs font-medium text-neutral-700"
+                >
+                  Closes
+                </label>
+                <input
+                  id="host-reg-closes"
+                  type="datetime-local"
+                  className={inputClass}
+                  value={draft.registrationClosesAt}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      registrationClosesAt: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       {step === 4 && (
         <div className="mt-4 space-y-5">
+          <div className="space-y-4 rounded-xl border border-neutral-200 bg-neutral-50/40 p-4">
+            <p className="text-sm font-semibold text-neutral-900">
+              Event contact (optional)
+            </p>
+            <p className="text-xs text-neutral-600">
+              Shown to guests who need to reach you about this meet. Maps to{" "}
+              <span className="font-mono text-[11px]">contact_email</span> /{" "}
+              <span className="font-mono text-[11px]">contact_phone</span>.
+            </p>
+            <div>
+              <label className="text-sm font-semibold text-neutral-900">Email</label>
+              <input
+                type="email"
+                className={inputClass}
+                value={draft.contactEmail}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, contactEmail: e.target.value }))
+                }
+                placeholder="you@example.com"
+                autoComplete="email"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-neutral-900">Phone</label>
+              <input
+                type="tel"
+                className={inputClass}
+                value={draft.contactPhone}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, contactPhone: e.target.value }))
+                }
+                placeholder="+91 …"
+                autoComplete="tel"
+              />
+            </div>
+          </div>
+
           <HostMeetSelect
             label="Waitlist"
             value={draft.waitlistEnabled ? "on" : "off"}
