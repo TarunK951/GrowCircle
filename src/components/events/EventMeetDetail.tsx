@@ -6,8 +6,11 @@ import {
   Check,
   Clock,
   Lightbulb,
+  Mail,
   MapPin,
+  Phone,
   User,
+  UserCheck,
   Users,
   X,
   ImageOff,
@@ -113,6 +116,43 @@ export function EventMeetDetail({
     ) : (
       "Details shared after booking"
     );
+
+  const eligibilityParts: string[] = [];
+  if (event.minAge != null && event.minAge > 0) {
+    eligibilityParts.push(`Ages ${event.minAge}+`);
+  }
+  if ((event.minVerificationTier ?? 0) >= 1) {
+    eligibilityParts.push("Verified guests only");
+  }
+  if (event.termsRequired) {
+    eligibilityParts.push("Terms acceptance required");
+  }
+
+  const registrationParts: string[] = [];
+  if (event.registrationOpensAt) {
+    try {
+      registrationParts.push(
+        `Opens ${new Date(event.registrationOpensAt).toLocaleString(undefined, {
+          dateStyle: "medium",
+          timeStyle: "short",
+        })}`,
+      );
+    } catch {
+      registrationParts.push(`Opens ${event.registrationOpensAt}`);
+    }
+  }
+  if (event.registrationClosesAt) {
+    try {
+      registrationParts.push(
+        `Closes ${new Date(event.registrationClosesAt).toLocaleString(undefined, {
+          dateStyle: "medium",
+          timeStyle: "short",
+        })}`,
+      );
+    } catch {
+      registrationParts.push(`Closes ${event.registrationClosesAt}`);
+    }
+  }
 
   const galleryUrls = meetEventGalleryUrls(event);
   const cover = galleryUrls[0] ?? null;
@@ -240,6 +280,40 @@ export function EventMeetDetail({
                 <MetaRow label="Price" icon={Banknote}>
                   {priceLabel}
                 </MetaRow>
+                {eligibilityParts.length > 0 ? (
+                  <MetaRow label="Requirements" icon={UserCheck}>
+                    {eligibilityParts.join(" · ")}
+                  </MetaRow>
+                ) : null}
+                {registrationParts.length > 0 ? (
+                  <MetaRow label="Registration" icon={Clock}>
+                    {registrationParts.join(" · ")}
+                  </MetaRow>
+                ) : null}
+                {event.contactEmail || event.contactPhone ? (
+                  <MetaRow label="Contact" icon={Mail}>
+                    <span className="flex flex-col gap-1">
+                      {event.contactEmail ? (
+                        <a
+                          href={`mailto:${event.contactEmail}`}
+                          className="inline-flex items-center gap-1.5 font-medium text-primary underline-offset-4 hover:underline"
+                        >
+                          <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                          {event.contactEmail}
+                        </a>
+                      ) : null}
+                      {event.contactPhone ? (
+                        <a
+                          href={`tel:${event.contactPhone.replace(/\s/g, "")}`}
+                          className="inline-flex items-center gap-1.5 font-medium text-primary underline-offset-4 hover:underline"
+                        >
+                          <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                          {event.contactPhone}
+                        </a>
+                      ) : null}
+                    </span>
+                  </MetaRow>
+                ) : null}
               </dl>
             </div>
 
@@ -483,6 +557,36 @@ export function EventMeetDetail({
             <p className="mt-4 text-base leading-relaxed text-muted-foreground">
               <span className="font-semibold text-foreground">Host policy:</span>{" "}
               {detail.refundPolicy}
+            </p>
+          ) : null}
+          {event.refundFullBeforeHours != null ||
+          event.refundPartialBeforeHours != null ||
+          event.refundPartialPercentage != null ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              {event.refundFullBeforeHours != null ? (
+                <>
+                  Full refund if you cancel at least{" "}
+                  <strong className="text-foreground">
+                    {event.refundFullBeforeHours}h
+                  </strong>{" "}
+                  before start
+                </>
+              ) : null}
+              {event.refundFullBeforeHours != null &&
+              (event.refundPartialBeforeHours != null ||
+                event.refundPartialPercentage != null)
+                ? " · "
+                : null}
+              {event.refundPartialBeforeHours != null &&
+              event.refundPartialPercentage != null ? (
+                <>
+                  Partial refund ({event.refundPartialPercentage}%) if{" "}
+                  <strong className="text-foreground">
+                    {event.refundPartialBeforeHours}h
+                  </strong>{" "}
+                  or more before start
+                </>
+              ) : null}
             </p>
           ) : null}
           <p className="mt-4 text-base leading-relaxed text-muted-foreground">

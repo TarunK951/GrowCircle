@@ -64,6 +64,22 @@ export type MeetEvent = {
   guestSuggestions?: string[];
   /** Optional host-defined refund terms shown in refund section. */
   refundPolicy?: string;
+  /** API `refund_*` — shown with refund policy when set. */
+  refundFullBeforeHours?: number;
+  refundPartialBeforeHours?: number;
+  refundPartialPercentage?: number;
+  /** API `min_age`. */
+  minAge?: number;
+  /** API `min_verification_tier`. */
+  minVerificationTier?: number;
+  /** API `terms_required`. */
+  termsRequired?: boolean;
+  /** API `contact_email` / `contact_phone` for this event. */
+  contactEmail?: string;
+  contactPhone?: string;
+  /** API `registration_opens_at` / `registration_closes_at` (ISO). */
+  registrationOpensAt?: string;
+  registrationClosesAt?: string;
   /** Max 5; each needs ≥2 options for join-time radios. */
   preJoinQuestions?: PreJoinQuestion[];
   /** Host soft-cancelled; meet stays in history but is hidden from Explore. */

@@ -71,6 +71,22 @@ export type HostDraft = {
   faqs: { q: string; a: string }[];
   /** Draft rows; ids assigned on publish. */
   preJoinQuestions: { prompt: string; options: string[] }[];
+  /** API `min_age`; `null` = all ages. */
+  minAge: number | null;
+  /** Maps to API `min_verification_tier` (0 or 1). */
+  requireVerifiedGuests: boolean;
+  /** API `terms_required`. */
+  termsRequired: boolean;
+  /** API `refund_policy`. */
+  refundPolicy: string;
+  refundFullBeforeHours: number;
+  refundPartialBeforeHours: number;
+  refundPartialPercentage: number;
+  contactEmail: string;
+  contactPhone: string;
+  /** Local `datetime-local` values; API `registration_opens_at` / `registration_closes_at`. */
+  registrationOpensAt: string;
+  registrationClosesAt: string;
 };
 
 export type UiPrefs = {
@@ -183,6 +199,17 @@ const initialHostDraft = (): HostDraft => ({
   coverSlots: [{ dataUrl: null, url: "" }],
   faqs: [{ q: "", a: "" }],
   preJoinQuestions: [],
+  minAge: null,
+  requireVerifiedGuests: false,
+  termsRequired: false,
+  refundPolicy: "",
+  refundFullBeforeHours: 48,
+  refundPartialBeforeHours: 24,
+  refundPartialPercentage: 50,
+  contactEmail: "",
+  contactPhone: "",
+  registrationOpensAt: "",
+  registrationClosesAt: "",
 });
 
 /** Merge persisted or partial JSON into a full `HostDraft` (legacy single-image fields → slot 0). */
@@ -278,6 +305,49 @@ export function normalizeHostDraft(raw: unknown): HostDraft {
               : [""],
           }))
       : base.preJoinQuestions,
+    minAge:
+      o.minAge === null
+        ? null
+        : typeof o.minAge === "number" && Number.isFinite(o.minAge)
+          ? o.minAge
+          : base.minAge,
+    requireVerifiedGuests:
+      typeof o.requireVerifiedGuests === "boolean"
+        ? o.requireVerifiedGuests
+        : base.requireVerifiedGuests,
+    termsRequired:
+      typeof o.termsRequired === "boolean"
+        ? o.termsRequired
+        : base.termsRequired,
+    refundPolicy:
+      typeof o.refundPolicy === "string" ? o.refundPolicy : base.refundPolicy,
+    refundFullBeforeHours:
+      typeof o.refundFullBeforeHours === "number" &&
+      Number.isFinite(o.refundFullBeforeHours)
+        ? Math.max(0, Math.floor(o.refundFullBeforeHours))
+        : base.refundFullBeforeHours,
+    refundPartialBeforeHours:
+      typeof o.refundPartialBeforeHours === "number" &&
+      Number.isFinite(o.refundPartialBeforeHours)
+        ? Math.max(0, Math.floor(o.refundPartialBeforeHours))
+        : base.refundPartialBeforeHours,
+    refundPartialPercentage:
+      typeof o.refundPartialPercentage === "number" &&
+      Number.isFinite(o.refundPartialPercentage)
+        ? Math.min(100, Math.max(0, Math.round(o.refundPartialPercentage)))
+        : base.refundPartialPercentage,
+    contactEmail:
+      typeof o.contactEmail === "string" ? o.contactEmail : base.contactEmail,
+    contactPhone:
+      typeof o.contactPhone === "string" ? o.contactPhone : base.contactPhone,
+    registrationOpensAt:
+      typeof o.registrationOpensAt === "string"
+        ? o.registrationOpensAt
+        : base.registrationOpensAt,
+    registrationClosesAt:
+      typeof o.registrationClosesAt === "string"
+        ? o.registrationClosesAt
+        : base.registrationClosesAt,
   };
   return next;
 }
