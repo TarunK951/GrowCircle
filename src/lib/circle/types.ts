@@ -34,6 +34,17 @@ export type CircleProfile = {
   is_profile_complete?: boolean;
   is_globally_banned?: boolean;
   created_at?: string;
+  /** Extended fields from `GET /users/me` (snake_case on wire). */
+  bio?: string | null;
+  city?: string | null;
+  dietary_preference?: string | null;
+  emergency_contact_name?: string | null;
+  emergency_contact_phone?: string | null;
+  email_verified?: boolean;
+  google_id?: string | null;
+  last_active_at?: string | null;
+  profile_completion_score?: number;
+  updated_at?: string | null;
 };
 
 export type CircleEventHost = {

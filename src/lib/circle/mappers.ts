@@ -75,7 +75,7 @@ export function circleProfileToUser(profile: CircleProfile): User {
   return {
     id: profile.id,
     name,
-    email: profile.email ?? "",
+    email: profile.email?.trim() || "",
     avatar: profile.avatar_url?.trim() || DEFAULT_AVATAR,
     cityId: "circle",
     interests: [],
@@ -264,6 +264,18 @@ export function circleEventToMeetEvent(
           ? [...new Set(["Meet", ...tagList])]
           : ["Meet"];
 
+  const eventDateRaw = [
+    api.event_date,
+    loose.eventDate,
+    loose.event_date,
+    loose.start_time,
+    loose.startTime,
+  ].find((s) => typeof s === "string" && s.trim().length > 0);
+  const startsAt =
+    typeof eventDateRaw === "string" && eventDateRaw.trim().length > 0
+      ? eventDateRaw.trim()
+      : new Date(0).toISOString();
+
   return {
     id: api.id,
     title: api.title,
@@ -271,7 +283,7 @@ export function circleEventToMeetEvent(
     cityId: "circle",
     hostUsername: api.host?.username?.trim() || undefined,
     displayLocation: api.location?.trim() || undefined,
-    startsAt: api.event_date,
+    startsAt,
     hostUserId: hostId,
     capacity,
     category: categoryLabel,

@@ -7,7 +7,12 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { AlertTriangle, ChevronLeft, ShieldCheck, Smartphone } from "lucide-react";
+import {
+  AlertTriangle,
+  ChevronLeft,
+  ShieldCheck,
+  Smartphone,
+} from "lucide-react";
 import { getMyProfile, updateMyProfile } from "@/lib/circle/api";
 import { CircleApiError } from "@/lib/circle/client";
 import { isCircleApiConfigured } from "@/lib/circle/config";
@@ -15,6 +20,7 @@ import { circleUsernameSchema } from "@/lib/auth/circleUsernameSchema";
 import { ageFromIsoDate } from "@/lib/date/ageFromDob";
 import { cn } from "@/lib/utils";
 import { circleProfileToUser } from "@/lib/circle/mappers";
+import type { CircleProfile } from "@/lib/circle/types";
 import {
   selectAccessToken,
   selectRefreshToken,
@@ -23,11 +29,21 @@ import {
 import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
 
+function displayLine(s: string | null | undefined): string {
+  const t = s?.trim();
+  return t ? t : "—";
+}
+
 const circleFormSchema = z.object({
   name: circleUsernameSchema,
   dob: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Choose your date of birth (YYYY-MM-DD)"),
+  bio: z.string().max(2000),
+  city: z.string().max(120),
+  dietary_preference: z.string().max(200),
+  emergency_contact_name: z.string().max(120),
+  emergency_contact_phone: z.string().max(32),
 });
 
 const localFormSchema = z.object({
@@ -48,6 +64,8 @@ export default function ProfilePage() {
     isCircleApiConfigured() && Boolean(accessToken && refreshToken);
 
   const [phoneDisplay, setPhoneDisplay] = useState<string | null>(null);
+  /** Latest full API profile for read-only metadata and extended fields. */
+  const [fullProfile, setFullProfile] = useState<CircleProfile | null>(null);
   /** Once the API returns a saved DOB, it cannot be edited (product policy). */
   const [dobLocked, setDobLocked] = useState(false);
 
@@ -65,7 +83,17 @@ export default function ProfilePage() {
     formState: { errors, isSubmitting },
   } = useForm<CircleForm | LocalForm>({
     resolver,
-    defaultValues: { name: user?.name ?? "", ...(circleSync ? { dob: "" } : {}) },
+    defaultValues: circleSync
+      ? {
+          name: user?.name ?? "",
+          dob: "",
+          bio: "",
+          city: "",
+          dietary_preference: "",
+          emergency_contact_name: "",
+          emergency_contact_phone: "",
+        }
+      : { name: user?.name ?? "" },
   });
 
   const allValues = watch();
@@ -88,6 +116,7 @@ export default function ProfilePage() {
       try {
         const profile = await getMyProfile(accessToken);
         if (cancelled) return;
+        setFullProfile(profile);
         const u = circleProfileToUser(profile);
         loginWithCircle(u, { accessToken, refreshToken });
         setPhoneDisplay(profile.phone);
@@ -98,7 +127,12 @@ export default function ProfilePage() {
         setDobLocked(hasSavedDob);
         reset({
           name: profile.username?.trim() || u.name,
-          ...(circleSync ? { dob } : {}),
+          dob,
+          bio: profile.bio?.trim() ?? "",
+          city: profile.city?.trim() ?? "",
+          dietary_preference: profile.dietary_preference?.trim() ?? "",
+          emergency_contact_name: profile.emergency_contact_name?.trim() ?? "",
+          emergency_contact_phone: profile.emergency_contact_phone?.trim() ?? "",
         } as CircleForm & LocalForm);
       } catch (e) {
         if (!cancelled && e instanceof CircleApiError) {
@@ -110,6 +144,12 @@ export default function ProfilePage() {
       cancelled = true;
     };
   }, [accessToken, refreshToken, loginWithCircle, reset, circleSync]);
+
+  const emailShown = displayLine(user?.email);
+  const phoneShown =
+    phoneDisplay && phoneDisplay.trim().length > 0
+      ? phoneDisplay.trim()
+      : "Not linked";
 
   return (
     <div className="mx-auto w-full max-w-3xl text-neutral-900">
@@ -198,7 +238,13 @@ export default function ProfilePage() {
                 const profile = await updateMyProfile(accessToken!, {
                   username: d.name.trim(),
                   ...(dobLocked ? {} : { dob: d.dob }),
+                  bio: d.bio.trim(),
+                  city: d.city.trim(),
+                  dietary_preference: d.dietary_preference.trim(),
+                  emergency_contact_name: d.emergency_contact_name.trim(),
+                  emergency_contact_phone: d.emergency_contact_phone.trim(),
                 });
+                setFullProfile(profile);
                 const u = circleProfileToUser(profile);
                 loginWithCircle(u, {
                   accessToken: accessToken!,
@@ -225,7 +271,13 @@ export default function ProfilePage() {
                   try {
                     const profile = await updateMyProfile(accessToken!, {
                       username: d.name.trim(),
+                      bio: d.bio.trim(),
+                      city: d.city.trim(),
+                      dietary_preference: d.dietary_preference.trim(),
+                      emergency_contact_name: d.emergency_contact_name.trim(),
+                      emergency_contact_phone: d.emergency_contact_phone.trim(),
                     });
+                    setFullProfile(profile);
                     const u = circleProfileToUser(profile);
                     loginWithCircle(u, {
                       accessToken: accessToken!,
@@ -285,47 +337,199 @@ export default function ProfilePage() {
             </div>
 
             {circleSync && (
-              <div>
-                <label
-                  htmlFor="profile-dob"
-                  className="text-sm font-semibold text-neutral-900"
-                >
-                  Date of birth
-                </label>
-                <input
-                  id="profile-dob"
-                  type="date"
-                  readOnly={dobLocked}
-                  aria-readonly={dobLocked}
-                  className={cn(
-                    "mt-2 w-full max-w-xs rounded-xl border border-neutral-200 px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-neutral-900 focus:bg-white focus:ring-2 focus:ring-neutral-900/10",
-                    dobLocked
-                      ? "cursor-not-allowed bg-neutral-100 text-neutral-700"
-                      : "bg-neutral-50/80",
+              <>
+                <div>
+                  <label
+                    htmlFor="profile-dob"
+                    className="text-sm font-semibold text-neutral-900"
+                  >
+                    Date of birth
+                  </label>
+                  <input
+                    id="profile-dob"
+                    type="date"
+                    readOnly={dobLocked}
+                    aria-readonly={dobLocked}
+                    className={cn(
+                      "mt-2 w-full max-w-xs rounded-xl border border-neutral-200 px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-neutral-900 focus:bg-white focus:ring-2 focus:ring-neutral-900/10",
+                      dobLocked
+                        ? "cursor-not-allowed bg-neutral-100 text-neutral-700"
+                        : "bg-neutral-50/80",
+                    )}
+                    {...register("dob" as const)}
+                  />
+                  {dobLocked && (
+                    <p className="mt-2 text-xs text-neutral-600">
+                      Date of birth was saved and can&apos;t be changed here.
+                    </p>
                   )}
-                  {...register("dob" as const)}
-                />
-                {dobLocked && (
-                  <p className="mt-2 text-xs text-neutral-600">
-                    Date of birth was saved and can&apos;t be changed here.
+                  {computedAge != null && (
+                    <p className="mt-2 text-sm text-neutral-600">
+                      Age shown on meets:{" "}
+                      <span className="font-semibold text-neutral-900">
+                        {computedAge}
+                      </span>
+                    </p>
+                  )}
+                  {(errors as { dob?: { message?: string } }).dob && (
+                    <p className="mt-2 text-xs font-medium text-red-600">
+                      {(errors as { dob?: { message?: string } }).dob?.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold text-neutral-900">
+                    About you
+                  </h3>
+                  <p className="mt-1 text-xs text-neutral-500">
+                    Saved to your Circle profile when the API accepts these
+                    fields.
                   </p>
-                )}
-                {computedAge != null && (
-                  <p className="mt-2 text-sm text-neutral-600">
-                    Age shown on meets:{" "}
-                    <span className="font-semibold text-neutral-900">
-                      {computedAge}
-                    </span>
-                  </p>
-                )}
-                {(errors as { dob?: { message?: string } }).dob && (
-                  <p className="mt-2 text-xs font-medium text-red-600">
-                    {(errors as { dob?: { message?: string } }).dob?.message}
-                  </p>
-                )}
-              </div>
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <label
+                        htmlFor="profile-bio"
+                        className="text-sm font-semibold text-neutral-900"
+                      >
+                        Bio
+                      </label>
+                      <textarea
+                        id="profile-bio"
+                        rows={3}
+                        className="mt-2 w-full rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-400 focus:border-neutral-900 focus:bg-white focus:ring-2 focus:ring-neutral-900/10"
+                        placeholder="Short introduction"
+                        {...register("bio" as const)}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="profile-city"
+                        className="text-sm font-semibold text-neutral-900"
+                      >
+                        City
+                      </label>
+                      <input
+                        id="profile-city"
+                        className="mt-2 w-full rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-neutral-900 focus:bg-white focus:ring-2 focus:ring-neutral-900/10"
+                        {...register("city" as const)}
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="profile-dietary"
+                        className="text-sm font-semibold text-neutral-900"
+                      >
+                        Dietary preference
+                      </label>
+                      <input
+                        id="profile-dietary"
+                        className="mt-2 w-full rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-neutral-900 focus:bg-white focus:ring-2 focus:ring-neutral-900/10"
+                        {...register("dietary_preference" as const)}
+                      />
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <label
+                          htmlFor="profile-emergency-name"
+                          className="text-sm font-semibold text-neutral-900"
+                        >
+                          Emergency contact name
+                        </label>
+                        <input
+                          id="profile-emergency-name"
+                          className="mt-2 w-full rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-neutral-900 focus:bg-white focus:ring-2 focus:ring-neutral-900/10"
+                          {...register("emergency_contact_name" as const)}
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="profile-emergency-phone"
+                          className="text-sm font-semibold text-neutral-900"
+                        >
+                          Emergency contact phone
+                        </label>
+                        <input
+                          id="profile-emergency-phone"
+                          className="mt-2 w-full rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3 text-sm text-neutral-900 outline-none transition focus:border-neutral-900 focus:bg-white focus:ring-2 focus:ring-neutral-900/10"
+                          {...register("emergency_contact_phone" as const)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
             )}
           </div>
+
+          {circleSync && fullProfile && (
+            <div className="rounded-xl border border-neutral-200/80 bg-neutral-50/50 p-4 text-sm">
+              <h3 className="font-semibold text-neutral-900">Account metadata</h3>
+              <p className="mt-1 text-xs text-neutral-500">
+                Read-only values from your Circle account.
+              </p>
+              <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+                <div>
+                  <dt className="text-xs font-medium text-neutral-500">
+                    Email verified
+                  </dt>
+                  <dd className="text-neutral-900">
+                    {fullProfile.email_verified === true
+                      ? "Yes"
+                      : fullProfile.email_verified === false
+                        ? "No"
+                        : "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium text-neutral-500">
+                    Verification tier
+                  </dt>
+                  <dd className="text-neutral-900">
+                    {fullProfile.verification_tier ?? "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium text-neutral-500">
+                    Profile completion score
+                  </dt>
+                  <dd className="text-neutral-900">
+                    {fullProfile.profile_completion_score ?? "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs font-medium text-neutral-500">
+                    Profile complete (API)
+                  </dt>
+                  <dd className="text-neutral-900">
+                    {fullProfile.is_profile_complete === true
+                      ? "Yes"
+                      : fullProfile.is_profile_complete === false
+                        ? "No"
+                        : "—"}
+                  </dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="text-xs font-medium text-neutral-500">
+                    Last updated (API)
+                  </dt>
+                  <dd className="text-neutral-900">
+                    {fullProfile.updated_at
+                      ? (() => {
+                          try {
+                            return new Date(
+                              fullProfile.updated_at!,
+                            ).toLocaleString();
+                          } catch {
+                            return fullProfile.updated_at;
+                          }
+                        })()
+                      : "—"}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          )}
 
           <div className="border-t border-neutral-200 pt-8">
             <h2 className="text-base font-semibold text-neutral-900">
@@ -342,7 +546,7 @@ export default function ProfilePage() {
                   Email
                 </dt>
                 <dd className="mt-1.5 rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3 text-sm text-neutral-900">
-                  {user?.email ?? "—"}
+                  {emailShown}
                 </dd>
                 <p className="mt-2 text-xs text-neutral-600">
                   {circleSync
@@ -357,12 +561,10 @@ export default function ProfilePage() {
                     Phone
                   </dt>
                   <dd className="mt-1.5 rounded-xl border border-neutral-200 bg-neutral-50/80 px-4 py-3 text-sm text-neutral-900">
-                    {phoneDisplay && phoneDisplay.length > 0
-                      ? phoneDisplay
-                      : "Not linked"}
+                    {phoneShown}
                   </dd>
                   <p className="mt-2 text-xs text-neutral-600">
-                    {phoneDisplay && phoneDisplay.length > 0
+                    {phoneDisplay && phoneDisplay.trim().length > 0
                       ? "Mobile number is fixed for your connected account."
                       : "Link a number by signing in with phone OTP from the login page (same account)."}
                   </p>

@@ -23,6 +23,20 @@ function pickStr(obj: Record<string, unknown>, ...keys: string[]): string | unde
   return undefined;
 }
 
+/** String or explicit `null` when key present; `undefined` if all keys absent. */
+function pickNullableStr(
+  obj: Record<string, unknown>,
+  ...keys: string[]
+): string | null | undefined {
+  for (const k of keys) {
+    if (!(k in obj)) continue;
+    const v = obj[k];
+    if (v === null) return null;
+    if (typeof v === "string") return v;
+  }
+  return undefined;
+}
+
 /** §2.1 — backend may emit camelCase or snake_case on user objects. */
 export function normalizeCircleProfile(raw: unknown): CircleProfile {
   if (!raw || typeof raw !== "object") {
@@ -56,6 +70,37 @@ export function normalizeCircleProfile(raw: unknown): CircleProfile {
   const is_profile_complete =
     o.is_profile_complete === true || o.isProfileComplete === true;
 
+  const bio = pickNullableStr(o, "bio");
+  const city = pickNullableStr(o, "city");
+  const dietary_preference = pickNullableStr(
+    o,
+    "dietary_preference",
+    "dietaryPreference",
+  );
+  const emergency_contact_name = pickNullableStr(
+    o,
+    "emergency_contact_name",
+    "emergencyContactName",
+  );
+  const emergency_contact_phone = pickNullableStr(
+    o,
+    "emergency_contact_phone",
+    "emergencyContactPhone",
+  );
+  const google_id = pickNullableStr(o, "google_id", "googleId");
+  const last_active_at = pickNullableStr(o, "last_active_at", "lastActiveAt");
+  const updated_at = pickNullableStr(o, "updated_at", "updatedAt");
+
+  let email_verified: boolean | undefined;
+  if (typeof o.email_verified === "boolean") email_verified = o.email_verified;
+  else if (typeof o.emailVerified === "boolean") email_verified = o.emailVerified;
+
+  let profile_completion_score: number | undefined;
+  if (typeof o.profile_completion_score === "number")
+    profile_completion_score = o.profile_completion_score;
+  else if (typeof o.profileCompletionScore === "number")
+    profile_completion_score = o.profileCompletionScore;
+
   return {
     id,
     phone,
@@ -67,6 +112,16 @@ export function normalizeCircleProfile(raw: unknown): CircleProfile {
     is_profile_complete,
     is_globally_banned,
     created_at,
+    bio,
+    city,
+    dietary_preference,
+    emergency_contact_name,
+    emergency_contact_phone,
+    email_verified,
+    google_id,
+    last_active_at,
+    profile_completion_score,
+    updated_at,
   };
 }
 
@@ -174,7 +229,7 @@ export async function getMyProfile(accessToken: string): Promise<CircleProfile> 
   return normalizeCircleProfile(raw);
 }
 
-/** §2.2 */
+/** §2.2 — snake_case keys; backend may ignore unknown fields until documented. */
 export async function updateMyProfile(
   accessToken: string,
   body: Partial<{
@@ -183,6 +238,11 @@ export async function updateMyProfile(
     avatar_url: string;
     /** ISO date `YYYY-MM-DD` — sent when backend supports it on §2.2 */
     dob: string;
+    bio: string;
+    city: string;
+    dietary_preference: string;
+    emergency_contact_name: string;
+    emergency_contact_phone: string;
   }>,
 ): Promise<CircleProfile> {
   const raw = await circleRequest<unknown>("/users/me", {

@@ -14,6 +14,10 @@ export function EventCard({
   className,
   priority,
   inactive,
+  /** Saved list only: subtle monochrome look for upcoming meets. */
+  monochromeListing,
+  /** Saved list only: remove bookmark without following the card link. */
+  onUnsave,
 }: {
   event: MeetEvent;
   cityName: string;
@@ -23,6 +27,8 @@ export function EventCard({
   priority?: boolean;
   /** Ended, cancelled, or otherwise dimmed (grayscale). */
   inactive?: boolean;
+  monochromeListing?: boolean;
+  onUnsave?: () => void;
 }) {
   const price = formatInrFromCents(event.priceCents);
 
@@ -31,16 +37,18 @@ export function EventCard({
   const coverIsDataUrl = cover?.startsWith("data:") ?? false;
   const coverIsUnsplash = cover?.includes("images.unsplash.com") ?? false;
 
-  return (
+  const linkClass = cn(
+    "event-card-depth group flex h-full flex-col overflow-hidden rounded-(--radius-section) liquid-glass liquid-glass-card",
+    inactive && "grayscale opacity-95",
+    monochromeListing && !inactive && "grayscale contrast-[0.97] saturate-[0.85]",
+    className,
+  );
+
+  const card = (
     <Link
       href={`/event/${event.id}`}
       aria-label={event.title}
-      className={cn(
-        "event-card-depth group flex h-full flex-col overflow-hidden rounded-(--radius-section) liquid-glass liquid-glass-card",
-        /* Full card black & white when ended / cancelled */
-        inactive && "grayscale opacity-95",
-        className,
-      )}
+      className={linkClass}
     >
       <div className="relative aspect-4/3 w-full overflow-hidden rounded-t-(--radius-section)">
         {!cover ? (
@@ -118,5 +126,24 @@ export function EventCard({
         </span>
       </div>
     </Link>
+  );
+
+  if (!onUnsave) return card;
+
+  return (
+    <div className="relative h-full">
+      {card}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onUnsave();
+        }}
+        className="absolute right-2 top-2 z-10 rounded-full border border-white/80 bg-black/45 px-2.5 py-1 text-xs font-semibold text-white shadow-sm backdrop-blur-sm transition hover:bg-black/55"
+      >
+        Remove
+      </button>
+    </div>
   );
 }

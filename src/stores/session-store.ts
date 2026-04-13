@@ -142,6 +142,8 @@ type SessionState = {
     preJoinAnswers?: Record<string, string>,
   ) => { ok: boolean; booking?: Booking; reason?: string };
   toggleSaved: (eventId: string) => void;
+  /** Remove multiple bookmark ids (e.g. past meets pruned from Saved). */
+  removeSavedEventIds: (ids: string[]) => void;
   setHostDraft: (d: HostDraft | null) => void;
   publishHostedEvent: (event: MeetEvent) => void;
   /** Replace or insert rows returned from `GET /events/my` (same ids win from API). */
@@ -552,6 +554,13 @@ export const useSessionStore = create<SessionState>()(
         if (s.has(eventId)) s.delete(eventId);
         else s.add(eventId);
         set({ savedEventIds: [...s] });
+      },
+      removeSavedEventIds: (ids) => {
+        if (ids.length === 0) return;
+        const remove = new Set(ids);
+        set({
+          savedEventIds: get().savedEventIds.filter((id) => !remove.has(id)),
+        });
       },
       setHostDraft: (d) => set({ hostDraft: d }),
       publishHostedEvent: (event) =>
