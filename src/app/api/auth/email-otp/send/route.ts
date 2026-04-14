@@ -36,7 +36,10 @@ export async function POST(req: Request) {
 
   if (purpose === "login" && !existing) {
     return NextResponse.json(
-      { error: "Invalid email or password." },
+      {
+        error:
+          "No account found for this email. Create an account first or use a different email.",
+      },
       { status: 401 },
     );
   }

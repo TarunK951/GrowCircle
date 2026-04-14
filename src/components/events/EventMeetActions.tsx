@@ -149,7 +149,7 @@ function PreJoinModal({
               </legend>
               <div className="space-y-2">
                 {q.allowMultiple
-                  ? q.options.map((opt) => {
+                  ? q.options.map((opt, i) => {
                       let selected = false;
                       try {
                         const parsed = JSON.parse(answers[q.id] || "[]") as unknown;
@@ -160,7 +160,7 @@ function PreJoinModal({
                       }
                       return (
                         <label
-                          key={opt}
+                          key={`${q.id}:${i}:${opt}`}
                           className="flex cursor-pointer items-center gap-3 rounded-lg border border-primary/10 bg-white/80 px-3 py-2 text-sm has-[:checked]:border-primary/30 has-[:checked]:bg-primary/[0.06]"
                         >
                           <input
@@ -194,9 +194,9 @@ function PreJoinModal({
                         </label>
                       );
                     })
-                  : q.options.map((opt) => (
+                  : q.options.map((opt, i) => (
                       <label
-                        key={opt}
+                        key={`${q.id}:${i}:${opt}`}
                         className="flex cursor-pointer items-center gap-3 rounded-lg border border-primary/10 bg-white/80 px-3 py-2 text-sm has-[:checked]:border-primary/30 has-[:checked]:bg-primary/[0.06]"
                       >
                         <input

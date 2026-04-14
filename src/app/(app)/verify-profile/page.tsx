@@ -69,7 +69,7 @@ export default function VerifyProfilePage() {
 
   if (circleMode) {
     return (
-      <div className="max-w-lg">
+      <div className="w-full max-w-3xl">
         <h1 className="text-2xl font-semibold tracking-tight">Verify profile</h1>
         <p className="mt-2 text-sm text-neutral-700">
           Verification tier and profile status come from{" "}
@@ -121,7 +121,7 @@ export default function VerifyProfilePage() {
   }
 
   return (
-    <div className="max-w-lg">
+    <div className="w-full max-w-3xl">
       <h1 className="text-2xl font-semibold tracking-tight">Verify profile</h1>
       <p className="mt-2 text-neutral-900">
         Connect the Circle backend (

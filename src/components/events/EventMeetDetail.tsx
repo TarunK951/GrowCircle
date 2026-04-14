@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { EventDetailCloseButton } from "@/components/events/EventDetailCloseButton";
 import {
   Banknote,
   Building2,
@@ -163,13 +164,7 @@ export function EventMeetDetail({
   return (
     <>
       <div className="flex items-center justify-end">
-        <Link
-          href="/explore"
-          aria-label="Close and return to explore"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-200 bg-white text-neutral-900 shadow-sm transition hover:bg-neutral-50"
-        >
-          <X className="h-5 w-5" strokeWidth={2} aria-hidden />
-        </Link>
+        <EventDetailCloseButton />
       </div>
 
       {/* 1 — Photo + summary first */}

@@ -6,7 +6,11 @@ type EventPageProps = Readonly<{
   params: Promise<{ id: string }>;
 }>;
 
-/** `use(params)` avoids sync enumeration of the params Promise (Next.js 16). */
+/**
+ * `use(params)` unwraps the params Promise (required in Next.js 16+).
+ * If DevTools logs "params are being enumerated", it is often the inspector
+ * serializing props—not a bug in this page.
+ */
 export default function EventDetailPage({ params }: EventPageProps) {
   const { id } = use(params);
   return (

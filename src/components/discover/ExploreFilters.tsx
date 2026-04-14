@@ -14,6 +14,13 @@ const fieldBtn =
 const labelCls =
   "mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-zinc-700 dark:text-zinc-300";
 
+/** Stronger border than base liquid-glass so search is visible on light canvas. */
+const searchInputClass = cn(
+  "liquid-glass-field liquid-glass-field-sm w-full min-h-11 rounded-xl py-2.5 pl-10 pr-3 text-sm text-foreground placeholder:text-zinc-400",
+  "border border-neutral-300/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]",
+  "focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas",
+);
+
 function useBodyLock(locked: boolean) {
   useEffect(() => {
     if (!locked) return;
@@ -209,7 +216,7 @@ function FilterFields({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search meets by title, topic, or keyword…"
-              className="liquid-glass-field liquid-glass-field-sm w-full min-h-11 rounded-xl py-2.5 pl-10 pr-3 text-sm text-foreground placeholder:text-zinc-400"
+              className={searchInputClass}
               autoComplete="off"
               aria-label="Search meets"
             />
@@ -422,7 +429,7 @@ export function ExploreFilters({
                 }
               }}
               placeholder="Search meets…"
-              className="liquid-glass-field liquid-glass-field-sm w-full min-h-11 rounded-xl py-2.5 pl-10 pr-3 text-sm"
+              className={searchInputClass}
               aria-label="Search meets"
             />
           </div>
