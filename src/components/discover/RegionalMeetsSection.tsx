@@ -1,15 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  ChevronDown,
-  LocateFixed,
-  Loader2,
-  MapPin,
-  Search,
-  Sparkles,
-} from "lucide-react";
+import { ChevronDown, Loader2, LocateFixed, Search, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { EventCard } from "@/components/events/EventCard";
 import { Reveal } from "@/components/providers/Reveal";
@@ -70,6 +62,21 @@ export function RegionalMeetsSection({
     if (!q) return indiaCities;
     return indiaCities.filter((c) => c.name.toLowerCase().includes(q));
   }, [indiaCities, citySearchQuery]);
+
+  /** Until the user types, show only the selected metro (change metro by searching). */
+  const listboxCities = useMemo(() => {
+    if (citySearchQuery.trim()) return filteredIndiaCities;
+    if (regionCityId) {
+      const only = indiaCities.find((c) => c.id === regionCityId);
+      return only ? [only] : filteredIndiaCities;
+    }
+    return filteredIndiaCities;
+  }, [
+    citySearchQuery,
+    regionCityId,
+    indiaCities,
+    filteredIndiaCities,
+  ]);
 
   const applyHint = useCallback(
     (data: GeoHintResponse, opts?: { silent?: boolean }) => {
@@ -182,6 +189,44 @@ export function RegionalMeetsSection({
     setPickerOpen(false);
   };
 
+  const events = useMemo(() => {
+    if (!regionCityId) return [];
+    let list = listEventsMerged(
+      hostedEvents,
+      { cityId: regionCityId, publicOnly: true },
+      circleCatalogEvents,
+    );
+    list = list.filter((e) => !isMeetInactive(e));
+    list.sort(
+      (a, b) =>
+        new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+    );
+    return list.slice(0, 9);
+  }, [hostedEvents, circleCatalogEvents, regionCityId]);
+
+  const cityById = Object.fromEntries(indiaCities.map((c) => [c.id, c.name]));
+  const regionName = regionCityId
+    ? cityById[regionCityId] ?? regionCityId
+    : "";
+
+  const selectedLabel = regionCityId
+    ? cityById[regionCityId] ?? "Metro"
+    : "";
+
+  /** Closed: show selected metro name; open: filter query. */
+  const metroInputValue = pickerOpen
+    ? citySearchQuery
+    : selectedLabel;
+
+  const openMetroPicker = () => {
+    setPickerOpen(true);
+    setCitySearchQuery("");
+  };
+
+  const onMetroSearchFocus = () => {
+    if (!pickerOpen) openMetroPicker();
+  };
+
   const onDetectArea = async () => {
     setDetecting(true);
     try {
@@ -207,30 +252,6 @@ export function RegionalMeetsSection({
     }
   };
 
-  const events = useMemo(() => {
-    if (!regionCityId) return [];
-    let list = listEventsMerged(
-      hostedEvents,
-      { cityId: regionCityId, publicOnly: true },
-      circleCatalogEvents,
-    );
-    list = list.filter((e) => !isMeetInactive(e));
-    list.sort(
-      (a, b) =>
-        new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
-    );
-    return list.slice(0, 9);
-  }, [hostedEvents, circleCatalogEvents, regionCityId]);
-
-  const cityById = Object.fromEntries(indiaCities.map((c) => [c.id, c.name]));
-  const regionName = regionCityId
-    ? cityById[regionCityId] ?? regionCityId
-    : "";
-
-  const selectedLabel = regionCityId
-    ? cityById[regionCityId] ?? "Metro"
-    : "Choose your metro";
-
   return (
     <section
       className={cn(
@@ -252,18 +273,27 @@ export function RegionalMeetsSection({
             {title}
           </h2>
           <p className="mt-2 max-w-2xl text-sm text-neutral-600">
-            Upcoming public meets by metro — India cities only.
+            {regionCityId ? (
+              <>
+                Showing upcoming public meets in{" "}
+                <span className="font-semibold text-neutral-800">
+                  {regionName}
+                </span>{" "}
+                only.
+              </>
+            ) : (
+              <>
+                Choose a metro above to see meets in that city only — India
+                metros.
+              </>
+            )}
           </p>
           {regionCityId && hintLabel ? (
             <p className="mt-2 text-xs font-medium text-neutral-500">
-              {(() => {
-                const metro = cityById[regionCityId];
-                const extra =
-                  hintLabel.toLowerCase() !== metro?.toLowerCase()
-                    ? ` · ${hintLabel}`
-                    : "";
-                return `Metro: ${metro}${extra}`;
-              })()}
+              Location: {regionName}
+              {hintLabel.toLowerCase() !== regionName.toLowerCase()
+                ? ` · ${hintLabel}`
+                : ""}
             </p>
           ) : null}
         </div>
@@ -275,52 +305,76 @@ export function RegionalMeetsSection({
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
             Metro
           </p>
-          <button
-            type="button"
+          <div
             id="regional-city-picker-trigger"
-            aria-haspopup="listbox"
-            aria-expanded={pickerOpen}
-            onClick={() => setPickerOpen((o) => !o)}
             className={cn(
-              "flex w-full items-center justify-between gap-3 rounded-2xl border-2 border-neutral-200/90 bg-white px-4 py-3 text-left shadow-sm transition",
-              "hover:border-primary/25 hover:bg-neutral-50/80",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
+              "flex w-full items-stretch rounded-2xl border-2 border-neutral-200/90 bg-white shadow-sm transition",
+              "focus-within:border-primary/35 focus-within:ring-2 focus-within:ring-primary/15",
               pickerOpen && "border-primary/35 ring-2 ring-primary/15",
             )}
           >
-            <span className="flex min-w-0 items-center gap-2.5">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <MapPin className="h-4 w-4" aria-hidden />
-              </span>
-              <span className="truncate text-sm font-semibold text-neutral-900">
-                {selectedLabel}
-              </span>
-            </span>
-            <ChevronDown
-              className={cn(
-                "h-5 w-5 shrink-0 text-neutral-400 transition-transform",
-                pickerOpen && "rotate-180",
-              )}
-              aria-hidden
-            />
-          </button>
+            <label className="sr-only" htmlFor="regional-metro-search">
+              Search metros
+            </label>
+            <div className="relative min-w-0 flex-1">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
+                aria-hidden
+              />
+              <input
+                id="regional-metro-search"
+                type="search"
+                role="combobox"
+                aria-expanded={pickerOpen}
+                aria-haspopup="listbox"
+                aria-controls="regional-metro-listbox"
+                autoComplete="off"
+                autoCorrect="off"
+                placeholder={
+                  regionCityId ? "Search to change metro…" : "Search cities…"
+                }
+                readOnly={!pickerOpen}
+                value={metroInputValue}
+                onChange={(e) => setCitySearchQuery(e.target.value)}
+                onFocus={onMetroSearchFocus}
+                className={cn(
+                  "w-full min-h-11 rounded-l-[0.9rem] border-0 bg-transparent py-3 pl-9 pr-2 text-sm font-semibold text-neutral-900 outline-none transition placeholder:font-normal placeholder:text-neutral-500",
+                  !pickerOpen && "cursor-pointer",
+                )}
+              />
+            </div>
+            <button
+              type="button"
+              tabIndex={-1}
+              aria-label={pickerOpen ? "Close metro list" : "Open metro list"}
+              onClick={() => (pickerOpen ? setPickerOpen(false) : openMetroPicker())}
+              className="flex shrink-0 items-center justify-center rounded-r-[0.9rem] border-l border-neutral-100 px-3 text-neutral-400 transition hover:bg-neutral-50 hover:text-neutral-700"
+            >
+              <ChevronDown
+                className={cn(
+                  "h-5 w-5 transition-transform",
+                  pickerOpen && "rotate-180",
+                )}
+                aria-hidden
+              />
+            </button>
+          </div>
 
           {pickerOpen ? (
             <div
               className="absolute right-0 top-full z-50 mt-2 flex max-h-[min(85vh,400px)] w-full min-w-[min(100vw-2rem,320px)] flex-col overflow-hidden rounded-2xl border border-neutral-200/90 bg-white shadow-xl ring-1 ring-black/5 sm:min-w-[300px]"
-              role="listbox"
-              aria-labelledby="regional-city-picker-trigger"
+              onWheel={(e) => e.stopPropagation()}
             >
               <button
                 type="button"
                 disabled={detecting}
                 onClick={() => void onDetectArea()}
-                className="flex shrink-0 items-center gap-3 border-b border-neutral-100 bg-linear-to-r from-primary/[0.07] to-transparent px-4 py-3.5 text-left transition hover:from-primary/12 disabled:opacity-60"
+                className="flex shrink-0 items-start gap-3 border-b border-neutral-100 bg-linear-to-r from-primary/6 to-transparent px-3 py-2.5 text-left transition hover:from-primary/10 disabled:opacity-60"
               >
                 {detecting ? (
-                  <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
+                  <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
                 ) : (
-                  <LocateFixed className="h-5 w-5 shrink-0 text-primary" />
+                  <LocateFixed className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
                 )}
                 <span>
                   <span className="block text-sm font-semibold text-neutral-900">
@@ -331,37 +385,21 @@ export function RegionalMeetsSection({
                   </span>
                 </span>
               </button>
-              <div className="shrink-0 border-b border-neutral-100 px-3 py-2.5">
-                <label className="sr-only" htmlFor="regional-metro-search">
-                  Search metros
-                </label>
-                <div className="relative">
-                  <Search
-                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
-                    aria-hidden
-                  />
-                  <input
-                    id="regional-metro-search"
-                    type="search"
-                    value={citySearchQuery}
-                    onChange={(e) => setCitySearchQuery(e.target.value)}
-                    placeholder="Search cities…"
-                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50/80 py-2.5 pl-9 pr-3 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-500 focus:border-primary/40 focus:bg-white focus:ring-2 focus:ring-primary/15"
-                    autoComplete="off"
-                    autoCorrect="off"
-                  />
-                </div>
-              </div>
               <ul
-                className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 touch-pan-y"
+                id="regional-metro-listbox"
+                role="listbox"
+                aria-label="Metro cities"
+                aria-labelledby="regional-metro-search"
+                className="scrollbar-none min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain p-2"
                 style={{ WebkitOverflowScrolling: "touch" }}
+                onWheel={(e) => e.stopPropagation()}
               >
-                {filteredIndiaCities.length === 0 ? (
+                {listboxCities.length === 0 ? (
                   <li className="px-3 py-4 text-center text-sm text-neutral-500">
                     No matches
                   </li>
                 ) : (
-                  filteredIndiaCities.map((c) => {
+                  listboxCities.map((c) => {
                     const active = c.id === regionCityId;
                     return (
                       <li key={c.id} role="none">
@@ -395,38 +433,22 @@ export function RegionalMeetsSection({
             No upcoming meets in {regionName} yet
           </p>
           <p className="mt-2 text-sm text-neutral-600">
-            Try another city or open Explore to see every public meet.
+            Try another metro from the menu above, or check back later.
           </p>
-          <Link
-            href={`/explore?city=${encodeURIComponent(regionCityId)}`}
-            className="mt-4 inline-flex text-sm font-semibold text-primary underline"
-          >
-            Open explore with {regionName}
-          </Link>
         </div>
       ) : (
-        <>
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {events.map((e, index) => (
-              <Reveal key={e.id} className="h-full">
-                <EventCard
-                  event={e}
-                  cityName={e.displayLocation ?? cityById[e.cityId] ?? ""}
-                  hostName={hostLabelForEvent(e, user)}
-                  priority={index < 3}
-                />
-              </Reveal>
-            ))}
-          </div>
-          <div className="mt-6 flex justify-center">
-            <Link
-              href={`/explore?city=${encodeURIComponent(regionCityId)}`}
-              className="inline-flex rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800"
-            >
-              See all in {regionName}
-            </Link>
-          </div>
-        </>
+        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {events.map((e, index) => (
+            <Reveal key={e.id} className="h-full">
+              <EventCard
+                event={e}
+                cityName={regionName}
+                hostName={hostLabelForEvent(e, user)}
+                priority={index < 3}
+              />
+            </Reveal>
+          ))}
+        </div>
       )}
     </section>
   );

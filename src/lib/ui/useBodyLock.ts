@@ -1,13 +1,19 @@
 import { useEffect } from "react";
 
-/** Sets `document.body.style.overflow = 'hidden'` while `locked`; restores previous value on cleanup. */
+/**
+ * Locks document scroll while `locked` (marketing layouts often scroll the viewport;
+ * setting both `html` and `body` avoids wheel/touch chaining to the page behind overlays).
+ */
 export function useBodyLock(locked: boolean) {
   useEffect(() => {
     if (!locked) return;
-    const prev = document.body.style.overflow;
+    const prevHtml = document.documentElement.style.overflow;
+    const prevBody = document.body.style.overflow;
+    document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = prev;
+      document.documentElement.style.overflow = prevHtml;
+      document.body.style.overflow = prevBody;
     };
   }, [locked]);
 }
