@@ -1,9 +1,7 @@
-import { Suspense } from "react";
 import { Container } from "@/components/layout/Container";
 import { MarketingPageIntro } from "@/components/layout/MarketingPageIntro";
 import { ExploreFilters } from "@/components/discover/ExploreFilters";
 import { RegionalMeetsSection } from "@/components/discover/RegionalMeetsSection";
-import { DiscoverEventGrid } from "@/components/discover/DiscoverEventGrid";
 import { EVENT_CATEGORY_PRESETS } from "@/lib/eventCategories";
 import citiesData from "@/data/cities.json";
 import type { City } from "@/lib/types";
@@ -52,14 +50,6 @@ export default async function DiscoverPage(props: DiscoverPageProps) {
       />
 
       <RegionalMeetsSection cities={cityOptions} />
-
-      <Suspense
-        fallback={
-          <p className="mt-10 text-sm text-muted">Loading meets…</p>
-        }
-      >
-        <DiscoverEventGrid />
-      </Suspense>
     </Container>
   );
 }
