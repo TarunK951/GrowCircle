@@ -12,8 +12,8 @@ export function LandingStats() {
       aria-label="Community statistics"
       className="bg-[#f3f3f3] pb-12 pt-6 sm:pb-14 sm:pt-8"
     >
-      <Container className="max-w-[980px]">
-        <div className="grid grid-cols-3 gap-2 sm:gap-6">
+      <Container>
+        <div className="grid grid-cols-3 gap-3 sm:gap-8 md:gap-12 lg:gap-16">
           {stats.map((s) => (
             <div key={s.label} className="text-center">
               <p className="text-[2.3rem] font-semibold tracking-[-0.02em] text-brand sm:text-[3.15rem]">

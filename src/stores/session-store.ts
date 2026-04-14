@@ -26,11 +26,17 @@ function authUser() {
   return store.getState().auth.user;
 }
 
-/** One cover slot: file preview (`dataUrl`) and/or HTTPS URL. Up to 3 slots total. */
+/** One image slot: file preview (`dataUrl`) and/or HTTPS URL. Host wizard uses exactly 2 (cover + gallery). */
 export type HostCoverSlot = {
   dataUrl: string | null;
   url: string;
 };
+
+const HOST_COVER_SLOT_COUNT = 2;
+
+function emptyCoverSlot(): HostCoverSlot {
+  return { dataUrl: null, url: "" };
+}
 
 export type HostDraft = {
   title: string;
@@ -59,9 +65,6 @@ export type HostDraft = {
   /** IANA tz (e.g. Asia/Kolkata) sent as `timezone` on create/update. */
   timezone: string;
   addressLine: string;
-  /** WGS84 decimal degrees; sent as API `latitude` / `longitude` when both valid. */
-  latitude: string;
-  longitude: string;
   startsAt: string;
   /** Local `datetime-local` end; API `end_time` when set. */
   endsAt: string;
@@ -71,11 +74,7 @@ export type HostDraft = {
   waitlistEnabled: boolean;
   listingVisibility: "public" | "private";
   priceCents: number;
-  /** API `tax_percentage` when set (0–100). */
-  taxPercentage: string;
-  /** API `commission_override` when set (numeric). */
-  commissionOverride: string;
-  /** Up to 3 images; first is used as Circle `cover_image_url`. */
+  /** Two slots: first → `cover_image_url`, second → `image_urls`. */
   coverSlots: HostCoverSlot[];
   faqs: { q: string; a: string }[];
   /** Draft rows; ids assigned on publish. */
@@ -201,8 +200,6 @@ const initialHostDraft = (): HostDraft => ({
   tagsComma: "",
   timezone: "Asia/Kolkata",
   addressLine: "",
-  latitude: "",
-  longitude: "",
   startsAt: "",
   endsAt: "",
   capacity: 16,
@@ -210,9 +207,7 @@ const initialHostDraft = (): HostDraft => ({
   waitlistEnabled: true,
   listingVisibility: "public",
   priceCents: 0,
-  taxPercentage: "",
-  commissionOverride: "",
-  coverSlots: [{ dataUrl: null, url: "" }],
+  coverSlots: [emptyCoverSlot(), emptyCoverSlot()],
   faqs: [{ q: "", a: "" }],
   preJoinQuestions: [],
   minAge: null,
@@ -237,18 +232,23 @@ export function normalizeHostDraft(raw: unknown): HostDraft {
   let coverSlots = base.coverSlots;
   if (Array.isArray(o.coverSlots)) {
     coverSlots = (o.coverSlots as HostCoverSlot[])
-      .slice(0, 3)
+      .slice(0, HOST_COVER_SLOT_COUNT)
       .map((s) => ({
         dataUrl: typeof s?.dataUrl === "string" ? s.dataUrl : null,
         url: typeof s?.url === "string" ? s.url : "",
       }));
-    if (coverSlots.length === 0) coverSlots = [{ dataUrl: null, url: "" }];
+    while (coverSlots.length < HOST_COVER_SLOT_COUNT) {
+      coverSlots.push(emptyCoverSlot());
+    }
   } else {
     const legacyUrl = typeof o.imageUrl === "string" ? o.imageUrl : "";
     const legacyData =
       typeof o.imageDataUrl === "string" ? o.imageDataUrl : null;
     if (legacyUrl || legacyData) {
-      coverSlots = [{ dataUrl: legacyData, url: legacyUrl }];
+      coverSlots = [
+        { dataUrl: legacyData, url: legacyUrl },
+        emptyCoverSlot(),
+      ];
     }
   }
 
@@ -285,8 +285,6 @@ export function normalizeHostDraft(raw: unknown): HostDraft {
     tagsComma: typeof o.tagsComma === "string" ? o.tagsComma : base.tagsComma,
     timezone: typeof o.timezone === "string" && o.timezone.trim() ? o.timezone : base.timezone,
     addressLine: typeof o.addressLine === "string" ? o.addressLine : base.addressLine,
-    latitude: typeof o.latitude === "string" ? o.latitude : base.latitude,
-    longitude: typeof o.longitude === "string" ? o.longitude : base.longitude,
     startsAt: typeof o.startsAt === "string" ? o.startsAt : base.startsAt,
     endsAt: typeof o.endsAt === "string" ? o.endsAt : base.endsAt,
     capacity:
@@ -305,12 +303,6 @@ export function normalizeHostDraft(raw: unknown): HostDraft {
       typeof o.priceCents === "number" && Number.isFinite(o.priceCents)
         ? Math.max(0, o.priceCents)
         : base.priceCents,
-    taxPercentage:
-      typeof o.taxPercentage === "string" ? o.taxPercentage : base.taxPercentage,
-    commissionOverride:
-      typeof o.commissionOverride === "string"
-        ? o.commissionOverride
-        : base.commissionOverride,
     coverSlots,
     faqs: Array.isArray(o.faqs)
       ? (o.faqs as { q: string; a: string }[])

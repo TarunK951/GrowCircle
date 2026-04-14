@@ -10,7 +10,7 @@ export function CareersHero({
   return (
     <section className="relative overflow-hidden border-b border-primary/10 py-16 sm:py-20">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(30,59,189,0.1),transparent_55%)]" />
-      <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <Reveal>
           <p className="text-sm font-semibold uppercase tracking-wider text-secondary">
             {hero.eyebrow}

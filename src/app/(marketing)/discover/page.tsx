@@ -27,7 +27,7 @@ export default async function DiscoverPage(props: DiscoverPageProps) {
     <Container className="pt-6 pb-12 sm:pt-8 sm:pb-16 md:pt-10 md:pb-20">
       <Reveal>
         <MarketingPageIntro
-          className="max-w-3xl"
+          className="max-w-4xl"
           eyebrow="Explore"
           title="Discover meets"
           description="Search by keyword, then open Filters for city, category, and date — same compact panel on every screen size."

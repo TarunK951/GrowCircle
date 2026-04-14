@@ -106,7 +106,7 @@ export const Navbar = ({
         <div
           className={cn(
             "pointer-events-auto relative isolate min-w-0 w-full max-w-none",
-            isFloating && "max-w-6xl",
+            isFloating && "max-w-7xl",
           )}
         >
           {children}

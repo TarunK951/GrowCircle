@@ -57,7 +57,6 @@ const MAX_IMAGE_BYTES = 750 * 1024;
 /** Larger cap when publishing via Circle + S3 presigned upload */
 const MAX_IMAGE_BYTES_CIRCLE = 5 * 1024 * 1024;
 const STEPS = 6;
-const MAX_COVER_SLOTS = 3;
 
 function WizardStepIntro({
   stepIndex,
@@ -66,14 +65,17 @@ function WizardStepIntro({
 }: {
   stepIndex: number;
   title: string;
-  purpose: string;
+  /** Omit to show only the step title line. */
+  purpose?: string;
 }) {
   return (
     <div className="space-y-1">
       <p className="text-sm font-semibold text-neutral-900">
         Step {stepIndex + 1} — {title}
       </p>
-      <p className="text-xs text-neutral-600">{purpose}</p>
+      {purpose ? (
+        <p className="text-xs text-neutral-600">{purpose}</p>
+      ) : null}
     </div>
   );
 }
@@ -130,18 +132,6 @@ function trimWizardLines(lines: string[]): string[] {
   return lines.map((s) => s.trim()).filter(Boolean);
 }
 
-/** When both present and valid, included in create/update payloads. */
-function parsedCoords(d: HostDraft): { latitude: number; longitude: number } | null {
-  const la = d.latitude.trim();
-  const lo = d.longitude.trim();
-  if (!la && !lo) return null;
-  const lat = Number.parseFloat(la);
-  const lng = Number.parseFloat(lo);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
-  return { latitude: lat, longitude: lng };
-}
-
 function validateDraft(d: HostDraft): string | null {
   if (!d.title.trim()) return "Add a title for your meet.";
   if (!d.startsAt?.trim()) return "Choose a date and time for your meet.";
@@ -183,30 +173,6 @@ function validateDraft(d: HostDraft): string | null {
     if (Number.isNaN(endMs)) return "Enter a valid end date and time.";
     if (!Number.isNaN(startMs) && endMs <= startMs) {
       return "End time must be after the start time.";
-    }
-  }
-  const latS = d.latitude.trim();
-  const lngS = d.longitude.trim();
-  if ((latS && !lngS) || (!latS && lngS)) {
-    return "Enter both latitude and longitude, or leave both blank.";
-  }
-  if (latS && lngS) {
-    if (!parsedCoords(d)) {
-      return "Use valid decimal latitude (-90–90) and longitude (-180–180).";
-    }
-  }
-  const taxT = d.taxPercentage.trim();
-  if (taxT) {
-    const tax = Number.parseFloat(taxT);
-    if (!Number.isFinite(tax) || tax < 0 || tax > 100) {
-      return "Tax percentage must be between 0 and 100, or leave blank.";
-    }
-  }
-  const comT = d.commissionOverride.trim();
-  if (comT) {
-    const com = Number.parseFloat(comT);
-    if (!Number.isFinite(com) || com < 0) {
-      return "Commission override must be zero or positive, or leave blank.";
     }
   }
   return null;
@@ -454,8 +420,10 @@ export function HostWizard() {
 
         const resolvedUrls: string[] = [];
         for (const slot of draft.coverSlots) {
-          if (slot.dataUrl?.startsWith("data:")) {
-            const { blob, mime } = await dataUrlToBlob(slot.dataUrl);
+          const dataRaw = (slot.dataUrl ?? "").trim();
+          const urlRaw = slot.url.trim();
+          if (dataRaw.startsWith("data:")) {
+            const { blob, mime } = await dataUrlToBlob(dataRaw);
             const ext = mime.includes("png")
               ? "png"
               : mime.includes("webp")
@@ -475,9 +443,19 @@ export function HostWizard() {
               mime || "image/jpeg",
             );
             resolvedUrls.push(publicUrl);
-          } else if (slot.url.trim() && isProbablyUrl(slot.url)) {
-            resolvedUrls.push(slot.url.trim());
+          } else if (urlRaw && isProbablyUrl(urlRaw)) {
+            resolvedUrls.push(urlRaw);
           }
+        }
+
+        if (
+          draft.coverSlots.some((s) => slotHasVisual(s)) &&
+          resolvedUrls.length === 0
+        ) {
+          toast.error(
+            "Could not attach your images. Wait for uploads to finish, or paste a full https:// image URL.",
+          );
+          return;
         }
 
         const coverUrl = resolvedUrls[0]?.trim() ?? "";
@@ -498,18 +476,6 @@ export function HostWizard() {
         const endTrim = draft.endsAt.trim();
         const endIso = endTrim ? new Date(endTrim).toISOString() : null;
 
-        const coords = parsedCoords(draft);
-        const taxTrim = draft.taxPercentage.trim();
-        const taxNum =
-          taxTrim !== "" && Number.isFinite(Number.parseFloat(taxTrim))
-            ? Number.parseFloat(taxTrim)
-            : null;
-        const comTrim = draft.commissionOverride.trim();
-        const comNum =
-          comTrim !== "" && Number.isFinite(Number.parseFloat(comTrim))
-            ? Number.parseFloat(comTrim)
-            : null;
-
         const created = await createEvent(token, {
           title: draft.title.trim() || "Untitled meet",
           description: draft.description.trim() || "—",
@@ -521,8 +487,10 @@ export function HostWizard() {
           location,
           ...(primaryCategory ? { category: primaryCategory } : {}),
           ...(tagPayload.length > 0 ? { tags: tagPayload } : {}),
-          ...(coverUrl ? { cover_image_url: coverUrl } : {}),
-          ...(additionalImages.length > 0 ? { image_urls: additionalImages } : {}),
+          cover_image_url: coverUrl || null,
+          image_urls: additionalImages,
+          contact_email: contactEmailTrim || null,
+          contact_phone: contactPhoneTrim || null,
           visibility: draft.listingVisibility,
           waitlist_enabled: draft.waitlistEnabled,
           ...(draft.minAge != null ? { min_age: draft.minAge } : {}),
@@ -532,16 +500,9 @@ export function HostWizard() {
           refund_full_before_hours: draft.refundFullBeforeHours,
           refund_partial_before_hours: draft.refundPartialBeforeHours,
           refund_partial_percentage: draft.refundPartialPercentage,
-          ...(contactEmailTrim ? { contact_email: contactEmailTrim } : {}),
-          ...(contactPhoneTrim ? { contact_phone: contactPhoneTrim } : {}),
           ...(regOpenIso ? { registration_opens_at: regOpenIso } : {}),
           ...(regCloseIso ? { registration_closes_at: regCloseIso } : {}),
           ...(endIso ? { end_time: endIso } : {}),
-          ...(coords
-            ? { latitude: coords.latitude, longitude: coords.longitude }
-            : {}),
-          ...(taxNum != null ? { tax_percentage: taxNum } : {}),
-          ...(comNum != null ? { commission_override: comNum } : {}),
         });
 
         const whatsIncluded = trimWizardLines(draft.whatsIncluded);
@@ -559,6 +520,10 @@ export function HostWizard() {
           timezone: draft.timezone.trim() || "Asia/Kolkata",
           ...(primaryCategory ? { category: primaryCategory } : {}),
           ...(tagPayload.length > 0 ? { tags: tagPayload } : {}),
+          cover_image_url: coverUrl || null,
+          image_urls: additionalImages,
+          contact_email: contactEmailTrim || null,
+          contact_phone: contactPhoneTrim || null,
           ...(faqs.length > 0 ? { faqs } : {}),
           ...(moreAboutTrim ? { more_about: moreAboutTrim } : {}),
           ...(whatsIncluded.length > 0 ? { whats_included: whatsIncluded } : {}),
@@ -578,16 +543,9 @@ export function HostWizard() {
           refund_full_before_hours: draft.refundFullBeforeHours,
           refund_partial_before_hours: draft.refundPartialBeforeHours,
           refund_partial_percentage: draft.refundPartialPercentage,
-          ...(contactEmailTrim ? { contact_email: contactEmailTrim } : {}),
-          ...(contactPhoneTrim ? { contact_phone: contactPhoneTrim } : {}),
           ...(regOpenIso ? { registration_opens_at: regOpenIso } : {}),
           ...(regCloseIso ? { registration_closes_at: regCloseIso } : {}),
           ...(endIso ? { end_time: endIso } : {}),
-          ...(coords
-            ? { latitude: coords.latitude, longitude: coords.longitude }
-            : {}),
-          ...(taxNum != null ? { tax_percentage: taxNum } : {}),
-          ...(comNum != null ? { commission_override: comNum } : {}),
         });
 
         for (let i = 0; i < draft.preJoinQuestions.length; i++) {
@@ -792,22 +750,7 @@ export function HostWizard() {
 
       {step === 1 && (
         <div className="mt-4 space-y-5">
-          <WizardStepIntro
-            stepIndex={1}
-            title="Story & rules"
-            purpose="Longer story, bullets, written rules, and refund windows — maps to whats_included, guest_suggestions, house_rules, event_rules, allowed_and_notes, and refund_* on the API."
-          />
-          <p className="text-sm text-neutral-700">
-            This step is sent to the API as{" "}
-            <span className="font-medium">whats_included</span>,{" "}
-            <span className="font-medium">guest_suggestions</span>,{" "}
-            <span className="font-medium">house_rules</span> (do&apos;s / don&apos;ts),{" "}
-            <span className="font-medium">event_rules</span>, and{" "}
-            <span className="font-medium">allowed_and_notes</span>. Choose{" "}
-            <span className="font-medium">location type</span> in the next step — it
-            maps to <span className="font-medium">location_type</span>. Edit anytime
-            under Bookings.
-          </p>
+          <WizardStepIntro stepIndex={1} title="Story & rules" />
           <div>
             <label className="text-sm font-semibold text-neutral-900">
               More about the event
@@ -1165,7 +1108,7 @@ export function HostWizard() {
           <WizardStepIntro
             stepIndex={2}
             title="Location"
-            purpose="City, venue, address, optional GPS coordinates (latitude / longitude), and location type for the listing."
+            purpose="City, venue, address, and location type for the listing."
           />
           <HostMeetSelect
             label="City"
@@ -1206,42 +1149,6 @@ export function HostWizard() {
               placeholder="Street, suite, access notes"
             />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="text-sm font-semibold text-neutral-900">
-                Latitude (optional)
-              </label>
-              <p className="mt-1 text-xs text-neutral-600">
-                Decimal degrees, -90 to 90. Sent with longitude when both set.
-              </p>
-              <input
-                className={inputClass}
-                inputMode="decimal"
-                value={draft.latitude}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, latitude: e.target.value }))
-                }
-                placeholder="e.g. 12.97"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-neutral-900">
-                Longitude (optional)
-              </label>
-              <p className="mt-1 text-xs text-neutral-600">
-                Decimal degrees, -180 to 180.
-              </p>
-              <input
-                className={inputClass}
-                inputMode="decimal"
-                value={draft.longitude}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, longitude: e.target.value }))
-                }
-                placeholder="e.g. 77.59"
-              />
-            </div>
-          </div>
         </div>
       )}
 
@@ -1250,7 +1157,7 @@ export function HostWizard() {
           <WizardStepIntro
             stepIndex={3}
             title="Schedule & policies"
-            purpose="Start and optional end time, timezone, capacity, price, optional tax and commission, age and verification, terms, and registration window."
+            purpose="Start and optional end time, timezone, capacity, price, age and verification, terms, and registration window."
           />
           <div>
             <p className="text-sm font-semibold text-neutral-900">Starts at</p>
@@ -1417,54 +1324,6 @@ export function HostWizard() {
                   }));
                 }}
               />
-            </div>
-          </div>
-
-          <div className="border-t border-neutral-200 pt-6 space-y-4">
-            <p className="text-sm font-semibold text-neutral-900">
-              Tax & commission (optional)
-            </p>
-            <p className="text-xs text-neutral-600">
-              Only included in the API request when you enter a value. Omit or
-              remove if your backend rejects these keys.
-            </p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-sm font-semibold text-neutral-900">
-                  Tax (%)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step="any"
-                  className={inputClass}
-                  value={draft.taxPercentage}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, taxPercentage: e.target.value }))
-                  }
-                  placeholder="e.g. 18"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-neutral-900">
-                  Commission override
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  step="any"
-                  className={inputClass}
-                  value={draft.commissionOverride}
-                  onChange={(e) =>
-                    setDraft((d) => ({
-                      ...d,
-                      commissionOverride: e.target.value,
-                    }))
-                  }
-                  placeholder="Platform-specific"
-                />
-              </div>
             </div>
           </div>
 
@@ -1672,9 +1531,12 @@ export function HostWizard() {
           />
 
           <div>
-            <p className="text-sm font-semibold text-neutral-900">Images (up to 3)</p>
+            <p className="text-sm font-semibold text-neutral-900">
+              Cover and gallery images
+            </p>
             <p className="mt-1 text-xs text-neutral-900">
-              First image is the cover. Paste a URL or upload — max{" "}
+              Cover is used as the listing hero; gallery is optional. Paste a URL
+              or upload — max{" "}
               {isCircleApiConfigured() && store.getState().auth.accessToken
                 ? "5MB"
                 : "750KB"}{" "}
@@ -1688,6 +1550,8 @@ export function HostWizard() {
               isCircleApiConfigured() && store.getState().auth.accessToken
                 ? "5MB"
                 : "750KB";
+            const slotTitle =
+              slotIndex === 0 ? "Cover image" : "Gallery image";
 
             return (
               <div
@@ -1695,8 +1559,7 @@ export function HostWizard() {
                 className="rounded-xl border border-neutral-200 bg-neutral-50/50 p-3"
               >
                 <p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">
-                  Image {slotIndex + 1}
-                  {slotIndex === 0 ? " (cover)" : ""}
+                  {slotTitle}
                 </p>
 
                 {hasVisual ? (
@@ -1844,41 +1707,6 @@ export function HostWizard() {
               </div>
             );
           })}
-
-          {draft.coverSlots.length < MAX_COVER_SLOTS ? (
-            <button
-              type="button"
-              onClick={() =>
-                setDraft((d) => ({
-                  ...d,
-                  coverSlots: [...d.coverSlots, { dataUrl: null, url: "" }],
-                }))
-              }
-              className={cn(
-                "flex w-full min-h-[72px] items-center justify-center gap-2 rounded-lg border-2 border-dashed border-neutral-300 bg-white px-3 py-2.5 text-sm font-semibold text-neutral-900 transition hover:border-neutral-500 hover:bg-neutral-50",
-              )}
-            >
-              <Upload className="h-5 w-5 text-neutral-500" strokeWidth={1.5} />
-              Add another image ({draft.coverSlots.length}/{MAX_COVER_SLOTS})
-            </button>
-          ) : null}
-
-          {draft.coverSlots.length > 1 ? (
-            <button
-              type="button"
-              className="text-xs font-medium text-neutral-600 hover:text-neutral-900 hover:underline"
-              onClick={() =>
-                setDraft((d) => ({
-                  ...d,
-                  coverSlots: d.coverSlots.slice(0, -1).length
-                    ? d.coverSlots.slice(0, -1)
-                    : [{ dataUrl: null, url: "" }],
-                }))
-              }
-            >
-              Remove last slot
-            </button>
-          ) : null}
         </div>
       )}
 

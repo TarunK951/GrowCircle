@@ -83,8 +83,8 @@ export function LandingBentoGallery() {
         className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-black/[0.07] to-transparent"
         aria-hidden
       />
-      <Container className="max-w-[1000px] px-4 sm:px-6">
-        <div className="mx-auto mb-6 max-w-xl text-center sm:mb-7">
+      <Container>
+        <div className="mx-auto mb-6 max-w-2xl text-center sm:mb-7">
           <p className="mb-2 text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-neutral-500">
             Community
           </p>
@@ -102,7 +102,7 @@ export function LandingBentoGallery() {
         {/* Mobile: single column. sm+: 6-col bento (~188px/row × 5 rows vs 300px before). */}
         <div
           className={cn(
-            "mx-auto grid max-w-[880px] gap-2.5",
+            "mx-auto grid w-full max-w-none gap-2.5",
             "max-sm:grid-cols-1 max-sm:auto-rows-min",
             "sm:grid-cols-6 sm:gap-3 sm:auto-rows-[minmax(0,188px)] lg:gap-3.5",
           )}
