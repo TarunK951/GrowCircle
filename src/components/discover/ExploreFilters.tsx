@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Calendar, ChevronDown, MapPin, Search, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useBodyLock } from "@/lib/ui/useBodyLock";
 import { CityPickerModal } from "./CityPickerModal";
 import type { CityOption } from "./filterTypes";
 
@@ -20,17 +21,6 @@ const searchInputClass = cn(
   "border border-neutral-300/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]",
   "focus-visible:border-primary/45 focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas",
 );
-
-function useBodyLock(locked: boolean) {
-  useEffect(() => {
-    if (!locked) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [locked]);
-}
 
 function CategorySelect({
   category,

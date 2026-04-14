@@ -59,6 +59,25 @@ const MAX_IMAGE_BYTES_CIRCLE = 5 * 1024 * 1024;
 const STEPS = 6;
 const MAX_COVER_SLOTS = 3;
 
+function WizardStepIntro({
+  stepIndex,
+  title,
+  purpose,
+}: {
+  stepIndex: number;
+  title: string;
+  purpose: string;
+}) {
+  return (
+    <div className="space-y-1">
+      <p className="text-sm font-semibold text-neutral-900">
+        Step {stepIndex + 1} — {title}
+      </p>
+      <p className="text-xs text-neutral-600">{purpose}</p>
+    </div>
+  );
+}
+
 const TIMEZONE_OPTIONS = [
   "Asia/Kolkata",
   "Asia/Dubai",
@@ -111,6 +130,18 @@ function trimWizardLines(lines: string[]): string[] {
   return lines.map((s) => s.trim()).filter(Boolean);
 }
 
+/** When both present and valid, included in create/update payloads. */
+function parsedCoords(d: HostDraft): { latitude: number; longitude: number } | null {
+  const la = d.latitude.trim();
+  const lo = d.longitude.trim();
+  if (!la && !lo) return null;
+  const lat = Number.parseFloat(la);
+  const lng = Number.parseFloat(lo);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  return { latitude: lat, longitude: lng };
+}
+
 function validateDraft(d: HostDraft): string | null {
   if (!d.title.trim()) return "Add a title for your meet.";
   if (!d.startsAt?.trim()) return "Choose a date and time for your meet.";
@@ -152,6 +183,30 @@ function validateDraft(d: HostDraft): string | null {
     if (Number.isNaN(endMs)) return "Enter a valid end date and time.";
     if (!Number.isNaN(startMs) && endMs <= startMs) {
       return "End time must be after the start time.";
+    }
+  }
+  const latS = d.latitude.trim();
+  const lngS = d.longitude.trim();
+  if ((latS && !lngS) || (!latS && lngS)) {
+    return "Enter both latitude and longitude, or leave both blank.";
+  }
+  if (latS && lngS) {
+    if (!parsedCoords(d)) {
+      return "Use valid decimal latitude (-90–90) and longitude (-180–180).";
+    }
+  }
+  const taxT = d.taxPercentage.trim();
+  if (taxT) {
+    const tax = Number.parseFloat(taxT);
+    if (!Number.isFinite(tax) || tax < 0 || tax > 100) {
+      return "Tax percentage must be between 0 and 100, or leave blank.";
+    }
+  }
+  const comT = d.commissionOverride.trim();
+  if (comT) {
+    const com = Number.parseFloat(comT);
+    if (!Number.isFinite(com) || com < 0) {
+      return "Commission override must be zero or positive, or leave blank.";
     }
   }
   return null;
@@ -443,6 +498,18 @@ export function HostWizard() {
         const endTrim = draft.endsAt.trim();
         const endIso = endTrim ? new Date(endTrim).toISOString() : null;
 
+        const coords = parsedCoords(draft);
+        const taxTrim = draft.taxPercentage.trim();
+        const taxNum =
+          taxTrim !== "" && Number.isFinite(Number.parseFloat(taxTrim))
+            ? Number.parseFloat(taxTrim)
+            : null;
+        const comTrim = draft.commissionOverride.trim();
+        const comNum =
+          comTrim !== "" && Number.isFinite(Number.parseFloat(comTrim))
+            ? Number.parseFloat(comTrim)
+            : null;
+
         const created = await createEvent(token, {
           title: draft.title.trim() || "Untitled meet",
           description: draft.description.trim() || "—",
@@ -470,6 +537,11 @@ export function HostWizard() {
           ...(regOpenIso ? { registration_opens_at: regOpenIso } : {}),
           ...(regCloseIso ? { registration_closes_at: regCloseIso } : {}),
           ...(endIso ? { end_time: endIso } : {}),
+          ...(coords
+            ? { latitude: coords.latitude, longitude: coords.longitude }
+            : {}),
+          ...(taxNum != null ? { tax_percentage: taxNum } : {}),
+          ...(comNum != null ? { commission_override: comNum } : {}),
         });
 
         const whatsIncluded = trimWizardLines(draft.whatsIncluded);
@@ -511,6 +583,11 @@ export function HostWizard() {
           ...(regOpenIso ? { registration_opens_at: regOpenIso } : {}),
           ...(regCloseIso ? { registration_closes_at: regCloseIso } : {}),
           ...(endIso ? { end_time: endIso } : {}),
+          ...(coords
+            ? { latitude: coords.latitude, longitude: coords.longitude }
+            : {}),
+          ...(taxNum != null ? { tax_percentage: taxNum } : {}),
+          ...(comNum != null ? { commission_override: comNum } : {}),
         });
 
         for (let i = 0; i < draft.preJoinQuestions.length; i++) {
@@ -639,9 +716,11 @@ export function HostWizard() {
 
       {step === 0 && (
         <div className="mt-4 space-y-4">
-          <p className="text-sm font-semibold text-neutral-900">
-            Basics: title, description, and categories
-          </p>
+          <WizardStepIntro
+            stepIndex={0}
+            title="Basics"
+            purpose="Title, short description, categories (up to three), and optional comma-separated tags."
+          />
           <div>
             <label className="text-sm font-semibold text-neutral-900">Title</label>
             <input
@@ -713,9 +792,11 @@ export function HostWizard() {
 
       {step === 1 && (
         <div className="mt-4 space-y-5">
-          <p className="text-sm font-semibold text-neutral-900">
-            Story, house rules, and refund policy
-          </p>
+          <WizardStepIntro
+            stepIndex={1}
+            title="Story & rules"
+            purpose="Longer story, bullets, written rules, and refund windows — maps to whats_included, guest_suggestions, house_rules, event_rules, allowed_and_notes, and refund_* on the API."
+          />
           <p className="text-sm text-neutral-700">
             This step is sent to the API as{" "}
             <span className="font-medium">whats_included</span>,{" "}
@@ -1081,9 +1162,11 @@ export function HostWizard() {
 
       {step === 2 && (
         <div className="mt-4 space-y-4">
-          <p className="text-sm font-semibold text-neutral-900">
-            Location: city, venue, and address
-          </p>
+          <WizardStepIntro
+            stepIndex={2}
+            title="Location"
+            purpose="City, venue, address, optional GPS coordinates (latitude / longitude), and location type for the listing."
+          />
           <HostMeetSelect
             label="City"
             value={draft.cityId}
@@ -1123,14 +1206,52 @@ export function HostWizard() {
               placeholder="Street, suite, access notes"
             />
           </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="text-sm font-semibold text-neutral-900">
+                Latitude (optional)
+              </label>
+              <p className="mt-1 text-xs text-neutral-600">
+                Decimal degrees, -90 to 90. Sent with longitude when both set.
+              </p>
+              <input
+                className={inputClass}
+                inputMode="decimal"
+                value={draft.latitude}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, latitude: e.target.value }))
+                }
+                placeholder="e.g. 12.97"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-neutral-900">
+                Longitude (optional)
+              </label>
+              <p className="mt-1 text-xs text-neutral-600">
+                Decimal degrees, -180 to 180.
+              </p>
+              <input
+                className={inputClass}
+                inputMode="decimal"
+                value={draft.longitude}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, longitude: e.target.value }))
+                }
+                placeholder="e.g. 77.59"
+              />
+            </div>
+          </div>
         </div>
       )}
 
       {step === 3 && (
         <div className="mt-4 space-y-4">
-          <p className="text-sm font-semibold text-neutral-900">
-            Schedule, pricing, and registration window
-          </p>
+          <WizardStepIntro
+            stepIndex={3}
+            title="Schedule & policies"
+            purpose="Start and optional end time, timezone, capacity, price, optional tax and commission, age and verification, terms, and registration window."
+          />
           <div>
             <p className="text-sm font-semibold text-neutral-900">Starts at</p>
             <p className="mt-1 text-xs text-neutral-600">
@@ -1300,6 +1421,54 @@ export function HostWizard() {
           </div>
 
           <div className="border-t border-neutral-200 pt-6 space-y-4">
+            <p className="text-sm font-semibold text-neutral-900">
+              Tax & commission (optional)
+            </p>
+            <p className="text-xs text-neutral-600">
+              Only included in the API request when you enter a value. Omit or
+              remove if your backend rejects these keys.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="text-sm font-semibold text-neutral-900">
+                  Tax (%)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="any"
+                  className={inputClass}
+                  value={draft.taxPercentage}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, taxPercentage: e.target.value }))
+                  }
+                  placeholder="e.g. 18"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-neutral-900">
+                  Commission override
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  className={inputClass}
+                  value={draft.commissionOverride}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      commissionOverride: e.target.value,
+                    }))
+                  }
+                  placeholder="Platform-specific"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-neutral-200 pt-6 space-y-4">
             <p className="text-sm font-semibold text-neutral-900">Who can join</p>
             <HostMeetSelect
               label="Minimum age"
@@ -1412,9 +1581,11 @@ export function HostWizard() {
 
       {step === 4 && (
         <div className="mt-4 space-y-5">
-          <p className="text-sm font-semibold text-neutral-900">
-            Contact, visibility, waitlist, and images
-          </p>
+          <WizardStepIntro
+            stepIndex={4}
+            title="Contact & media"
+            purpose="Guest-facing contact, waitlist and listing visibility, and up to three images (first is the cover)."
+          />
           <div className="space-y-4 rounded-xl border border-neutral-200 bg-neutral-50/40 p-4">
             <p className="text-sm font-semibold text-neutral-900">
               Event contact (optional)
@@ -1713,9 +1884,11 @@ export function HostWizard() {
 
       {step === 5 && (
         <div className="mt-4 space-y-4">
-          <p className="text-sm font-semibold text-neutral-900">
-            FAQs and pre-join questions
-          </p>
+          <WizardStepIntro
+            stepIndex={5}
+            title="FAQs & pre-join"
+            purpose="Optional FAQ pairs for the event page and up to five multiple-choice questions before guests join."
+          />
           <p className="text-sm text-neutral-900">
             Add question and answer pairs for the FAQ accordion on the event page.
           </p>

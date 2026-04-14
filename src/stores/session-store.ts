@@ -59,6 +59,9 @@ export type HostDraft = {
   /** IANA tz (e.g. Asia/Kolkata) sent as `timezone` on create/update. */
   timezone: string;
   addressLine: string;
+  /** WGS84 decimal degrees; sent as API `latitude` / `longitude` when both valid. */
+  latitude: string;
+  longitude: string;
   startsAt: string;
   /** Local `datetime-local` end; API `end_time` when set. */
   endsAt: string;
@@ -68,6 +71,10 @@ export type HostDraft = {
   waitlistEnabled: boolean;
   listingVisibility: "public" | "private";
   priceCents: number;
+  /** API `tax_percentage` when set (0–100). */
+  taxPercentage: string;
+  /** API `commission_override` when set (numeric). */
+  commissionOverride: string;
   /** Up to 3 images; first is used as Circle `cover_image_url`. */
   coverSlots: HostCoverSlot[];
   faqs: { q: string; a: string }[];
@@ -194,6 +201,8 @@ const initialHostDraft = (): HostDraft => ({
   tagsComma: "",
   timezone: "Asia/Kolkata",
   addressLine: "",
+  latitude: "",
+  longitude: "",
   startsAt: "",
   endsAt: "",
   capacity: 16,
@@ -201,6 +210,8 @@ const initialHostDraft = (): HostDraft => ({
   waitlistEnabled: true,
   listingVisibility: "public",
   priceCents: 0,
+  taxPercentage: "",
+  commissionOverride: "",
   coverSlots: [{ dataUrl: null, url: "" }],
   faqs: [{ q: "", a: "" }],
   preJoinQuestions: [],
@@ -274,6 +285,8 @@ export function normalizeHostDraft(raw: unknown): HostDraft {
     tagsComma: typeof o.tagsComma === "string" ? o.tagsComma : base.tagsComma,
     timezone: typeof o.timezone === "string" && o.timezone.trim() ? o.timezone : base.timezone,
     addressLine: typeof o.addressLine === "string" ? o.addressLine : base.addressLine,
+    latitude: typeof o.latitude === "string" ? o.latitude : base.latitude,
+    longitude: typeof o.longitude === "string" ? o.longitude : base.longitude,
     startsAt: typeof o.startsAt === "string" ? o.startsAt : base.startsAt,
     endsAt: typeof o.endsAt === "string" ? o.endsAt : base.endsAt,
     capacity:
@@ -292,6 +305,12 @@ export function normalizeHostDraft(raw: unknown): HostDraft {
       typeof o.priceCents === "number" && Number.isFinite(o.priceCents)
         ? Math.max(0, o.priceCents)
         : base.priceCents,
+    taxPercentage:
+      typeof o.taxPercentage === "string" ? o.taxPercentage : base.taxPercentage,
+    commissionOverride:
+      typeof o.commissionOverride === "string"
+        ? o.commissionOverride
+        : base.commissionOverride,
     coverSlots,
     faqs: Array.isArray(o.faqs)
       ? (o.faqs as { q: string; a: string }[])

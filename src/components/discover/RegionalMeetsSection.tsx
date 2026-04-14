@@ -23,6 +23,7 @@ import {
   REGIONAL_METRO_PICKER_EVENT,
   type RegionalMetroPickerDetail,
 } from "@/lib/ui/regionalMetroPicker";
+import { useBodyLock } from "@/lib/ui/useBodyLock";
 import { cn } from "@/lib/utils";
 import type { CityOption } from "./filterTypes";
 
@@ -159,13 +160,14 @@ export function RegionalMeetsSection({
     };
   }, [pickerOpen]);
 
+  useBodyLock(pickerOpen);
+
   useEffect(() => {
-    if (!pickerOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    if (pickerOpen) {
+      document.documentElement.dataset.gcMetroPickerOpen = "1";
+    } else {
+      delete document.documentElement.dataset.gcMetroPickerOpen;
+    }
   }, [pickerOpen]);
 
   const onSelectCity = (id: string) => {
@@ -351,7 +353,7 @@ export function RegionalMeetsSection({
                 </div>
               </div>
               <ul
-                className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-2 touch-pan-y"
+                className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2 touch-pan-y"
                 style={{ WebkitOverflowScrolling: "touch" }}
               >
                 {filteredIndiaCities.length === 0 ? (
