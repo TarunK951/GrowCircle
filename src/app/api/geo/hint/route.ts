@@ -34,6 +34,8 @@ export async function GET(req: Request) {
       return NextResponse.json({
         suggestedCityId: null as string | null,
         cityLabel: null as string | null,
+        regionLabel: null as string | null,
+        countryCode: null as string | null,
       });
     }
     const data = (await res.json()) as IpApiLite;
@@ -41,6 +43,8 @@ export async function GET(req: Request) {
       return NextResponse.json({
         suggestedCityId: null as string | null,
         cityLabel: null as string | null,
+        regionLabel: null as string | null,
+        countryCode: null as string | null,
       });
     }
     const city = data.city;
@@ -52,11 +56,15 @@ export async function GET(req: Request) {
     return NextResponse.json({
       suggestedCityId,
       cityLabel: city ?? null,
+      regionLabel: data.region ?? null,
+      countryCode: data.country_code ?? null,
     });
   } catch {
     return NextResponse.json({
       suggestedCityId: null as string | null,
       cityLabel: null as string | null,
+      regionLabel: null as string | null,
+      countryCode: null as string | null,
     });
   }
 }
