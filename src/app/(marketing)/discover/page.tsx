@@ -30,7 +30,7 @@ export default async function DiscoverPage(props: DiscoverPageProps) {
           className="max-w-3xl"
           eyebrow="Explore"
           title="Discover meets"
-          description="Search by keyword, pick a city from monument icon tiles, and filter by interest and date. On smaller screens, open Filters for the full panel."
+          description="Search by keyword, then open Filters for city, category, and date — same compact panel on every screen size."
         />
       </Reveal>
 

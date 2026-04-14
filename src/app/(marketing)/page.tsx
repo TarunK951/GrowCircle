@@ -27,6 +27,7 @@ export default function HomePage() {
             className="mt-0 shadow-md"
             eyebrow="Upcoming"
             title="Events near you"
+            askForMetroOnMount={false}
           />
         </Container>
       </section>

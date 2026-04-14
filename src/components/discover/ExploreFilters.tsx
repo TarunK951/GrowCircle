@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Calendar, ChevronDown, MapPin, Search, SlidersHorizontal } from "lucide-react";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useBodyLock } from "@/lib/ui/useBodyLock";
 import { CityPickerModal } from "./CityPickerModal";
@@ -322,41 +321,6 @@ export function ExploreFilters({
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  const geoHintDone = useRef(false);
-
-  /** IP-based city suggestion (only when URL had no city; runs once). */
-  useEffect(() => {
-    if (initialCity || geoHintDone.current) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const res = await fetch("/api/geo/hint");
-        if (!res.ok || cancelled) return;
-        const data = (await res.json()) as {
-          suggestedCityId: string | null;
-          cityLabel: string | null;
-        };
-        geoHintDone.current = true;
-        if (
-          data.suggestedCityId &&
-          cities.some((c) => c.id === data.suggestedCityId)
-        ) {
-          setCity(data.suggestedCityId);
-          if (data.cityLabel) {
-            toast.message(`Suggested city: ${data.cityLabel}`, {
-              description: "Apply filters to search here, or pick another city.",
-            });
-          }
-        }
-      } catch {
-        /* ignore */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [initialCity, cities]);
-
   const apply = useCallback(() => {
     const p = new URLSearchParams();
     if (city) p.set("city", city);
@@ -403,8 +367,8 @@ export function ExploreFilters({
         onSelect={setCity}
       />
 
-      {/* Mobile / tablet: search + filters trigger */}
-      <div className="mt-10 lg:hidden">
+      {/* Search + Filters drawer (all breakpoints — same as mobile/tablet on desktop) */}
+      <div ref={toolbarRef} className="mt-10">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
@@ -442,14 +406,14 @@ export function ExploreFilters({
         </div>
 
         {filterDrawerOpen && (
-          <div className="fixed inset-0 z-500 lg:hidden">
+          <div className="fixed inset-0 z-500">
             <button
               type="button"
               className="absolute inset-0 bg-black/45 backdrop-blur-[1px]"
               aria-label="Close filters"
               onClick={() => setFilterDrawerOpen(false)}
             />
-            <div className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-zinc-200/80 bg-background shadow-2xl dark:border-white/10">
+            <div className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-zinc-200/80 bg-background shadow-2xl sm:max-w-lg dark:border-white/10">
               <div className="flex items-center justify-between border-b border-zinc-200/80 px-4 py-3 dark:border-white/10">
                 <p className="font-onest text-base font-semibold">Filters</p>
                 <button
@@ -480,29 +444,6 @@ export function ExploreFilters({
             </div>
           </div>
         )}
-      </div>
-
-      {/* Desktop filter card */}
-      <div
-        ref={toolbarRef}
-        className="liquid-glass liquid-glass-toolbar mt-6 hidden border border-neutral-200 bg-white/95 shadow-[0_10px_26px_-16px_rgba(15,23,42,0.35)] lg:mt-10 lg:block"
-        aria-label="Filter meets"
-      >
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch">
-          <div className="min-w-0 flex-1">
-            <FilterFields {...filterFieldsProps} />
-          </div>
-          <div className="flex shrink-0 flex-col justify-end border-t border-neutral-200 pt-5 lg:w-44 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
-            <button
-              type="button"
-              onClick={apply}
-              aria-label="Apply filters"
-              className="inline-flex min-h-11 w-full items-center justify-center rounded-full bg-neutral-900 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900 focus-visible:ring-offset-2"
-            >
-              Apply
-            </button>
-          </div>
-        </div>
       </div>
     </>
   );

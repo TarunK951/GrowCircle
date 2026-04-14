@@ -33,6 +33,11 @@ type RegionalMeetsSectionProps = {
   className?: string;
   title?: string;
   eyebrow?: string;
+  /**
+   * When true (default), if the user has no saved metro we open the picker once per tab session.
+   * Set false on marketing home so the hero isn’t interrupted.
+   */
+  askForMetroOnMount?: boolean;
 };
 
 export function RegionalMeetsSection({
@@ -40,6 +45,7 @@ export function RegionalMeetsSection({
   className,
   title = "Meets in your region",
   eyebrow = "Near you",
+  askForMetroOnMount = true,
 }: RegionalMeetsSectionProps) {
   const user = useAppSelector(selectUser);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
@@ -111,8 +117,8 @@ export function RegionalMeetsSection({
     [applyHint],
   );
 
+  /** Restore saved metro only after explicit pick; no auto geo. Ask for location once per session if none saved. */
   useEffect(() => {
-    let cancelled = false;
     try {
       const stored = localStorage.getItem(PREFERRED_KEY);
       if (stored && indiaCities.some((c) => c.id === stored)) {
@@ -122,22 +128,16 @@ export function RegionalMeetsSection({
     } catch {
       /* ignore */
     }
-
-    void (async () => {
-      try {
-        const ok = await fetchAndApplyHint({ silent: true });
-        if (!cancelled && !ok) {
-          /* no toast on silent initial miss */
-        }
-      } catch {
-        /* ignore */
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [indiaCities, fetchAndApplyHint]);
+    if (!askForMetroOnMount) return;
+    try {
+      if (sessionStorage.getItem("gc-regional-metro-asked") === "1") return;
+      sessionStorage.setItem("gc-regional-metro-asked", "1");
+    } catch {
+      /* ignore */
+    }
+    const t = window.setTimeout(() => setPickerOpen(true), 450);
+    return () => window.clearTimeout(t);
+  }, [indiaCities, askForMetroOnMount]);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -190,10 +190,12 @@ export function RegionalMeetsSection({
   };
 
   const events = useMemo(() => {
-    if (!regionCityId) return [];
     let list = listEventsMerged(
       hostedEvents,
-      { cityId: regionCityId, publicOnly: true },
+      {
+        ...(regionCityId ? { cityId: regionCityId } : {}),
+        publicOnly: true,
+      },
       circleCatalogEvents,
     );
     list = list.filter((e) => !isMeetInactive(e));
@@ -201,7 +203,7 @@ export function RegionalMeetsSection({
       (a, b) =>
         new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
     );
-    return list.slice(0, 9);
+    return list.slice(0, regionCityId ? 9 : 18);
   }, [hostedEvents, circleCatalogEvents, regionCityId]);
 
   const cityById = Object.fromEntries(indiaCities.map((c) => [c.id, c.name]));
@@ -283,8 +285,8 @@ export function RegionalMeetsSection({
               </>
             ) : (
               <>
-                Choose a metro above to see meets in that city only — India
-                metros.
+                Showing all upcoming public meets. Choose a metro below to
+                narrow this list to one city (India metros).
               </>
             )}
           </p>
@@ -331,7 +333,9 @@ export function RegionalMeetsSection({
                 autoComplete="off"
                 autoCorrect="off"
                 placeholder={
-                  regionCityId ? "Search to change metro…" : "Search cities…"
+                  regionCityId
+                    ? "Search to change metro…"
+                    : "Choose your metro…"
                 }
                 readOnly={!pickerOpen}
                 value={metroInputValue}
@@ -427,13 +431,17 @@ export function RegionalMeetsSection({
         </div>
       </div>
 
-      {!regionCityId ? null : events.length === 0 ? (
+      {events.length === 0 ? (
         <div className="mt-8 rounded-xl border border-dashed border-neutral-200 bg-white/80 px-5 py-10 text-center">
           <p className="font-onest text-sm font-semibold text-neutral-900">
-            No upcoming meets in {regionName} yet
+            {regionCityId
+              ? `No upcoming meets in ${regionName} yet`
+              : "No upcoming public meets right now"}
           </p>
           <p className="mt-2 text-sm text-neutral-600">
-            Try another metro from the menu above, or check back later.
+            {regionCityId
+              ? "Try another metro from the menu above, or check back later."
+              : "Check back soon, or pick a metro to see city-specific listings."}
           </p>
         </div>
       ) : (
@@ -442,7 +450,11 @@ export function RegionalMeetsSection({
             <Reveal key={e.id} className="h-full">
               <EventCard
                 event={e}
-                cityName={regionName}
+                cityName={
+                  regionCityId
+                    ? regionName
+                    : e.displayLocation ?? cityById[e.cityId] ?? ""
+                }
                 hostName={hostLabelForEvent(e, user)}
                 priority={index < 3}
               />
