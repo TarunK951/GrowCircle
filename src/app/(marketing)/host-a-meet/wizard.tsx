@@ -154,36 +154,6 @@ function validateDraft(d: HostDraft): string | null {
       return "End time must be after the start time.";
     }
   }
-  const latT = d.latitude.trim();
-  const lngT = d.longitude.trim();
-  if (latT || lngT) {
-    if (!latT || !lngT) {
-      return "Enter both latitude and longitude, or leave both blank.";
-    }
-    const lat = Number.parseFloat(latT);
-    const lng = Number.parseFloat(lngT);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      return "Latitude and longitude must be valid numbers.";
-    }
-    if (lat < -90 || lat > 90) return "Latitude must be between -90 and 90.";
-    if (lng < -180 || lng > 180) {
-      return "Longitude must be between -180 and 180.";
-    }
-  }
-  const taxT = d.taxPercentage.trim();
-  if (taxT) {
-    const tx = Number.parseFloat(taxT);
-    if (!Number.isFinite(tx) || tx < 0 || tx > 100) {
-      return "Tax percentage must be between 0 and 100, or leave blank.";
-    }
-  }
-  const commT = d.commissionOverride.trim();
-  if (commT) {
-    const c = Number.parseFloat(commT);
-    if (!Number.isFinite(c) || c < 0) {
-      return "Commission override must be zero or greater, or leave blank.";
-    }
-  }
   return null;
 }
 
@@ -472,23 +442,6 @@ export function HostWizard() {
 
         const endTrim = draft.endsAt.trim();
         const endIso = endTrim ? new Date(endTrim).toISOString() : null;
-        const latT = draft.latitude.trim();
-        const lngT = draft.longitude.trim();
-        const latLngOk =
-          latT &&
-          lngT &&
-          Number.isFinite(Number.parseFloat(latT)) &&
-          Number.isFinite(Number.parseFloat(lngT));
-        const latParsed = latT ? Number.parseFloat(latT) : NaN;
-        const lngParsed = lngT ? Number.parseFloat(lngT) : NaN;
-        const taxTrim = draft.taxPercentage.trim();
-        const taxVal = taxTrim ? Number.parseFloat(taxTrim) : NaN;
-        const taxPayload =
-          taxTrim && Number.isFinite(taxVal) ? taxVal.toFixed(2) : null;
-        const commTrim = draft.commissionOverride.trim();
-        const commVal = commTrim ? Number.parseFloat(commTrim) : NaN;
-        const commPayload =
-          commTrim && Number.isFinite(commVal) ? commVal : null;
 
         const created = await createEvent(token, {
           title: draft.title.trim() || "Untitled meet",
@@ -517,11 +470,6 @@ export function HostWizard() {
           ...(regOpenIso ? { registration_opens_at: regOpenIso } : {}),
           ...(regCloseIso ? { registration_closes_at: regCloseIso } : {}),
           ...(endIso ? { end_time: endIso } : {}),
-          ...(latLngOk
-            ? { latitude: latParsed, longitude: lngParsed }
-            : {}),
-          ...(taxPayload != null ? { tax_percentage: taxPayload } : {}),
-          ...(commPayload != null ? { commission_override: commPayload } : {}),
         });
 
         const whatsIncluded = trimWizardLines(draft.whatsIncluded);
@@ -563,11 +511,6 @@ export function HostWizard() {
           ...(regOpenIso ? { registration_opens_at: regOpenIso } : {}),
           ...(regCloseIso ? { registration_closes_at: regCloseIso } : {}),
           ...(endIso ? { end_time: endIso } : {}),
-          ...(latLngOk
-            ? { latitude: latParsed, longitude: lngParsed }
-            : {}),
-          ...(taxPayload != null ? { tax_percentage: taxPayload } : {}),
-          ...(commPayload != null ? { commission_override: commPayload } : {}),
         });
 
         for (let i = 0; i < draft.preJoinQuestions.length; i++) {
@@ -1139,7 +1082,7 @@ export function HostWizard() {
       {step === 2 && (
         <div className="mt-4 space-y-4">
           <p className="text-sm font-semibold text-neutral-900">
-            Location: city, venue, and optional coordinates
+            Location: city, venue, and address
           </p>
           <HostMeetSelect
             label="City"
@@ -1180,53 +1123,13 @@ export function HostWizard() {
               placeholder="Street, suite, access notes"
             />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="text-sm font-semibold text-neutral-900">
-                Latitude (optional)
-              </label>
-              <p className="mt-1 text-xs text-neutral-600">
-                Decimal degrees — set both lat and long for a map pin.
-              </p>
-              <input
-                type="text"
-                inputMode="decimal"
-                className={inputClass}
-                value={draft.latitude}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, latitude: e.target.value }))
-                }
-                placeholder="e.g. 12.97"
-                autoComplete="off"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-neutral-900">
-                Longitude (optional)
-              </label>
-              <p className="mt-1 text-xs text-neutral-600">
-                Must match latitude if you use coordinates.
-              </p>
-              <input
-                type="text"
-                inputMode="decimal"
-                className={inputClass}
-                value={draft.longitude}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, longitude: e.target.value }))
-                }
-                placeholder="e.g. 77.59"
-                autoComplete="off"
-              />
-            </div>
-          </div>
         </div>
       )}
 
       {step === 3 && (
         <div className="mt-4 space-y-4">
           <p className="text-sm font-semibold text-neutral-900">
-            Schedule, pricing, tax, and registration window
+            Schedule, pricing, and registration window
           </p>
           <div>
             <p className="text-sm font-semibold text-neutral-900">Starts at</p>
@@ -1393,52 +1296,6 @@ export function HostWizard() {
                   }));
                 }}
               />
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-neutral-200 bg-neutral-50/50 p-4 space-y-3">
-            <p className="text-sm font-semibold text-neutral-900">Tax and commission (optional)</p>
-            <p className="text-xs text-neutral-600">
-              Sent as <span className="font-mono text-[11px]">tax_percentage</span> and{" "}
-              <span className="font-mono text-[11px]">commission_override</span> when set.
-            </p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="text-sm font-semibold text-neutral-900">
-                  Tax (%)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  max={100}
-                  step={0.01}
-                  className={inputClass}
-                  value={draft.taxPercentage}
-                  onChange={(e) =>
-                    setDraft((d) => ({ ...d, taxPercentage: e.target.value }))
-                  }
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-semibold text-neutral-900">
-                  Commission override
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  className={inputClass}
-                  value={draft.commissionOverride}
-                  onChange={(e) =>
-                    setDraft((d) => ({
-                      ...d,
-                      commissionOverride: e.target.value,
-                    }))
-                  }
-                  placeholder="Platform default if empty"
-                />
-              </div>
             </div>
           </div>
 

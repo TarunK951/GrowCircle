@@ -62,9 +62,6 @@ export type HostDraft = {
   startsAt: string;
   /** Local `datetime-local` end; API `end_time` when set. */
   endsAt: string;
-  /** Decimal degrees; empty = omit on API. */
-  latitude: string;
-  longitude: string;
   capacity: number;
   venueName: string;
   /** Maps to Circle `waitlist_enabled`. */
@@ -92,10 +89,6 @@ export type HostDraft = {
   /** Local `datetime-local` values; API `registration_opens_at` / `registration_closes_at`. */
   registrationOpensAt: string;
   registrationClosesAt: string;
-  /** API `tax_percentage` — empty = omit (backend default). */
-  taxPercentage: string;
-  /** API `commission_override` — empty = omit. */
-  commissionOverride: string;
 };
 
 export type UiPrefs = {
@@ -203,8 +196,6 @@ const initialHostDraft = (): HostDraft => ({
   addressLine: "",
   startsAt: "",
   endsAt: "",
-  latitude: "",
-  longitude: "",
   capacity: 16,
   venueName: "",
   waitlistEnabled: true,
@@ -224,8 +215,6 @@ const initialHostDraft = (): HostDraft => ({
   contactPhone: "",
   registrationOpensAt: "",
   registrationClosesAt: "",
-  taxPercentage: "",
-  commissionOverride: "",
 });
 
 /** Merge persisted or partial JSON into a full `HostDraft` (legacy single-image fields → slot 0). */
@@ -287,8 +276,6 @@ export function normalizeHostDraft(raw: unknown): HostDraft {
     addressLine: typeof o.addressLine === "string" ? o.addressLine : base.addressLine,
     startsAt: typeof o.startsAt === "string" ? o.startsAt : base.startsAt,
     endsAt: typeof o.endsAt === "string" ? o.endsAt : base.endsAt,
-    latitude: typeof o.latitude === "string" ? o.latitude : base.latitude,
-    longitude: typeof o.longitude === "string" ? o.longitude : base.longitude,
     capacity:
       typeof o.capacity === "number" && Number.isFinite(o.capacity)
         ? o.capacity
@@ -367,12 +354,6 @@ export function normalizeHostDraft(raw: unknown): HostDraft {
       typeof o.registrationClosesAt === "string"
         ? o.registrationClosesAt
         : base.registrationClosesAt,
-    taxPercentage:
-      typeof o.taxPercentage === "string" ? o.taxPercentage : base.taxPercentage,
-    commissionOverride:
-      typeof o.commissionOverride === "string"
-        ? o.commissionOverride
-        : base.commissionOverride,
   };
   return next;
 }
