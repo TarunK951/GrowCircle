@@ -7,6 +7,7 @@ import {
   LocateFixed,
   Loader2,
   MapPin,
+  Search,
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -18,6 +19,10 @@ import { isMeetInactive, listEventsMerged } from "@/lib/eventsCatalog";
 import { selectUser } from "@/lib/store/authSlice";
 import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
+import {
+  REGIONAL_METRO_PICKER_EVENT,
+  type RegionalMetroPickerDetail,
+} from "@/lib/ui/regionalMetroPicker";
 import { cn } from "@/lib/utils";
 import type { CityOption } from "./filterTypes";
 
@@ -55,8 +60,15 @@ export function RegionalMeetsSection({
   const [regionCityId, setRegionCityId] = useState<string>("");
   const [hintLabel, setHintLabel] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [citySearchQuery, setCitySearchQuery] = useState("");
   const [detecting, setDetecting] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
+
+  const filteredIndiaCities = useMemo(() => {
+    const q = citySearchQuery.trim().toLowerCase();
+    if (!q) return indiaCities;
+    return indiaCities.filter((c) => c.name.toLowerCase().includes(q));
+  }, [indiaCities, citySearchQuery]);
 
   const applyHint = useCallback(
     (data: GeoHintResponse, opts?: { silent?: boolean }) => {
@@ -126,6 +138,35 @@ export function RegionalMeetsSection({
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
+
+  useEffect(() => {
+    if (!pickerOpen) {
+      setCitySearchQuery("");
+      return;
+    }
+    window.dispatchEvent(
+      new CustomEvent<RegionalMetroPickerDetail>(REGIONAL_METRO_PICKER_EVENT, {
+        detail: { open: true },
+      }),
+    );
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent<RegionalMetroPickerDetail>(
+          REGIONAL_METRO_PICKER_EVENT,
+          { detail: { open: false } },
+        ),
+      );
+    };
+  }, [pickerOpen]);
+
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [pickerOpen]);
 
   const onSelectCity = (id: string) => {
     setRegionCityId(id);
@@ -264,7 +305,7 @@ export function RegionalMeetsSection({
 
           {pickerOpen ? (
             <div
-              className="absolute right-0 top-full z-50 mt-2 w-full min-w-[min(100vw-2rem,320px)] overflow-hidden rounded-2xl border border-neutral-200/90 bg-white shadow-xl ring-1 ring-black/5 sm:min-w-[300px]"
+              className="absolute right-0 top-full z-50 mt-2 flex max-h-[min(85vh,400px)] w-full min-w-[min(100vw-2rem,320px)] flex-col overflow-hidden rounded-2xl border border-neutral-200/90 bg-white shadow-xl ring-1 ring-black/5 sm:min-w-[300px]"
               role="listbox"
               aria-labelledby="regional-city-picker-trigger"
             >
@@ -272,7 +313,7 @@ export function RegionalMeetsSection({
                 type="button"
                 disabled={detecting}
                 onClick={() => void onDetectArea()}
-                className="flex w-full items-center gap-3 border-b border-neutral-100 bg-linear-to-r from-primary/[0.07] to-transparent px-4 py-3.5 text-left transition hover:from-primary/12 disabled:opacity-60"
+                className="flex shrink-0 items-center gap-3 border-b border-neutral-100 bg-linear-to-r from-primary/[0.07] to-transparent px-4 py-3.5 text-left transition hover:from-primary/12 disabled:opacity-60"
               >
                 {detecting ? (
                   <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
@@ -288,28 +329,58 @@ export function RegionalMeetsSection({
                   </span>
                 </span>
               </button>
-              <ul className="max-h-[min(50vh,280px)] overflow-y-auto overscroll-contain p-2">
-                {indiaCities.map((c) => {
-                  const active = c.id === regionCityId;
-                  return (
-                    <li key={c.id} role="none">
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={active}
-                        onClick={() => onSelectCity(c.id)}
-                        className={cn(
-                          "flex w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium transition",
-                          active
-                            ? "bg-primary/12 text-primary"
-                            : "text-neutral-800 hover:bg-neutral-100",
-                        )}
-                      >
-                        {c.name}
-                      </button>
-                    </li>
-                  );
-                })}
+              <div className="shrink-0 border-b border-neutral-100 px-3 py-2.5">
+                <label className="sr-only" htmlFor="regional-metro-search">
+                  Search metros
+                </label>
+                <div className="relative">
+                  <Search
+                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
+                    aria-hidden
+                  />
+                  <input
+                    id="regional-metro-search"
+                    type="search"
+                    value={citySearchQuery}
+                    onChange={(e) => setCitySearchQuery(e.target.value)}
+                    placeholder="Search cities…"
+                    className="w-full rounded-xl border border-neutral-200 bg-neutral-50/80 py-2.5 pl-9 pr-3 text-sm text-neutral-900 outline-none transition placeholder:text-neutral-500 focus:border-primary/40 focus:bg-white focus:ring-2 focus:ring-primary/15"
+                    autoComplete="off"
+                    autoCorrect="off"
+                  />
+                </div>
+              </div>
+              <ul
+                className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain p-2 touch-pan-y"
+                style={{ WebkitOverflowScrolling: "touch" }}
+              >
+                {filteredIndiaCities.length === 0 ? (
+                  <li className="px-3 py-4 text-center text-sm text-neutral-500">
+                    No matches
+                  </li>
+                ) : (
+                  filteredIndiaCities.map((c) => {
+                    const active = c.id === regionCityId;
+                    return (
+                      <li key={c.id} role="none">
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={active}
+                          onClick={() => onSelectCity(c.id)}
+                          className={cn(
+                            "flex w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium transition",
+                            active
+                              ? "bg-primary/12 text-primary"
+                              : "text-neutral-800 hover:bg-neutral-100",
+                          )}
+                        >
+                          {c.name}
+                        </button>
+                      </li>
+                    );
+                  })
+                )}
               </ul>
             </div>
           ) : null}

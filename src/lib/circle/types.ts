@@ -73,6 +73,11 @@ export type CircleEvent = {
   max_capacity: number;
   price: string | number;
   event_date: string;
+  /** Optional; may mirror or complement `event_date` depending on backend. */
+  start_time?: string | null;
+  end_time?: string | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
   /** IANA timezone name when API returns it */
   timezone?: string;
   /** Free-form labels; shape varies by backend — normalize in mapper */
@@ -124,6 +129,8 @@ export type CircleEvent = {
   contact_phone?: string | null;
   registration_opens_at?: string | null;
   registration_closes_at?: string | null;
+  tax_percentage?: string | number | null;
+  commission_override?: number | string | null;
 };
 
 export type CircleListMeta = {

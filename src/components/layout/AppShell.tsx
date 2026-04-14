@@ -4,6 +4,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import {
+  REGIONAL_METRO_PICKER_EVENT,
+  type RegionalMetroPickerDetail,
+} from "@/lib/ui/regionalMetroPicker";
 import { cn } from "@/lib/utils";
 import { logoutApi } from "@/lib/circle/api";
 import { isCircleApiConfigured } from "@/lib/circle/config";
@@ -75,6 +79,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       skip: !accessToken || !isCircleApiConfigured(),
     });
   const [collapsed, setCollapsed] = useState(false);
+  const [regionalMetroPickerOpen, setRegionalMetroPickerOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -106,12 +111,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("circle-unread-refresh", onRefresh);
   }, [refetchUnread]);
 
+  useEffect(() => {
+    const onMetroPicker = (e: Event) => {
+      const ce = e as CustomEvent<RegionalMetroPickerDetail>;
+      setRegionalMetroPickerOpen(Boolean(ce.detail?.open));
+    };
+    window.addEventListener(REGIONAL_METRO_PICKER_EVENT, onMetroPicker);
+    return () =>
+      window.removeEventListener(REGIONAL_METRO_PICKER_EVENT, onMetroPicker);
+  }, []);
+
   return (
     <div className="flex min-h-0 flex-1">
       <aside
         className={cn(
           "hidden shrink-0 border-r border-neutral-200 bg-white transition-[width] duration-200 ease-out md:block",
           collapsed ? "md:w-16" : "md:w-60 lg:w-64",
+          regionalMetroPickerOpen && "md:hidden",
         )}
       >
         <div className="sticky top-20 flex max-h-[calc(100vh-5rem)] flex-col gap-2 p-3 lg:p-4">

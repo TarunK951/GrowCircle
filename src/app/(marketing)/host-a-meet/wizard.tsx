@@ -145,6 +145,45 @@ function validateDraft(d: HostDraft): string | null {
       return "Registration must close on or after it opens.";
     }
   }
+  const endTrim = d.endsAt.trim();
+  if (endTrim) {
+    const endMs = new Date(endTrim).getTime();
+    const startMs = new Date(d.startsAt).getTime();
+    if (Number.isNaN(endMs)) return "Enter a valid end date and time.";
+    if (!Number.isNaN(startMs) && endMs <= startMs) {
+      return "End time must be after the start time.";
+    }
+  }
+  const latT = d.latitude.trim();
+  const lngT = d.longitude.trim();
+  if (latT || lngT) {
+    if (!latT || !lngT) {
+      return "Enter both latitude and longitude, or leave both blank.";
+    }
+    const lat = Number.parseFloat(latT);
+    const lng = Number.parseFloat(lngT);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return "Latitude and longitude must be valid numbers.";
+    }
+    if (lat < -90 || lat > 90) return "Latitude must be between -90 and 90.";
+    if (lng < -180 || lng > 180) {
+      return "Longitude must be between -180 and 180.";
+    }
+  }
+  const taxT = d.taxPercentage.trim();
+  if (taxT) {
+    const tx = Number.parseFloat(taxT);
+    if (!Number.isFinite(tx) || tx < 0 || tx > 100) {
+      return "Tax percentage must be between 0 and 100, or leave blank.";
+    }
+  }
+  const commT = d.commissionOverride.trim();
+  if (commT) {
+    const c = Number.parseFloat(commT);
+    if (!Number.isFinite(c) || c < 0) {
+      return "Commission override must be zero or greater, or leave blank.";
+    }
+  }
   return null;
 }
 
@@ -247,9 +286,25 @@ export function HostWizard() {
     () => splitDateTimeLocal(draft.startsAt),
     [draft.startsAt],
   );
+  const endScheduleParts = useMemo((): { date: string; time: string } => {
+    const v = draft.endsAt.trim();
+    if (!v || !v.includes("T")) return { date: "", time: "" };
+    const [date, rest] = v.split("T");
+    const time = (rest ?? "").slice(0, 5);
+    return {
+      date: date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : "",
+      time: /^\d{2}:\d{2}$/.test(time) ? time : "",
+    };
+  }, [draft.endsAt]);
   const todayMin = todayYYYYMMDDLocal();
   const minTimeIfToday =
     scheduleParts.date === todayMin ? nowHHMMLocal() : undefined;
+  const minTimeEndIfSameDayAsStart =
+    endScheduleParts.date &&
+    scheduleParts.date &&
+    endScheduleParts.date === scheduleParts.date
+      ? scheduleParts.time
+      : undefined;
 
   const setScheduleFromParts = (date: string, time: string) => {
     let nextTime = time;
@@ -259,6 +314,21 @@ export function HostWizard() {
     setDraft((d) => ({
       ...d,
       startsAt: joinDateTimeLocal(date, nextTime),
+    }));
+  };
+
+  const setEndScheduleFromParts = (date: string, time: string) => {
+    let nextTime = time;
+    if (
+      date === scheduleParts.date &&
+      nextTime &&
+      nextTime < scheduleParts.time
+    ) {
+      nextTime = scheduleParts.time;
+    }
+    setDraft((d) => ({
+      ...d,
+      endsAt: joinDateTimeLocal(date, nextTime),
     }));
   };
 
@@ -400,12 +470,33 @@ export function HostWizard() {
           : null;
         const refundPolicyTrim = draft.refundPolicy.trim();
 
+        const endTrim = draft.endsAt.trim();
+        const endIso = endTrim ? new Date(endTrim).toISOString() : null;
+        const latT = draft.latitude.trim();
+        const lngT = draft.longitude.trim();
+        const latLngOk =
+          latT &&
+          lngT &&
+          Number.isFinite(Number.parseFloat(latT)) &&
+          Number.isFinite(Number.parseFloat(lngT));
+        const latParsed = latT ? Number.parseFloat(latT) : NaN;
+        const lngParsed = lngT ? Number.parseFloat(lngT) : NaN;
+        const taxTrim = draft.taxPercentage.trim();
+        const taxVal = taxTrim ? Number.parseFloat(taxTrim) : NaN;
+        const taxPayload =
+          taxTrim && Number.isFinite(taxVal) ? taxVal.toFixed(2) : null;
+        const commTrim = draft.commissionOverride.trim();
+        const commVal = commTrim ? Number.parseFloat(commTrim) : NaN;
+        const commPayload =
+          commTrim && Number.isFinite(commVal) ? commVal : null;
+
         const created = await createEvent(token, {
           title: draft.title.trim() || "Untitled meet",
           description: draft.description.trim() || "—",
           max_capacity: Math.max(4, draft.capacity),
           price: Math.max(0, draft.priceCents) / 100,
           event_date: startsAtIso,
+          start_time: startsAtIso,
           timezone: draft.timezone.trim() || "Asia/Kolkata",
           location,
           ...(primaryCategory ? { category: primaryCategory } : {}),
@@ -425,6 +516,12 @@ export function HostWizard() {
           ...(contactPhoneTrim ? { contact_phone: contactPhoneTrim } : {}),
           ...(regOpenIso ? { registration_opens_at: regOpenIso } : {}),
           ...(regCloseIso ? { registration_closes_at: regCloseIso } : {}),
+          ...(endIso ? { end_time: endIso } : {}),
+          ...(latLngOk
+            ? { latitude: latParsed, longitude: lngParsed }
+            : {}),
+          ...(taxPayload != null ? { tax_percentage: taxPayload } : {}),
+          ...(commPayload != null ? { commission_override: commPayload } : {}),
         });
 
         const whatsIncluded = trimWizardLines(draft.whatsIncluded);
@@ -437,6 +534,8 @@ export function HostWizard() {
         const locationTypeTrim = draft.locationType.trim();
 
         await updateEvent(token, created.id, {
+          event_date: startsAtIso,
+          start_time: startsAtIso,
           timezone: draft.timezone.trim() || "Asia/Kolkata",
           ...(primaryCategory ? { category: primaryCategory } : {}),
           ...(tagPayload.length > 0 ? { tags: tagPayload } : {}),
@@ -463,6 +562,12 @@ export function HostWizard() {
           ...(contactPhoneTrim ? { contact_phone: contactPhoneTrim } : {}),
           ...(regOpenIso ? { registration_opens_at: regOpenIso } : {}),
           ...(regCloseIso ? { registration_closes_at: regCloseIso } : {}),
+          ...(endIso ? { end_time: endIso } : {}),
+          ...(latLngOk
+            ? { latitude: latParsed, longitude: lngParsed }
+            : {}),
+          ...(taxPayload != null ? { tax_percentage: taxPayload } : {}),
+          ...(commPayload != null ? { commission_override: commPayload } : {}),
         });
 
         for (let i = 0; i < draft.preJoinQuestions.length; i++) {
@@ -591,6 +696,9 @@ export function HostWizard() {
 
       {step === 0 && (
         <div className="mt-4 space-y-4">
+          <p className="text-sm font-semibold text-neutral-900">
+            Basics: title, description, and categories
+          </p>
           <div>
             <label className="text-sm font-semibold text-neutral-900">Title</label>
             <input
@@ -662,6 +770,9 @@ export function HostWizard() {
 
       {step === 1 && (
         <div className="mt-4 space-y-5">
+          <p className="text-sm font-semibold text-neutral-900">
+            Story, house rules, and refund policy
+          </p>
           <p className="text-sm text-neutral-700">
             This step is sent to the API as{" "}
             <span className="font-medium">whats_included</span>,{" "}
@@ -1027,6 +1138,9 @@ export function HostWizard() {
 
       {step === 2 && (
         <div className="mt-4 space-y-4">
+          <p className="text-sm font-semibold text-neutral-900">
+            Location: city, venue, and optional coordinates
+          </p>
           <HostMeetSelect
             label="City"
             value={draft.cityId}
@@ -1066,11 +1180,54 @@ export function HostWizard() {
               placeholder="Street, suite, access notes"
             />
           </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="text-sm font-semibold text-neutral-900">
+                Latitude (optional)
+              </label>
+              <p className="mt-1 text-xs text-neutral-600">
+                Decimal degrees — set both lat and long for a map pin.
+              </p>
+              <input
+                type="text"
+                inputMode="decimal"
+                className={inputClass}
+                value={draft.latitude}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, latitude: e.target.value }))
+                }
+                placeholder="e.g. 12.97"
+                autoComplete="off"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-neutral-900">
+                Longitude (optional)
+              </label>
+              <p className="mt-1 text-xs text-neutral-600">
+                Must match latitude if you use coordinates.
+              </p>
+              <input
+                type="text"
+                inputMode="decimal"
+                className={inputClass}
+                value={draft.longitude}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, longitude: e.target.value }))
+                }
+                placeholder="e.g. 77.59"
+                autoComplete="off"
+              />
+            </div>
+          </div>
         </div>
       )}
 
       {step === 3 && (
         <div className="mt-4 space-y-4">
+          <p className="text-sm font-semibold text-neutral-900">
+            Schedule, pricing, tax, and registration window
+          </p>
           <div>
             <p className="text-sm font-semibold text-neutral-900">Starts at</p>
             <p className="mt-1 text-xs text-neutral-600">
@@ -1126,6 +1283,78 @@ export function HostWizard() {
             options={TIMEZONE_OPTIONS.map((z) => ({ value: z, label: z }))}
             onChange={(timezone) => setDraft((d) => ({ ...d, timezone }))}
           />
+          <div>
+            <p className="text-sm font-semibold text-neutral-900">Ends at (optional)</p>
+            <p className="mt-1 text-xs text-neutral-600">
+              Leave blank for a single start time only. Sent as{" "}
+              <span className="font-mono text-[11px]">end_time</span> on the API.
+            </p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="host-meet-end-date"
+                  className="text-xs font-medium text-neutral-700"
+                >
+                  Date
+                </label>
+                <input
+                  id="host-meet-end-date"
+                  type="date"
+                  min={scheduleParts.date || todayMin}
+                  className={inputClass}
+                  value={endScheduleParts.date}
+                  onChange={(e) => {
+                    const nextDate = e.target.value;
+                    if (!nextDate) {
+                      setDraft((d) => ({ ...d, endsAt: "" }));
+                      return;
+                    }
+                    const startD = scheduleParts.date;
+                    if (startD && nextDate < startD) {
+                      setEndScheduleFromParts(startD, endScheduleParts.time || scheduleParts.time);
+                      return;
+                    }
+                    setEndScheduleFromParts(
+                      nextDate,
+                      endScheduleParts.time || scheduleParts.time,
+                    );
+                  }}
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="host-meet-end-time"
+                  className="text-xs font-medium text-neutral-700"
+                >
+                  Time
+                </label>
+                <input
+                  id="host-meet-end-time"
+                  type="time"
+                  className={inputClass}
+                  value={endScheduleParts.time}
+                  min={minTimeEndIfSameDayAsStart}
+                  onChange={(e) => {
+                    const nextTime = e.target.value;
+                    if (!nextTime) return;
+                    const dPart =
+                      endScheduleParts.date || scheduleParts.date;
+                    if (!dPart) return;
+                    setEndScheduleFromParts(dPart, nextTime);
+                  }}
+                />
+              </div>
+            </div>
+            {draft.endsAt.trim() ? (
+              <button
+                type="button"
+                className="mt-2 text-xs font-medium text-neutral-600 hover:text-neutral-900 hover:underline"
+                onClick={() => setDraft((d) => ({ ...d, endsAt: "" }))}
+              >
+                Clear end time
+              </button>
+            ) : null}
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="text-sm font-semibold text-neutral-900">Capacity (max slots)</label>
@@ -1164,6 +1393,52 @@ export function HostWizard() {
                   }));
                 }}
               />
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-neutral-200 bg-neutral-50/50 p-4 space-y-3">
+            <p className="text-sm font-semibold text-neutral-900">Tax and commission (optional)</p>
+            <p className="text-xs text-neutral-600">
+              Sent as <span className="font-mono text-[11px]">tax_percentage</span> and{" "}
+              <span className="font-mono text-[11px]">commission_override</span> when set.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="text-sm font-semibold text-neutral-900">
+                  Tax (%)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={0.01}
+                  className={inputClass}
+                  value={draft.taxPercentage}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, taxPercentage: e.target.value }))
+                  }
+                  placeholder="0"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-neutral-900">
+                  Commission override
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  className={inputClass}
+                  value={draft.commissionOverride}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      commissionOverride: e.target.value,
+                    }))
+                  }
+                  placeholder="Platform default if empty"
+                />
+              </div>
             </div>
           </div>
 
@@ -1280,6 +1555,9 @@ export function HostWizard() {
 
       {step === 4 && (
         <div className="mt-4 space-y-5">
+          <p className="text-sm font-semibold text-neutral-900">
+            Contact, visibility, waitlist, and images
+          </p>
           <div className="space-y-4 rounded-xl border border-neutral-200 bg-neutral-50/40 p-4">
             <p className="text-sm font-semibold text-neutral-900">
               Event contact (optional)
@@ -1578,6 +1856,9 @@ export function HostWizard() {
 
       {step === 5 && (
         <div className="mt-4 space-y-4">
+          <p className="text-sm font-semibold text-neutral-900">
+            FAQs and pre-join questions
+          </p>
           <p className="text-sm text-neutral-900">
             Add question and answer pairs for the FAQ accordion on the event page.
           </p>
