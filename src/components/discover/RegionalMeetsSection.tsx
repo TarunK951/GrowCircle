@@ -6,6 +6,7 @@ import { ChevronDown, ChevronRight, Loader2, LocateFixed, Search } from "lucide-
 import { toast } from "sonner";
 import { EventCard } from "@/components/events/EventCard";
 import { Reveal } from "@/components/providers/Reveal";
+import { requestBrowserCoordinates } from "@/lib/geo/requestBrowserCoordinates";
 import { INDIA_METRO_CITY_IDS } from "@/lib/geo/suggestCityId";
 import { hostLabelForEvent } from "@/lib/hostName";
 import { isMeetInactive, listEventsMerged } from "@/lib/eventsCatalog";
@@ -270,20 +271,32 @@ export function RegionalMeetsSection({
   const onDetectArea = async () => {
     setDetecting(true);
     try {
+      const coords = await requestBrowserCoordinates();
+      if (coords) {
+        const post = await fetch("/api/geo/hint", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(coords),
+        });
+        if (post.ok) {
+          const geo = (await post.json()) as GeoHintResponse;
+          if (applyHint(geo, { silent: false })) {
+            return;
+          }
+        }
+      }
+
       const res = await fetch("/api/geo/hint");
-      if (!res.ok) {
-        toast.message("Couldn’t detect your location automatically", {
-          description: "Choose your city from the list.",
-        });
-        return;
+      if (res.ok) {
+        const geo = (await res.json()) as GeoHintResponse;
+        if (applyHint(geo, { silent: false })) {
+          return;
+        }
       }
-      const data = (await res.json()) as GeoHintResponse;
-      const ok = applyHint(data, { silent: false });
-      if (!ok) {
-        toast.message("Couldn’t detect your location automatically", {
-          description: "Choose your city from the list.",
-        });
-      }
+
+      toast.message("Couldn’t detect your area automatically", {
+        description: "Choose your city from the list.",
+      });
     } catch {
       toast.error("Detection failed. Choose your city from the list.");
     } finally {
@@ -423,7 +436,7 @@ export function RegionalMeetsSection({
                     Detect my area
                   </span>
                   <span className="mt-0.5 block text-xs text-neutral-500">
-                    Uses your connection to suggest an area
+                    Browser location when you allow it — otherwise your network
                   </span>
                 </span>
               </button>

@@ -1,1 +1,1 @@
-export { GET } from "../../geo/hint/route";
+export { GET, POST } from "../../geo/hint/route";
