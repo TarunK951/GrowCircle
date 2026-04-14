@@ -18,7 +18,22 @@ import type { CityOption } from "./filterTypes";
 
 const PREFERRED_KEY = "gc-preferred-region-city";
 
-export function RegionalMeetsSection({ cities }: { cities: CityOption[] }) {
+type RegionalMeetsSectionProps = {
+  cities: CityOption[];
+  /** Extra classes on the outer card (e.g. `mt-0` on the landing page). */
+  className?: string;
+  /** Main heading; default matches discover. */
+  title?: string;
+  /** Small label above the title. */
+  eyebrow?: string;
+};
+
+export function RegionalMeetsSection({
+  cities,
+  className,
+  title = "Meets in your region",
+  eyebrow = "Near you",
+}: RegionalMeetsSectionProps) {
   const user = useAppSelector(selectUser);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
@@ -100,7 +115,12 @@ export function RegionalMeetsSection({ cities }: { cities: CityOption[] }) {
 
   if (!hintLoaded && !regionCityId) {
     return (
-      <div className="mt-12 rounded-2xl border border-neutral-200/80 bg-white/60 px-5 py-10 text-center text-sm text-neutral-600">
+      <div
+        className={cn(
+          "mt-12 rounded-2xl border border-neutral-200/80 bg-white/60 px-5 py-10 text-center text-sm text-neutral-600",
+          className,
+        )}
+      >
         Finding meets near you…
       </div>
     );
@@ -108,20 +128,23 @@ export function RegionalMeetsSection({ cities }: { cities: CityOption[] }) {
 
   return (
     <section
-      className="mt-12 rounded-2xl border border-primary/10 bg-linear-to-b from-white to-primary/4 p-5 shadow-sm sm:p-8"
+      className={cn(
+        "mt-12 rounded-2xl border border-primary/10 bg-linear-to-b from-white to-primary/4 p-5 shadow-sm sm:p-8",
+        className,
+      )}
       aria-labelledby="regional-meets-heading"
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-primary">
             <Sparkles className="h-3.5 w-3.5" aria-hidden />
-            Near you
+            {eyebrow}
           </p>
           <h2
             id="regional-meets-heading"
             className="font-onest mt-2 text-xl font-semibold tracking-tight text-neutral-900 sm:text-2xl"
           >
-            Meets in your region
+            {title}
           </h2>
           <p className="mt-2 max-w-2xl text-sm text-neutral-600">
             We suggest a city from your approximate location (IP). Pick another
@@ -173,7 +196,7 @@ export function RegionalMeetsSection({ cities }: { cities: CityOption[] }) {
             No upcoming meets in {regionName} yet
           </p>
           <p className="mt-2 text-sm text-neutral-600">
-            Try another city or browse all filters below.
+            Try another city or open Explore to see every public meet.
           </p>
           <Link
             href={`/explore?city=${encodeURIComponent(regionCityId)}`}
