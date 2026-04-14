@@ -11,6 +11,8 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
   /** Host wizard: slimmer offset under fixed nav — page uses tighter `page-shell` too. */
   const isHostWizard =
     pathname === "/host-a-meet" || pathname === "/host";
+  const isDiscoverExplore =
+    pathname === "/discover" || pathname === "/explore";
 
   return (
     <>
@@ -19,7 +21,13 @@ export function MarketingShell({ children }: { children: React.ReactNode }) {
       <main
         className={cn(
           "flex-1",
-          isHome ? "pt-0" : isHostWizard ? "pt-16" : "pt-20",
+          isHome
+            ? "pt-0"
+            : isHostWizard
+              ? "pt-16"
+              : isDiscoverExplore
+                ? "pt-10"
+                : "pt-20",
         )}
       >
         {children}

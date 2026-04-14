@@ -24,7 +24,7 @@ export default async function DiscoverPage(props: DiscoverPageProps) {
   const cityOptions = cities.map((c) => ({ id: c.id, name: c.name }));
 
   return (
-    <Container className="page-shell">
+    <Container className="pt-6 pb-12 sm:pt-8 sm:pb-16 md:pt-10 md:pb-20">
       <Reveal>
         <MarketingPageIntro
           className="max-w-3xl"

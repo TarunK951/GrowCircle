@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, Loader2, LocateFixed, Search, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, ChevronRight, Loader2, LocateFixed, Search } from "lucide-react";
 import { toast } from "sonner";
 import { EventCard } from "@/components/events/EventCard";
 import { Reveal } from "@/components/providers/Reveal";
@@ -15,6 +16,7 @@ import {
   REGIONAL_METRO_PICKER_EVENT,
   type RegionalMetroPickerDetail,
 } from "@/lib/ui/regionalMetroPicker";
+import { Container } from "@/components/layout/Container";
 import { useBodyLock } from "@/lib/ui/useBodyLock";
 import { cn } from "@/lib/utils";
 import type { CityOption } from "./filterTypes";
@@ -46,6 +48,18 @@ type RegionalMeetsSectionProps = {
     /** YYYY-MM-DD */
     date?: string;
   };
+  /** When set (e.g. `/explore`), shows a “View all events” control — omit on Discover itself. */
+  viewAllEventsHref?: string;
+  /**
+   * When true, render nothing if there are no upcoming meets for the current region / filters.
+   * Use on the marketing home so the block disappears instead of an empty state.
+   */
+  hideWhenEmpty?: boolean;
+  /**
+   * When true, wraps the card in the gray marketing band + `Container` (home page only).
+   * Ignored when `hideWhenEmpty` hides the section.
+   */
+  homePageSurface?: boolean;
 };
 
 export function RegionalMeetsSection({
@@ -55,6 +69,9 @@ export function RegionalMeetsSection({
   eyebrow = "Near you",
   askForMetroOnMount = true,
   exploreFilters,
+  viewAllEventsHref,
+  hideWhenEmpty = false,
+  homePageSurface = false,
 }: RegionalMeetsSectionProps) {
   const user = useAppSelector(selectUser);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
@@ -275,28 +292,46 @@ export function RegionalMeetsSection({
     }
   };
 
-  return (
+  if (hideWhenEmpty && events.length === 0) {
+    return null;
+  }
+
+  const innerSection = (
     <section
       className={cn(
-        "mt-12 rounded-2xl border border-primary/10 bg-linear-to-b from-white to-primary/4 p-5 shadow-sm sm:p-8",
+        "mt-12 overflow-hidden rounded-[1.75rem] border border-black/6 bg-white p-6 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.09)] sm:p-9",
+        homePageSurface && "mt-0",
         className,
       )}
       aria-labelledby="regional-meets-heading"
     >
-      <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-primary">
-            <Sparkles className="h-3.5 w-3.5" aria-hidden />
+      <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
+        <div className="min-w-0 flex-1 space-y-3">
+          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-neutral-400">
             {eyebrow}
           </p>
-          <h2
-            id="regional-meets-heading"
-            className="font-onest mt-2 text-xl font-semibold tracking-tight text-neutral-900 sm:text-2xl"
-          >
-            {title}
-          </h2>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+            <h2
+              id="regional-meets-heading"
+              className="font-onest text-[1.625rem] font-semibold leading-snug tracking-tight text-neutral-900 sm:text-[1.875rem]"
+            >
+              {title}
+            </h2>
+            {viewAllEventsHref ? (
+              <Link
+                href={viewAllEventsHref}
+                className="group inline-flex shrink-0 items-center justify-center gap-1 self-start rounded-full border border-neutral-200/90 bg-neutral-50/80 px-4 py-2 text-sm font-medium text-neutral-900 shadow-sm transition hover:border-neutral-300 hover:bg-white hover:shadow-md active:scale-[0.99] sm:self-auto"
+              >
+                View all events
+                <ChevronRight
+                  className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                  aria-hidden
+                />
+              </Link>
+            ) : null}
+          </div>
           {regionCityId && hintLabel ? (
-            <p className="mt-2 text-xs font-medium text-neutral-500">
+            <p className="text-xs font-medium leading-relaxed text-neutral-500">
               Location: {regionName}
               {hintLabel.toLowerCase() !== regionName.toLowerCase()
                 ? ` · ${hintLabel}`
@@ -307,14 +342,15 @@ export function RegionalMeetsSection({
 
         <div
           ref={pickerRef}
-          className="relative w-full shrink-0 lg:max-w-[min(100%,320px)]"
+          className="relative w-full shrink-0 lg:max-w-[min(100%,300px)]"
         >
           <div
             id="regional-city-picker-trigger"
             className={cn(
-              "flex w-full items-stretch rounded-2xl border-2 border-neutral-200/90 bg-white shadow-sm transition",
-              "focus-within:border-primary/35 focus-within:ring-2 focus-within:ring-primary/15",
-              pickerOpen && "border-primary/35 ring-2 ring-primary/15",
+              "flex w-full items-stretch rounded-full border border-neutral-200/80 bg-neutral-50/90 transition",
+              "focus-within:border-neutral-300 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]",
+              pickerOpen &&
+                "border-neutral-300 bg-white shadow-[0_0_0_3px_rgba(0,0,0,0.05)]",
             )}
           >
             <label className="sr-only" htmlFor="regional-metro-search">
@@ -344,7 +380,7 @@ export function RegionalMeetsSection({
                 onChange={(e) => setCitySearchQuery(e.target.value)}
                 onFocus={onMetroSearchFocus}
                 className={cn(
-                  "w-full min-h-11 rounded-l-[0.9rem] border-0 bg-transparent py-3 pl-9 pr-2 text-sm font-semibold text-neutral-900 outline-none transition placeholder:font-normal placeholder:text-neutral-500",
+                  "w-full min-h-11 rounded-l-full border-0 bg-transparent py-3 pl-9 pr-2 text-sm font-medium text-neutral-900 outline-none transition placeholder:font-normal placeholder:text-neutral-400",
                   !pickerOpen && "cursor-pointer",
                 )}
               />
@@ -354,7 +390,7 @@ export function RegionalMeetsSection({
               tabIndex={-1}
               aria-label={pickerOpen ? "Close location list" : "Open location list"}
               onClick={() => (pickerOpen ? setPickerOpen(false) : openMetroPicker())}
-              className="flex shrink-0 items-center justify-center rounded-r-[0.9rem] border-l border-neutral-100 px-3 text-neutral-400 transition hover:bg-neutral-50 hover:text-neutral-700"
+              className="flex shrink-0 items-center justify-center rounded-r-full border-l border-neutral-200/60 px-3.5 text-neutral-400 transition hover:bg-white/80 hover:text-neutral-600"
             >
               <ChevronDown
                 className={cn(
@@ -368,14 +404,14 @@ export function RegionalMeetsSection({
 
           {pickerOpen ? (
             <div
-              className="absolute right-0 top-full z-50 mt-2 flex max-h-[min(85vh,400px)] w-full min-w-[min(100vw-2rem,320px)] flex-col overflow-hidden rounded-2xl border border-neutral-200/90 bg-white shadow-xl ring-1 ring-black/5 sm:min-w-[300px]"
+              className="absolute right-0 top-full z-50 mt-2 flex max-h-[min(85vh,400px)] w-full min-w-[min(100vw-2rem,320px)] flex-col overflow-hidden rounded-2xl border border-black/6 bg-white/95 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.12)] backdrop-blur-md sm:min-w-[300px]"
               onWheel={(e) => e.stopPropagation()}
             >
               <button
                 type="button"
                 disabled={detecting}
                 onClick={() => void onDetectArea()}
-                className="flex shrink-0 items-start gap-3 border-b border-neutral-100 bg-linear-to-r from-primary/6 to-transparent px-3 py-2.5 text-left transition hover:from-primary/10 disabled:opacity-60"
+                className="flex shrink-0 items-start gap-3 border-b border-neutral-100/90 bg-neutral-50/50 px-3 py-2.5 text-left transition hover:bg-neutral-50 disabled:opacity-60"
               >
                 {detecting ? (
                   <Loader2 className="mt-0.5 h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden />
@@ -417,8 +453,8 @@ export function RegionalMeetsSection({
                           className={cn(
                             "flex w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium transition",
                             active
-                              ? "bg-primary/12 text-primary"
-                              : "text-neutral-800 hover:bg-neutral-100",
+                              ? "bg-neutral-900/6 text-neutral-900"
+                              : "text-neutral-700 hover:bg-neutral-100",
                           )}
                         >
                           {c.name}
@@ -434,7 +470,7 @@ export function RegionalMeetsSection({
       </div>
 
       {events.length === 0 ? (
-        <div className="mt-8 rounded-xl border border-dashed border-neutral-200 bg-white/80 px-5 py-10 text-center">
+        <div className="mt-10 rounded-2xl border border-dashed border-neutral-200/80 bg-neutral-50/40 px-5 py-12 text-center">
           <p className="font-onest text-sm font-semibold text-neutral-900">
             {hasExploreQuery
               ? "No meets match your filters"
@@ -451,7 +487,7 @@ export function RegionalMeetsSection({
           </p>
         </div>
       ) : (
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-6 sm:grid-cols-2 sm:gap-7 lg:grid-cols-3 lg:gap-8">
           {events.map((e, index) => (
             <Reveal key={e.id} className="h-full">
               <EventCard
@@ -470,4 +506,14 @@ export function RegionalMeetsSection({
       )}
     </section>
   );
+
+  if (homePageSurface) {
+    return (
+      <section className="border-t border-black/6 bg-[#f7f7f7] pb-16 pt-10 sm:pb-20 sm:pt-12">
+        <Container>{innerSection}</Container>
+      </section>
+    );
+  }
+
+  return innerSection;
 }
