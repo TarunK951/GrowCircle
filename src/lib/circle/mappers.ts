@@ -234,6 +234,48 @@ export function circleEventToMeetEvent(
       .find((s) => typeof s === "string" && s.trim().length > 0)
       ?.trim() ?? undefined;
 
+  const currencyRaw = api.currency ?? loose.currency;
+  const currency =
+    typeof currencyRaw === "string" && currencyRaw.trim()
+      ? currencyRaw.trim().toUpperCase()
+      : undefined;
+
+  const taxRaw =
+    api.tax_percentage ?? loose.tax_percentage ?? loose.taxPercentage;
+  let taxPercentage: number | null | undefined;
+  if (taxRaw === null || taxRaw === undefined) {
+    taxPercentage = undefined;
+  } else if (typeof taxRaw === "number" && Number.isFinite(taxRaw)) {
+    taxPercentage = taxRaw;
+  } else if (typeof taxRaw === "string" && taxRaw.trim()) {
+    const n = Number.parseFloat(taxRaw);
+    taxPercentage = Number.isFinite(n) ? n : undefined;
+  }
+
+  const latRaw = api.latitude ?? loose.latitude;
+  const lngRaw = api.longitude ?? loose.longitude;
+  const latitude =
+    latRaw === null || latRaw === undefined
+      ? undefined
+      : typeof latRaw === "number"
+        ? latRaw
+        : typeof latRaw === "string" && latRaw.trim()
+          ? Number.parseFloat(latRaw)
+          : undefined;
+  const longitude =
+    lngRaw === null || lngRaw === undefined
+      ? undefined
+      : typeof lngRaw === "number"
+        ? lngRaw
+        : typeof lngRaw === "string" && lngRaw.trim()
+          ? Number.parseFloat(lngRaw)
+          : undefined;
+  const latLngValid =
+    latitude != null &&
+    longitude != null &&
+    !Number.isNaN(latitude) &&
+    !Number.isNaN(longitude);
+
   const eventRules =
     [api.event_rules, api.eventRules, loose.event_rules, loose.eventRules]
       .find((s) => typeof s === "string" && s.trim().length > 0)
@@ -318,5 +360,8 @@ export function circleEventToMeetEvent(
     registrationClosesAt,
     preJoinQuestions: preJoin,
     slug: api.slug,
+    ...(currency ? { currency } : {}),
+    ...(taxPercentage !== undefined ? { taxPercentage } : {}),
+    ...(latLngValid ? { latitude, longitude } : {}),
   };
 }

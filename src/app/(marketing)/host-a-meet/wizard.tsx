@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import citiesData from "@/data/cities.json";
 import { EVENT_CATEGORY_PRESETS } from "@/lib/eventCategories";
-import { HOST_LOCATION_TYPE_OPTIONS } from "@/lib/hostLocationTypes";
+import {
+  HOST_LOCATION_TYPE_OPTIONS,
+  labelForLocationType,
+} from "@/lib/hostLocationTypes";
 import {
   addEventQuestion,
   createEvent,
@@ -13,7 +16,6 @@ import {
   getMyProfile,
   isCircleProfileComplete,
   publishEvent,
-  updateEvent,
 } from "@/lib/circle/api";
 import { CircleApiError, formatCircleError } from "@/lib/circle/client";
 import { isCircleApiConfigured } from "@/lib/circle/config";
@@ -34,6 +36,7 @@ import {
 import { useAppSelector } from "@/lib/store/hooks";
 import { store } from "@/lib/store/store";
 import {
+  HOST_MAX_MEDIA_SLOTS,
   initialHostDraft,
   normalizeHostDraft,
   useSessionStore,
@@ -56,7 +59,18 @@ const cities = citiesData as City[];
 const MAX_IMAGE_BYTES = 750 * 1024;
 /** Larger cap when publishing via Circle + S3 presigned upload */
 const MAX_IMAGE_BYTES_CIRCLE = 5 * 1024 * 1024;
-const STEPS = 6;
+const STEPS = 7;
+
+const MIN_VERIFICATION_TIER_OPTIONS: { value: string; label: string }[] = [
+  { value: "0", label: "Anyone (tier 0)" },
+  { value: "1", label: "Verified guests (tier 1)" },
+  { value: "2", label: "Strong verification (tier 2)" },
+];
+
+const CURRENCY_OPTIONS: { value: string; label: string }[] = [
+  { value: "INR", label: "INR (₹)" },
+  { value: "USD", label: "USD ($)" },
+];
 
 function WizardStepIntro({
   stepIndex,
@@ -175,7 +189,49 @@ function validateDraft(d: HostDraft): string | null {
       return "End time must be after the start time.";
     }
   }
+  const hasLat = d.latitude != null;
+  const hasLng = d.longitude != null;
+  if (hasLat !== hasLng) {
+    return "Enter both latitude and longitude for a map pin, or leave both blank.";
+  }
+  if (hasLat && hasLng) {
+    if (d.latitude! < -90 || d.latitude! > 90) {
+      return "Latitude must be between -90 and 90.";
+    }
+    if (d.longitude! < -180 || d.longitude! > 180) {
+      return "Longitude must be between -180 and 180.";
+    }
+  }
+  if (!d.currency.trim()) return "Choose a currency.";
   return null;
+}
+
+function ReviewBlock({
+  title,
+  editStep,
+  onEdit,
+  children,
+}: {
+  title: string;
+  editStep: number;
+  onEdit: (step: number) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-neutral-200 bg-neutral-50/60 p-4 shadow-sm">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-neutral-900">{title}</h3>
+        <button
+          type="button"
+          className="text-xs font-semibold text-primary underline-offset-2 hover:underline"
+          onClick={() => onEdit(editStep)}
+        >
+          Edit
+        </button>
+      </div>
+      <div className="mt-3 space-y-2 text-sm text-neutral-800">{children}</div>
+    </div>
+  );
 }
 
 function slotHasVisual(s: HostCoverSlot): boolean {
@@ -335,6 +391,10 @@ export function HostWizard() {
 
   const submit = () => {
     void (async () => {
+      if (step !== STEPS - 1) {
+        toast.error("Review your meet on the last step before publishing.");
+        return;
+      }
       if (!isAuthenticated || !user) {
         toast.error("Sign in to publish a meet.");
         router.push("/login?returnUrl=/host-a-meet");
@@ -476,6 +536,17 @@ export function HostWizard() {
         const endTrim = draft.endsAt.trim();
         const endIso = endTrim ? new Date(endTrim).toISOString() : null;
 
+        const whatsIncluded = trimWizardLines(draft.whatsIncluded);
+        const guestSuggestions = trimWizardLines(draft.guestSuggestions);
+        const houseDos = trimWizardLines(draft.houseDos);
+        const houseDonts = trimWizardLines(draft.houseDonts);
+        const moreAboutTrim = draft.moreAbout.trim();
+        const allowedTrim = draft.allowedAndNotes.trim();
+        const eventRulesTrim = draft.eventRules.trim();
+        const locationTypeTrim = draft.locationType.trim();
+        const currencyTrim = draft.currency.trim() || "INR";
+
+        // Single POST with the full payload (see Circle API event create).
         const created = await createEvent(token, {
           title: draft.title.trim() || "Untitled meet",
           description: draft.description.trim() || "—",
@@ -494,7 +565,7 @@ export function HostWizard() {
           visibility: draft.listingVisibility,
           waitlist_enabled: draft.waitlistEnabled,
           ...(draft.minAge != null ? { min_age: draft.minAge } : {}),
-          min_verification_tier: draft.requireVerifiedGuests ? 1 : 0,
+          min_verification_tier: draft.minVerificationTier,
           terms_required: draft.termsRequired,
           ...(refundPolicyTrim ? { refund_policy: refundPolicyTrim } : {}),
           refund_full_before_hours: draft.refundFullBeforeHours,
@@ -503,27 +574,6 @@ export function HostWizard() {
           ...(regOpenIso ? { registration_opens_at: regOpenIso } : {}),
           ...(regCloseIso ? { registration_closes_at: regCloseIso } : {}),
           ...(endIso ? { end_time: endIso } : {}),
-        });
-
-        const whatsIncluded = trimWizardLines(draft.whatsIncluded);
-        const guestSuggestions = trimWizardLines(draft.guestSuggestions);
-        const houseDos = trimWizardLines(draft.houseDos);
-        const houseDonts = trimWizardLines(draft.houseDonts);
-        const moreAboutTrim = draft.moreAbout.trim();
-        const allowedTrim = draft.allowedAndNotes.trim();
-        const eventRulesTrim = draft.eventRules.trim();
-        const locationTypeTrim = draft.locationType.trim();
-
-        await updateEvent(token, created.id, {
-          event_date: startsAtIso,
-          start_time: startsAtIso,
-          timezone: draft.timezone.trim() || "Asia/Kolkata",
-          ...(primaryCategory ? { category: primaryCategory } : {}),
-          ...(tagPayload.length > 0 ? { tags: tagPayload } : {}),
-          cover_image_url: coverUrl || null,
-          image_urls: additionalImages,
-          contact_email: contactEmailTrim || null,
-          contact_phone: contactPhoneTrim || null,
           ...(faqs.length > 0 ? { faqs } : {}),
           ...(moreAboutTrim ? { more_about: moreAboutTrim } : {}),
           ...(whatsIncluded.length > 0 ? { whats_included: whatsIncluded } : {}),
@@ -536,16 +586,13 @@ export function HostWizard() {
             : {}),
           ...(eventRulesTrim ? { event_rules: eventRulesTrim } : {}),
           ...(locationTypeTrim ? { location_type: locationTypeTrim } : {}),
-          ...(draft.minAge != null ? { min_age: draft.minAge } : {}),
-          min_verification_tier: draft.requireVerifiedGuests ? 1 : 0,
-          terms_required: draft.termsRequired,
-          ...(refundPolicyTrim ? { refund_policy: refundPolicyTrim } : {}),
-          refund_full_before_hours: draft.refundFullBeforeHours,
-          refund_partial_before_hours: draft.refundPartialBeforeHours,
-          refund_partial_percentage: draft.refundPartialPercentage,
-          ...(regOpenIso ? { registration_opens_at: regOpenIso } : {}),
-          ...(regCloseIso ? { registration_closes_at: regCloseIso } : {}),
-          ...(endIso ? { end_time: endIso } : {}),
+          currency: currencyTrim,
+          ...(draft.taxPercentage != null
+            ? { tax_percentage: draft.taxPercentage }
+            : {}),
+          ...(draft.latitude != null && draft.longitude != null
+            ? { latitude: draft.latitude, longitude: draft.longitude }
+            : {}),
         });
 
         for (let i = 0; i < draft.preJoinQuestions.length; i++) {
@@ -599,12 +646,16 @@ export function HostWizard() {
           refundPartialBeforeHours: draft.refundPartialBeforeHours,
           refundPartialPercentage: draft.refundPartialPercentage,
           minAge: draft.minAge ?? undefined,
-          minVerificationTier: draft.requireVerifiedGuests ? 1 : 0,
+          minVerificationTier: draft.minVerificationTier,
           termsRequired: draft.termsRequired,
           contactEmail: contactEmailTrim || undefined,
           contactPhone: contactPhoneTrim || undefined,
           registrationOpensAt: regOpenIso ?? undefined,
           registrationClosesAt: regCloseIso ?? undefined,
+          currency: currencyTrim,
+          taxPercentage: draft.taxPercentage ?? undefined,
+          latitude: draft.latitude ?? undefined,
+          longitude: draft.longitude ?? undefined,
         });
         store.dispatch(
           circleApi.util.invalidateTags([{ type: "HostedEvents", id: "LIST" }]),
@@ -631,6 +682,44 @@ export function HostWizard() {
     draft.priceCents === 0
       ? ""
       : (draft.priceCents / 100).toString();
+
+  const cityName = useMemo(
+    () => cities.find((c) => c.id === draft.cityId)?.name ?? draft.cityId,
+    [draft.cityId],
+  );
+
+  const reviewStartLabel = useMemo(() => {
+    if (!draft.startsAt.trim()) return "—";
+    try {
+      return new Date(draft.startsAt).toLocaleString(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    } catch {
+      return draft.startsAt;
+    }
+  }, [draft.startsAt]);
+
+  const reviewEndLabel = useMemo(() => {
+    const t = draft.endsAt.trim();
+    if (!t) return "—";
+    try {
+      return new Date(t).toLocaleString(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    } catch {
+      return t;
+    }
+  }, [draft.endsAt]);
 
   return (
     <div className="mt-10 w-full rounded-(--radius-section) border border-neutral-200 bg-white/90 p-5 shadow-sm sm:p-6 md:p-8">
@@ -1149,6 +1238,55 @@ export function HostWizard() {
               placeholder="Street, suite, access notes"
             />
           </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="text-sm font-semibold text-neutral-900">
+                Latitude (optional)
+              </label>
+              <p className="mt-1 text-xs text-neutral-600">
+                Map pin — use with longitude, or leave both blank.
+              </p>
+              <input
+                type="number"
+                step="any"
+                className={inputClass}
+                value={draft.latitude ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setDraft((d) => ({
+                    ...d,
+                    latitude:
+                      v === "" || v === "-" ? null : Number.parseFloat(v),
+                  }));
+                }}
+                placeholder="e.g. 12.9716"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-semibold text-neutral-900">
+                Longitude (optional)
+              </label>
+              <p className="mt-1 text-xs text-neutral-600">
+                Sent as <span className="font-mono text-[11px]">latitude</span> /{" "}
+                <span className="font-mono text-[11px]">longitude</span> on the API.
+              </p>
+              <input
+                type="number"
+                step="any"
+                className={inputClass}
+                value={draft.longitude ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setDraft((d) => ({
+                    ...d,
+                    longitude:
+                      v === "" || v === "-" ? null : Number.parseFloat(v),
+                  }));
+                }}
+                placeholder="e.g. 77.5946"
+              />
+            </div>
+          </div>
         </div>
       )}
 
@@ -1157,7 +1295,7 @@ export function HostWizard() {
           <WizardStepIntro
             stepIndex={3}
             title="Schedule & policies"
-            purpose="Start and optional end time, timezone, capacity, price, age and verification, terms, and registration window."
+            purpose="Start and optional end time, timezone, capacity, price, tax, currency, age and verification tier, terms, and registration window."
           />
           <div>
             <p className="text-sm font-semibold text-neutral-900">Starts at</p>
@@ -1327,6 +1465,48 @@ export function HostWizard() {
             </div>
           </div>
 
+          <div className="grid gap-4 sm:grid-cols-2">
+            <HostMeetSelect
+              label="Currency"
+              value={draft.currency || "INR"}
+              options={CURRENCY_OPTIONS}
+              onChange={(currency) =>
+                setDraft((d) => ({ ...d, currency: currency.toUpperCase() }))
+              }
+            />
+            <div>
+              <label className="text-sm font-semibold text-neutral-900">
+                Tax % (optional)
+              </label>
+              <p className="mt-1 text-xs text-neutral-600">
+                GST/VAT — API field{" "}
+                <span className="font-mono text-[11px]">tax_percentage</span>.
+              </p>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step={0.01}
+                className={inputClass}
+                value={draft.taxPercentage ?? ""}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  if (raw === "") {
+                    setDraft((d) => ({ ...d, taxPercentage: null }));
+                    return;
+                  }
+                  const n = Number.parseFloat(raw);
+                  if (Number.isNaN(n)) return;
+                  setDraft((d) => ({
+                    ...d,
+                    taxPercentage: Math.min(100, Math.max(0, n)),
+                  }));
+                }}
+                placeholder="e.g. 18"
+              />
+            </div>
+          </div>
+
           <div className="border-t border-neutral-200 pt-6 space-y-4">
             <p className="text-sm font-semibold text-neutral-900">Who can join</p>
             <HostMeetSelect
@@ -1340,27 +1520,17 @@ export function HostWizard() {
                 }))
               }
             />
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 shadow-sm">
-              <input
-                type="checkbox"
-                className="mt-1 h-4 w-4 shrink-0 rounded border-neutral-300 text-primary focus:ring-primary/30"
-                checked={draft.requireVerifiedGuests}
-                onChange={(e) =>
-                  setDraft((d) => ({
-                    ...d,
-                    requireVerifiedGuests: e.target.checked,
-                  }))
-                }
-              />
-              <span className="text-sm text-neutral-900">
-                <span className="font-semibold">Require verified guests</span>
-                <span className="block text-xs text-neutral-600">
-                  Only guests with a verified profile can register (
-                  <span className="font-mono text-[11px]">min_verification_tier</span>
-                  ).
-                </span>
-              </span>
-            </label>
+            <HostMeetSelect
+              label="Minimum verification tier"
+              value={String(draft.minVerificationTier)}
+              options={MIN_VERIFICATION_TIER_OPTIONS}
+              onChange={(v) =>
+                setDraft((d) => ({
+                  ...d,
+                  minVerificationTier: Number.parseInt(v, 10) as 0 | 1 | 2,
+                }))
+              }
+            />
             <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-neutral-200 bg-white px-3 py-2.5 shadow-sm">
               <input
                 type="checkbox"
@@ -1551,11 +1721,13 @@ export function HostWizard() {
                 ? "5MB"
                 : "750KB";
             const slotTitle =
-              slotIndex === 0 ? "Cover image" : "Gallery image";
+              slotIndex === 0
+                ? "Cover image"
+                : `Gallery image ${slotIndex}`;
 
             return (
               <div
-                key={slotIndex}
+                key={`media-${slotIndex}`}
                 className="rounded-xl border border-neutral-200 bg-neutral-50/50 p-3"
               >
                 <p className="text-xs font-semibold uppercase tracking-wide text-neutral-900">
@@ -1588,14 +1760,22 @@ export function HostWizard() {
                           type="button"
                           onClick={() =>
                             setDraft((d) => {
-                              const next = [...d.coverSlots];
-                              next[slotIndex] = { dataUrl: null, url: "" };
-                              return { ...d, coverSlots: next };
+                              if (slotIndex === 0) {
+                                const next = [...d.coverSlots];
+                                next[0] = { dataUrl: null, url: "" };
+                                return { ...d, coverSlots: next };
+                              }
+                              return {
+                                ...d,
+                                coverSlots: d.coverSlots.filter(
+                                  (_, i) => i !== slotIndex,
+                                ),
+                              };
                             })
                           }
                           className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 shadow-sm hover:bg-red-50"
                         >
-                          Remove
+                          {slotIndex === 0 ? "Clear" : "Remove"}
                         </button>
                       </div>
                       <input
@@ -1707,6 +1887,23 @@ export function HostWizard() {
               </div>
             );
           })}
+          {draft.coverSlots.length < HOST_MAX_MEDIA_SLOTS ? (
+            <button
+              type="button"
+              className="text-sm font-medium text-primary hover:underline"
+              onClick={() =>
+                setDraft((d) => ({
+                  ...d,
+                  coverSlots: [
+                    ...d.coverSlots,
+                    { dataUrl: null, url: "" },
+                  ],
+                }))
+              }
+            >
+              + Add gallery image
+            </button>
+          ) : null}
         </div>
       )}
 
@@ -1864,6 +2061,177 @@ export function HostWizard() {
         </div>
       )}
 
+      {step === 6 && (
+        <div className="mt-4 space-y-4">
+          <WizardStepIntro
+            stepIndex={6}
+            title="Review & publish"
+            purpose="Confirm title, schedule, location, pricing, media, and policies before publishing."
+          />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ReviewBlock title="Basics" editStep={0} onEdit={setStep}>
+              <p>
+                <span className="font-medium text-neutral-900">Title:</span>{" "}
+                {draft.title.trim() || "—"}
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">
+                  Description:
+                </span>{" "}
+                {draft.description.trim() || "—"}
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">Categories:</span>{" "}
+                {draft.categories.length
+                  ? draft.categories.join(" · ")
+                  : "—"}
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">Tags:</span>{" "}
+                {tagsPayloadFromDraft(draft).join(", ") || "—"}
+              </p>
+            </ReviewBlock>
+            <ReviewBlock title="Story & rules" editStep={1} onEdit={setStep}>
+              <p className="line-clamp-4 whitespace-pre-wrap">
+                <span className="font-medium text-neutral-900">More about:</span>{" "}
+                {draft.moreAbout.trim() || "—"}
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">Refund policy:</span>{" "}
+                {draft.refundPolicy.trim() || "—"}
+              </p>
+            </ReviewBlock>
+            <ReviewBlock title="Location" editStep={2} onEdit={setStep}>
+              <p>
+                <span className="font-medium text-neutral-900">City:</span>{" "}
+                {cityName}
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">Venue:</span>{" "}
+                {draft.venueName.trim() || "—"}
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">Address:</span>{" "}
+                {draft.addressLine.trim() || "—"}
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">Type:</span>{" "}
+                {draft.locationType
+                  ? labelForLocationType(draft.locationType)
+                  : "—"}
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">Coordinates:</span>{" "}
+                {draft.latitude != null && draft.longitude != null
+                  ? `${draft.latitude}, ${draft.longitude}`
+                  : "—"}
+              </p>
+            </ReviewBlock>
+            <ReviewBlock title="Schedule & pricing" editStep={3} onEdit={setStep}>
+              <p>
+                <span className="font-medium text-neutral-900">Starts:</span>{" "}
+                {reviewStartLabel}
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">Ends:</span>{" "}
+                {reviewEndLabel}
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">Timezone:</span>{" "}
+                {draft.timezone}
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">Capacity:</span>{" "}
+                {draft.capacity}
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">Price:</span>{" "}
+                {draft.priceCents === 0
+                  ? "Free"
+                  : `${rupeesValue} ${draft.currency}`}
+              </p>
+              {draft.taxPercentage != null ? (
+                <p>
+                  <span className="font-medium text-neutral-900">Tax:</span>{" "}
+                  {draft.taxPercentage}%
+                </p>
+              ) : null}
+              <p>
+                <span className="font-medium text-neutral-900">Min age:</span>{" "}
+                {draft.minAge != null ? `${draft.minAge}+` : "All ages"}
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">
+                  Verification tier:
+                </span>{" "}
+                {draft.minVerificationTier}
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">Terms:</span>{" "}
+                {draft.termsRequired ? "Required" : "Not required"}
+              </p>
+              {draft.registrationOpensAt.trim() ||
+              draft.registrationClosesAt.trim() ? (
+                <p>
+                  <span className="font-medium text-neutral-900">
+                    Registration:
+                  </span>{" "}
+                  {draft.registrationOpensAt.trim()
+                    ? `Opens ${new Date(draft.registrationOpensAt).toLocaleString()}`
+                    : ""}
+                  {draft.registrationOpensAt.trim() &&
+                  draft.registrationClosesAt.trim()
+                    ? " · "
+                    : ""}
+                  {draft.registrationClosesAt.trim()
+                    ? `Closes ${new Date(draft.registrationClosesAt).toLocaleString()}`
+                    : ""}
+                </p>
+              ) : null}
+            </ReviewBlock>
+            <ReviewBlock title="Contact & media" editStep={4} onEdit={setStep}>
+              <p>
+                <span className="font-medium text-neutral-900">Email:</span>{" "}
+                {draft.contactEmail.trim() || "—"}
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">Phone:</span>{" "}
+                {draft.contactPhone.trim() || "—"}
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">Waitlist:</span>{" "}
+                {draft.waitlistEnabled ? "On" : "Off"}
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">Listing:</span>{" "}
+                {draft.listingVisibility === "public" ? "Public" : "Private"}
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">Images:</span>{" "}
+                {
+                  draft.coverSlots.filter((s) => slotHasVisual(s)).length
+                }{" "}
+                attached (cover + gallery)
+              </p>
+            </ReviewBlock>
+            <ReviewBlock title="FAQs & pre-join" editStep={5} onEdit={setStep}>
+              <p>
+                <span className="font-medium text-neutral-900">FAQ pairs:</span>{" "}
+                {
+                  draft.faqs.filter((f) => f.q.trim() && f.a.trim()).length
+                }
+              </p>
+              <p>
+                <span className="font-medium text-neutral-900">
+                  Pre-join questions:
+                </span>{" "}
+                {draft.preJoinQuestions.length}
+              </p>
+            </ReviewBlock>
+          </div>
+        </div>
+      )}
+
       <div className="mt-8 flex justify-between gap-3">
         <button
           type="button"
@@ -1879,7 +2247,7 @@ export function HostWizard() {
             onClick={next}
             className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow-md shadow-primary/20 transition hover:bg-primary/92"
           >
-            Continue
+            {step === STEPS - 2 ? "Continue to review" : "Continue"}
           </button>
         ) : (
           <button

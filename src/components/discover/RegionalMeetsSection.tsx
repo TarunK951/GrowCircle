@@ -318,54 +318,34 @@ export function RegionalMeetsSection({
       )}
       aria-labelledby="regional-meets-heading"
     >
-      <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
-        <div className="min-w-0 flex-1 space-y-3">
-          <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-neutral-400">
-            {eyebrow}
-          </p>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+      <div className="space-y-5 sm:space-y-6">
+        {/* Title + location: one clear row on desktop; stacked on small screens */}
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between lg:gap-x-8 xl:gap-x-12">
+          <div className="min-w-0 flex-1 space-y-2">
+            <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-neutral-400">
+              {eyebrow}
+            </p>
             <h2
               id="regional-meets-heading"
               className="font-onest text-[1.625rem] font-semibold leading-snug tracking-tight text-neutral-900 sm:text-[1.875rem]"
             >
               {title}
             </h2>
-            {viewAllEventsHref ? (
-              <Link
-                href={viewAllEventsHref}
-                className="group inline-flex shrink-0 items-center justify-center gap-1 self-start rounded-full border border-neutral-200/90 bg-neutral-50/80 px-4 py-2 text-sm font-medium text-neutral-900 shadow-sm transition hover:border-neutral-300 hover:bg-white hover:shadow-md active:scale-[0.99] sm:self-auto"
-              >
-                View all events
-                <ChevronRight
-                  className="h-4 w-4 transition-transform group-hover:translate-x-0.5"
-                  aria-hidden
-                />
-              </Link>
-            ) : null}
           </div>
-          {regionCityId && hintLabel ? (
-            <p className="text-xs font-medium leading-relaxed text-neutral-500">
-              Location: {regionName}
-              {hintLabel.toLowerCase() !== regionName.toLowerCase()
-                ? ` · ${hintLabel}`
-                : ""}
-            </p>
-          ) : null}
-        </div>
 
-        <div
-          ref={pickerRef}
-          className="relative w-full shrink-0 lg:max-w-[min(100%,300px)]"
-        >
           <div
-            id="regional-city-picker-trigger"
-            className={cn(
-              "flex w-full items-stretch rounded-full border border-neutral-200/80 bg-neutral-50/90 transition",
-              "focus-within:border-neutral-300 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]",
-              pickerOpen &&
-                "border-neutral-300 bg-white shadow-[0_0_0_3px_rgba(0,0,0,0.05)]",
-            )}
+            ref={pickerRef}
+            className="relative w-full shrink-0 lg:w-[min(100%,17.5rem)] xl:w-80"
           >
+            <div
+              id="regional-city-picker-trigger"
+              className={cn(
+                "flex w-full items-stretch rounded-full border border-neutral-200/80 bg-neutral-50/90 transition",
+                "focus-within:border-neutral-300 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(0,0,0,0.04)]",
+                pickerOpen &&
+                  "border-neutral-300 bg-white shadow-[0_0_0_3px_rgba(0,0,0,0.05)]",
+              )}
+            >
             <label className="sr-only" htmlFor="regional-metro-search">
               Location
             </label>
@@ -478,6 +458,33 @@ export function RegionalMeetsSection({
                 )}
               </ul>
             </div>
+          ) : null}
+          </div>
+        </div>
+
+        {/* Secondary row: avoids crowding the title with the location control */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-x-6 sm:gap-y-2">
+          {viewAllEventsHref ? (
+            <Link
+              href={viewAllEventsHref}
+              className="group inline-flex w-fit items-center gap-1 text-sm font-medium text-neutral-600 underline-offset-4 transition hover:text-neutral-900 hover:underline"
+            >
+              View all events
+              <ChevronRight
+                className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5"
+                aria-hidden
+              />
+            </Link>
+          ) : (
+            <span className="min-w-0 sm:flex-1" aria-hidden />
+          )}
+          {regionCityId && hintLabel ? (
+            <p className="text-xs font-medium leading-relaxed text-neutral-500 sm:text-right">
+              Location: {regionName}
+              {hintLabel.toLowerCase() !== regionName.toLowerCase()
+                ? ` · ${hintLabel}`
+                : ""}
+            </p>
           ) : null}
         </div>
       </div>

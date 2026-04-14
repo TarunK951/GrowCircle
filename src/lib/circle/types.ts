@@ -130,6 +130,8 @@ export type CircleEvent = {
   registration_opens_at?: string | null;
   registration_closes_at?: string | null;
   tax_percentage?: string | number | null;
+  /** ISO 4217 (e.g. INR) when API returns it */
+  currency?: string | null;
   commission_override?: number | string | null;
 };
 

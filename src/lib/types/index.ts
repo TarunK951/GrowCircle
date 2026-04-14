@@ -35,6 +35,13 @@ export type MeetEvent = {
   /** Extra gallery URLs (local merge after publish; not returned by Circle API). */
   additionalImages?: string[];
   priceCents: number;
+  /** ISO 4217 when synced from API. */
+  currency?: string;
+  /** API `tax_percentage` — GST/VAT display. */
+  taxPercentage?: number | null;
+  /** Optional map coordinates from API. */
+  latitude?: number | null;
+  longitude?: number | null;
   venueName?: string;
   /** Street / full address shown with venue. */
   addressLine?: string;

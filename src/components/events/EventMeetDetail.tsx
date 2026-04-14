@@ -9,6 +9,8 @@ import {
   Lightbulb,
   Mail,
   MapPin,
+  ExternalLink,
+  Percent,
   Phone,
   User,
   UserCheck,
@@ -122,7 +124,10 @@ export function EventMeetDetail({
   if (event.minAge != null && event.minAge > 0) {
     eligibilityParts.push(`Ages ${event.minAge}+`);
   }
-  if ((event.minVerificationTier ?? 0) >= 1) {
+  const mvt = event.minVerificationTier ?? 0;
+  if (mvt >= 2) {
+    eligibilityParts.push("Strong verification (tier 2)");
+  } else if (mvt >= 1) {
     eligibilityParts.push("Verified guests only");
   }
   if (event.termsRequired) {
@@ -261,6 +266,22 @@ export function EventMeetDetail({
                 <MetaRow label="Where" icon={MapPin}>
                   {whereContent}
                 </MetaRow>
+                {event.latitude != null &&
+                event.longitude != null &&
+                Number.isFinite(event.latitude) &&
+                Number.isFinite(event.longitude) ? (
+                  <MetaRow label="Map" icon={MapPin}>
+                    <a
+                      href={`https://www.google.com/maps?q=${event.latitude},${event.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 font-medium text-primary underline-offset-4 hover:underline"
+                    >
+                      Open in Google Maps
+                      <ExternalLink className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    </a>
+                  </MetaRow>
+                ) : null}
                 {event.locationType ? (
                   <MetaRow label="Location type" icon={Building2}>
                     {labelForLocationType(event.locationType)}
@@ -274,7 +295,19 @@ export function EventMeetDetail({
                 </MetaRow>
                 <MetaRow label="Price" icon={Banknote}>
                   {priceLabel}
+                  {event.currency && event.currency !== "INR" ? (
+                    <span className="ml-1 text-muted-foreground">
+                      ({event.currency})
+                    </span>
+                  ) : null}
                 </MetaRow>
+                {event.taxPercentage != null &&
+                Number.isFinite(event.taxPercentage) ? (
+                  <MetaRow label="Tax" icon={Percent}>
+                    {event.taxPercentage}%
+                    {event.currency ? ` ${event.currency}` : ""}
+                  </MetaRow>
+                ) : null}
                 {eligibilityParts.length > 0 ? (
                   <MetaRow label="Requirements" icon={UserCheck}>
                     {eligibilityParts.join(" · ")}

@@ -26,13 +26,14 @@ function authUser() {
   return store.getState().auth.user;
 }
 
-/** One image slot: file preview (`dataUrl`) and/or HTTPS URL. Host wizard uses exactly 2 (cover + gallery). */
+/** One image slot: file preview (`dataUrl`) and/or HTTPS URL. Slot 0 is cover; rest are `image_urls`. */
 export type HostCoverSlot = {
   dataUrl: string | null;
   url: string;
 };
 
-const HOST_COVER_SLOT_COUNT = 2;
+/** Cover (index 0) plus gallery rows; capped for API payload size. */
+export const HOST_MAX_MEDIA_SLOTS = 10;
 
 function emptyCoverSlot(): HostCoverSlot {
   return { dataUrl: null, url: "" };
@@ -74,15 +75,19 @@ export type HostDraft = {
   waitlistEnabled: boolean;
   listingVisibility: "public" | "private";
   priceCents: number;
-  /** Two slots: first → `cover_image_url`, second → `image_urls`. */
+  currency: string;
+  taxPercentage: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  /** Index 0 → `cover_image_url`; further slots → `image_urls`. */
   coverSlots: HostCoverSlot[];
   faqs: { q: string; a: string }[];
   /** Draft rows; ids assigned on publish. */
   preJoinQuestions: { prompt: string; options: string[] }[];
   /** API `min_age`; `null` = all ages. */
   minAge: number | null;
-  /** Maps to API `min_verification_tier` (0 or 1). */
-  requireVerifiedGuests: boolean;
+  /** API `min_verification_tier` (0–2). */
+  minVerificationTier: 0 | 1 | 2;
   /** API `terms_required`. */
   termsRequired: boolean;
   /** API `refund_policy`. */
@@ -207,11 +212,15 @@ const initialHostDraft = (): HostDraft => ({
   waitlistEnabled: true,
   listingVisibility: "public",
   priceCents: 0,
+  currency: "INR",
+  taxPercentage: null,
+  latitude: null,
+  longitude: null,
   coverSlots: [emptyCoverSlot(), emptyCoverSlot()],
   faqs: [{ q: "", a: "" }],
   preJoinQuestions: [],
   minAge: null,
-  requireVerifiedGuests: false,
+  minVerificationTier: 0,
   termsRequired: false,
   refundPolicy: "",
   refundFullBeforeHours: 48,
@@ -232,13 +241,13 @@ export function normalizeHostDraft(raw: unknown): HostDraft {
   let coverSlots = base.coverSlots;
   if (Array.isArray(o.coverSlots)) {
     coverSlots = (o.coverSlots as HostCoverSlot[])
-      .slice(0, HOST_COVER_SLOT_COUNT)
+      .slice(0, HOST_MAX_MEDIA_SLOTS)
       .map((s) => ({
         dataUrl: typeof s?.dataUrl === "string" ? s.dataUrl : null,
         url: typeof s?.url === "string" ? s.url : "",
       }));
-    while (coverSlots.length < HOST_COVER_SLOT_COUNT) {
-      coverSlots.push(emptyCoverSlot());
+    if (coverSlots.length < 1) {
+      coverSlots = [emptyCoverSlot()];
     }
   } else {
     const legacyUrl = typeof o.imageUrl === "string" ? o.imageUrl : "";
@@ -250,6 +259,14 @@ export function normalizeHostDraft(raw: unknown): HostDraft {
         emptyCoverSlot(),
       ];
     }
+  }
+
+  const tierRaw = o.minVerificationTier ?? o.requireVerifiedGuests;
+  let minVerificationTier: 0 | 1 | 2 = base.minVerificationTier;
+  if (typeof tierRaw === "number" && [0, 1, 2].includes(tierRaw)) {
+    minVerificationTier = tierRaw as 0 | 1 | 2;
+  } else if (tierRaw === true) {
+    minVerificationTier = 1;
   }
 
   const legacyJoinInvite = o.joinMode === "invite";
@@ -303,6 +320,28 @@ export function normalizeHostDraft(raw: unknown): HostDraft {
       typeof o.priceCents === "number" && Number.isFinite(o.priceCents)
         ? Math.max(0, o.priceCents)
         : base.priceCents,
+    currency:
+      typeof o.currency === "string" && o.currency.trim()
+        ? o.currency.trim().toUpperCase()
+        : base.currency,
+    taxPercentage:
+      o.taxPercentage === null
+        ? null
+        : typeof o.taxPercentage === "number" && Number.isFinite(o.taxPercentage)
+          ? Math.min(100, Math.max(0, o.taxPercentage))
+          : base.taxPercentage,
+    latitude:
+      o.latitude === null
+        ? null
+        : typeof o.latitude === "number" && Number.isFinite(o.latitude)
+          ? o.latitude
+          : base.latitude,
+    longitude:
+      o.longitude === null
+        ? null
+        : typeof o.longitude === "number" && Number.isFinite(o.longitude)
+          ? o.longitude
+          : base.longitude,
     coverSlots,
     faqs: Array.isArray(o.faqs)
       ? (o.faqs as { q: string; a: string }[])
@@ -328,10 +367,7 @@ export function normalizeHostDraft(raw: unknown): HostDraft {
         : typeof o.minAge === "number" && Number.isFinite(o.minAge)
           ? o.minAge
           : base.minAge,
-    requireVerifiedGuests:
-      typeof o.requireVerifiedGuests === "boolean"
-        ? o.requireVerifiedGuests
-        : base.requireVerifiedGuests,
+    minVerificationTier,
     termsRequired:
       typeof o.termsRequired === "boolean"
         ? o.termsRequired
