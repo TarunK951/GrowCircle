@@ -49,7 +49,15 @@ export default async function DiscoverPage(props: DiscoverPageProps) {
         categories={categories}
       />
 
-      <RegionalMeetsSection cities={cityOptions} />
+      <RegionalMeetsSection
+        cities={cityOptions}
+        exploreFilters={{
+          city: sp.city ?? "",
+          search: sp.search ?? "",
+          category: sp.category ?? "all",
+          date: sp.date ?? "",
+        }}
+      />
     </Container>
   );
 }

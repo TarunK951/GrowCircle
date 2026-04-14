@@ -204,7 +204,7 @@ function FilterFields({
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search meets by title, topic, or keyword…"
+              placeholder="Search by title, host, venue, or keyword…"
               className={searchInputClass}
               autoComplete="off"
               aria-label="Search meets"
@@ -382,7 +382,7 @@ export function ExploreFilters({
                   apply();
                 }
               }}
-              placeholder="Search meets…"
+              placeholder="Search by title, host, venue…"
               className={searchInputClass}
               aria-label="Search meets"
             />

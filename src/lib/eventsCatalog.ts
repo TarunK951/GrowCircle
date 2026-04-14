@@ -2,10 +2,45 @@ import {
   eventCategoryLabels,
   eventMatchesCategoryFilter,
 } from "@/lib/eventCategories";
-import type { City, MeetEvent } from "@/lib/types";
+import { hostLabelForEvent } from "@/lib/hostName";
+import type { City, MeetEvent, User } from "@/lib/types";
 import citiesData from "@/data/cities.json";
 
 const cities = citiesData as City[];
+
+/** Lowercased text blob for keyword search (title, host, venue, categories, etc.). */
+function searchableTextForEvent(
+  e: MeetEvent,
+  currentUser: User | null | undefined,
+): string {
+  const chunks: string[] = [
+    e.title,
+    e.description,
+    e.moreAbout ?? "",
+    e.venueName ?? "",
+    e.displayLocation ?? "",
+    e.addressLine ?? "",
+    e.eventRules ?? "",
+    e.whatsIncluded?.join(" ") ?? "",
+    e.guestSuggestions?.join(" ") ?? "",
+  ];
+  chunks.push(...eventCategoryLabels(e));
+  chunks.push(hostLabelForEvent(e, currentUser ?? null));
+  return chunks.join("\n").toLowerCase();
+}
+
+function eventMatchesSearchQuery(
+  e: MeetEvent,
+  rawQ: string,
+  currentUser: User | null | undefined,
+): boolean {
+  const q = rawQ.trim().toLowerCase();
+  if (!q) return true;
+  const tokens = q.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return true;
+  const blob = searchableTextForEvent(e, currentUser);
+  return tokens.every((t) => blob.includes(t));
+}
 
 function eventMatchesCityFilter(event: MeetEvent, cityId: string): boolean {
   if (event.cityId === cityId) return true;
@@ -55,8 +90,10 @@ export function listEventsMerged(
     category?: string;
     /** YYYY-MM-DD — events whose start falls on that calendar day (local). */
     date?: string;
-    /** Case-insensitive match on title, description, or category labels. */
+    /** Case-insensitive match on title, description, categories, host, venue, location, etc. */
     search?: string;
+    /** Used with `search` so host display names (API username / logged-in host) match. */
+    searchContextUser?: User | null;
     dateFrom?: string;
     dateTo?: string;
     /** When true, only events visible on explore. */
@@ -96,13 +133,10 @@ export function listEventsMerged(
       list = list.filter((e) => new Date(e.startsAt) <= to);
     }
   }
-  const q = filters?.search?.trim().toLowerCase();
-  if (q) {
-    list = list.filter((e) => {
-      if (e.title.toLowerCase().includes(q)) return true;
-      if (e.description.toLowerCase().includes(q)) return true;
-      return eventCategoryLabels(e).some((c) => c.toLowerCase().includes(q));
-    });
+  const searchRaw = filters?.search?.trim() ?? "";
+  if (searchRaw) {
+    const u = filters?.searchContextUser;
+    list = list.filter((e) => eventMatchesSearchQuery(e, searchRaw, u));
   }
   return list;
 }

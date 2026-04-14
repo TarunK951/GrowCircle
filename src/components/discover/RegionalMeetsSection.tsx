@@ -38,6 +38,14 @@ type RegionalMeetsSectionProps = {
    * Set false on marketing home so the hero isn’t interrupted.
    */
   askForMetroOnMount?: boolean;
+  /** Discover toolbar filters from the URL — keeps the grid in sync with search / filters. */
+  exploreFilters?: {
+    city?: string;
+    search?: string;
+    category?: string;
+    /** YYYY-MM-DD */
+    date?: string;
+  };
 };
 
 export function RegionalMeetsSection({
@@ -46,6 +54,7 @@ export function RegionalMeetsSection({
   title = "Meets in your region",
   eyebrow = "Near you",
   askForMetroOnMount = true,
+  exploreFilters,
 }: RegionalMeetsSectionProps) {
   const user = useAppSelector(selectUser);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
@@ -53,6 +62,11 @@ export function RegionalMeetsSection({
 
   const indiaCities = useMemo(
     () => cities.filter((c) => INDIA_METRO_CITY_IDS.has(c.id)),
+    [cities],
+  );
+
+  const allCityById = useMemo(
+    () => Object.fromEntries(cities.map((c) => [c.id, c.name])),
     [cities],
   );
 
@@ -90,16 +104,6 @@ export function RegionalMeetsSection({
       return true;
     },
     [indiaCities],
-  );
-
-  const fetchAndApplyHint = useCallback(
-    async (opts?: { silent?: boolean }) => {
-      const res = await fetch("/api/geo/hint");
-      if (!res.ok) return false;
-      const data = (await res.json()) as GeoHintResponse;
-      return applyHint(data, opts);
-    },
-    [applyHint],
   );
 
   /** Restore saved metro only after explicit pick; no auto geo. Ask for location once per session if none saved. */
@@ -174,12 +178,27 @@ export function RegionalMeetsSection({
     setPickerOpen(false);
   };
 
+  const expCity = exploreFilters?.city?.trim() ?? "";
+  const expSearch = exploreFilters?.search?.trim() ?? "";
+  const expCategory = exploreFilters?.category?.trim() ?? "all";
+  const expDate = exploreFilters?.date?.trim() ?? "";
+
+  /** URL toolbar city wins so Discover filters and the grid stay aligned. */
+  const effectiveCityId = expCity || regionCityId;
+  const listNarrowedByCity = Boolean(expCity || regionCityId);
+
   const events = useMemo(() => {
     let list = listEventsMerged(
       hostedEvents,
       {
-        ...(regionCityId ? { cityId: regionCityId } : {}),
+        ...(effectiveCityId ? { cityId: effectiveCityId } : {}),
+        ...(expSearch ? { search: expSearch } : {}),
+        ...(expCategory && expCategory !== "all"
+          ? { category: expCategory }
+          : {}),
+        ...(expDate ? { date: expDate } : {}),
         publicOnly: true,
+        searchContextUser: user,
       },
       circleCatalogEvents,
     );
@@ -188,17 +207,34 @@ export function RegionalMeetsSection({
       (a, b) =>
         new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
     );
-    return list.slice(0, regionCityId ? 9 : 18);
-  }, [hostedEvents, circleCatalogEvents, regionCityId]);
+    return list.slice(0, listNarrowedByCity ? 9 : 18);
+  }, [
+    hostedEvents,
+    circleCatalogEvents,
+    effectiveCityId,
+    expSearch,
+    expCategory,
+    expDate,
+    listNarrowedByCity,
+    user,
+  ]);
 
-  const cityById = Object.fromEntries(indiaCities.map((c) => [c.id, c.name]));
   const regionName = regionCityId
-    ? cityById[regionCityId] ?? regionCityId
+    ? allCityById[regionCityId] ?? regionCityId
+    : "";
+
+  const displayRegionName = effectiveCityId
+    ? allCityById[effectiveCityId] ?? effectiveCityId
     : "";
 
   const selectedLabel = regionCityId
-    ? cityById[regionCityId] ?? "Location"
+    ? allCityById[regionCityId] ?? "Location"
     : "";
+
+  const hasExploreQuery =
+    Boolean(expSearch) ||
+    (Boolean(expCategory) && expCategory !== "all") ||
+    Boolean(expDate);
 
   /** Closed: show selected metro name; open: filter query. */
   const metroInputValue = pickerOpen
@@ -400,14 +436,18 @@ export function RegionalMeetsSection({
       {events.length === 0 ? (
         <div className="mt-8 rounded-xl border border-dashed border-neutral-200 bg-white/80 px-5 py-10 text-center">
           <p className="font-onest text-sm font-semibold text-neutral-900">
-            {regionCityId
-              ? `No upcoming meets in ${regionName} yet`
-              : "No upcoming public meets right now"}
+            {hasExploreQuery
+              ? "No meets match your filters"
+              : effectiveCityId
+                ? `No upcoming meets in ${displayRegionName} yet`
+                : "No upcoming public meets right now"}
           </p>
           <p className="mt-2 text-sm text-neutral-600">
-            {regionCityId
-              ? "Try another location from the menu above, or check back later."
-              : "Check back soon, or pick a location to see city-specific listings."}
+            {hasExploreQuery
+              ? "Try different keywords, or open Filters to adjust city, category, or date."
+              : effectiveCityId
+                ? "Try another location from the menu above, or check back later."
+                : "Check back soon, or pick a location to see city-specific listings."}
           </p>
         </div>
       ) : (
@@ -417,9 +457,9 @@ export function RegionalMeetsSection({
               <EventCard
                 event={e}
                 cityName={
-                  regionCityId
-                    ? regionName
-                    : e.displayLocation ?? cityById[e.cityId] ?? ""
+                  effectiveCityId
+                    ? displayRegionName
+                    : e.displayLocation ?? allCityById[e.cityId] ?? ""
                 }
                 hostName={hostLabelForEvent(e, user)}
                 priority={index < 3}
