@@ -69,21 +69,6 @@ export function RegionalMeetsSection({
     return indiaCities.filter((c) => c.name.toLowerCase().includes(q));
   }, [indiaCities, citySearchQuery]);
 
-  /** Until the user types, show only the selected metro (change metro by searching). */
-  const listboxCities = useMemo(() => {
-    if (citySearchQuery.trim()) return filteredIndiaCities;
-    if (regionCityId) {
-      const only = indiaCities.find((c) => c.id === regionCityId);
-      return only ? [only] : filteredIndiaCities;
-    }
-    return filteredIndiaCities;
-  }, [
-    citySearchQuery,
-    regionCityId,
-    indiaCities,
-    filteredIndiaCities,
-  ]);
-
   const applyHint = useCallback(
     (data: GeoHintResponse, opts?: { silent?: boolean }) => {
       const id = data.suggestedCityId;
@@ -99,7 +84,7 @@ export function RegionalMeetsSection({
       }
       if (!opts?.silent) {
         const name =
-          indiaCities.find((c) => c.id === id)?.name ?? label ?? "this metro";
+          indiaCities.find((c) => c.id === id)?.name ?? label ?? "this area";
         toast.success(`Area set to ${name}`);
       }
       return true;
@@ -212,7 +197,7 @@ export function RegionalMeetsSection({
     : "";
 
   const selectedLabel = regionCityId
-    ? cityById[regionCityId] ?? "Metro"
+    ? cityById[regionCityId] ?? "Location"
     : "";
 
   /** Closed: show selected metro name; open: filter query. */
@@ -234,7 +219,7 @@ export function RegionalMeetsSection({
     try {
       const res = await fetch("/api/geo/hint");
       if (!res.ok) {
-        toast.message("Couldn’t detect your metro automatically", {
+        toast.message("Couldn’t detect your location automatically", {
           description: "Choose your city from the list.",
         });
         return;
@@ -242,7 +227,7 @@ export function RegionalMeetsSection({
       const data = (await res.json()) as GeoHintResponse;
       const ok = applyHint(data, { silent: false });
       if (!ok) {
-        toast.message("Couldn’t detect your metro automatically", {
+        toast.message("Couldn’t detect your location automatically", {
           description: "Choose your city from the list.",
         });
       }
@@ -274,22 +259,6 @@ export function RegionalMeetsSection({
           >
             {title}
           </h2>
-          <p className="mt-2 max-w-2xl text-sm text-neutral-600">
-            {regionCityId ? (
-              <>
-                Showing upcoming public meets in{" "}
-                <span className="font-semibold text-neutral-800">
-                  {regionName}
-                </span>{" "}
-                only.
-              </>
-            ) : (
-              <>
-                Showing all upcoming public meets. Choose a metro below to
-                narrow this list to one city (India metros).
-              </>
-            )}
-          </p>
           {regionCityId && hintLabel ? (
             <p className="mt-2 text-xs font-medium text-neutral-500">
               Location: {regionName}
@@ -304,9 +273,6 @@ export function RegionalMeetsSection({
           ref={pickerRef}
           className="relative w-full shrink-0 lg:max-w-[min(100%,320px)]"
         >
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-            Metro
-          </p>
           <div
             id="regional-city-picker-trigger"
             className={cn(
@@ -316,7 +282,7 @@ export function RegionalMeetsSection({
             )}
           >
             <label className="sr-only" htmlFor="regional-metro-search">
-              Search metros
+              Location
             </label>
             <div className="relative min-w-0 flex-1">
               <Search
@@ -334,8 +300,8 @@ export function RegionalMeetsSection({
                 autoCorrect="off"
                 placeholder={
                   regionCityId
-                    ? "Search to change metro…"
-                    : "Choose your metro…"
+                    ? "Search to change location…"
+                    : "Choose your location…"
                 }
                 readOnly={!pickerOpen}
                 value={metroInputValue}
@@ -350,7 +316,7 @@ export function RegionalMeetsSection({
             <button
               type="button"
               tabIndex={-1}
-              aria-label={pickerOpen ? "Close metro list" : "Open metro list"}
+              aria-label={pickerOpen ? "Close location list" : "Open location list"}
               onClick={() => (pickerOpen ? setPickerOpen(false) : openMetroPicker())}
               className="flex shrink-0 items-center justify-center rounded-r-[0.9rem] border-l border-neutral-100 px-3 text-neutral-400 transition hover:bg-neutral-50 hover:text-neutral-700"
             >
@@ -385,25 +351,25 @@ export function RegionalMeetsSection({
                     Detect my area
                   </span>
                   <span className="mt-0.5 block text-xs text-neutral-500">
-                    Uses your connection to suggest a metro
+                    Uses your connection to suggest an area
                   </span>
                 </span>
               </button>
               <ul
                 id="regional-metro-listbox"
                 role="listbox"
-                aria-label="Metro cities"
+                aria-label="Locations"
                 aria-labelledby="regional-metro-search"
                 className="scrollbar-none min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-y-contain p-2"
                 style={{ WebkitOverflowScrolling: "touch" }}
                 onWheel={(e) => e.stopPropagation()}
               >
-                {listboxCities.length === 0 ? (
+                {filteredIndiaCities.length === 0 ? (
                   <li className="px-3 py-4 text-center text-sm text-neutral-500">
                     No matches
                   </li>
                 ) : (
-                  listboxCities.map((c) => {
+                  filteredIndiaCities.map((c) => {
                     const active = c.id === regionCityId;
                     return (
                       <li key={c.id} role="none">
@@ -440,8 +406,8 @@ export function RegionalMeetsSection({
           </p>
           <p className="mt-2 text-sm text-neutral-600">
             {regionCityId
-              ? "Try another metro from the menu above, or check back later."
-              : "Check back soon, or pick a metro to see city-specific listings."}
+              ? "Try another location from the menu above, or check back later."
+              : "Check back soon, or pick a location to see city-specific listings."}
           </p>
         </div>
       ) : (
