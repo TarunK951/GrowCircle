@@ -33,6 +33,9 @@ import {
   ChevronsLeft,
   ChevronsRight,
   LogOut,
+  CreditCard,
+  LifeBuoy,
+  Mic2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -50,6 +53,7 @@ const nav: ShellNav[] = [
   { href: "/profile", label: "Profile", icon: User },
   { href: "/verify-profile", label: "Verify", icon: ShieldCheck },
   { href: "/history", label: "History", icon: History },
+  { href: "/payments", label: "Payments", icon: CreditCard },
   { href: "/saved", label: "Saved", icon: Bookmark },
   { href: "/reviews", label: "Reviews", icon: Star },
   {
@@ -59,6 +63,8 @@ const nav: ShellNav[] = [
     aliases: ["/messages"],
   },
   { href: "/notifications", label: "Notifications", icon: Bell },
+  { href: "/support", label: "Support", icon: LifeBuoy },
+  { href: "/host-profile", label: "Host", icon: Mic2 },
   { href: "/social", label: "Social", icon: Share2 },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

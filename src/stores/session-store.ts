@@ -155,6 +155,10 @@ type SessionState = {
     preJoinAnswers?: Record<string, string>,
   ) => { ok: boolean; booking?: Booking; reason?: string };
   toggleSaved: (eventId: string) => void;
+  /** Set bookmark state explicitly (e.g. after Circle `POST /saved-events/:id`). */
+  setEventSaved: (eventId: string, saved: boolean) => void;
+  /** Replace saved ids (e.g. sync from `GET /saved-events`). */
+  setSavedEventIds: (ids: string[]) => void;
   /** Remove multiple bookmark ids (e.g. past meets pruned from Saved). */
   removeSavedEventIds: (ids: string[]) => void;
   setHostDraft: (d: HostDraft | null) => void;
@@ -606,6 +610,13 @@ export const useSessionStore = create<SessionState>()(
         else s.add(eventId);
         set({ savedEventIds: [...s] });
       },
+      setEventSaved: (eventId, saved) => {
+        const s = new Set(get().savedEventIds);
+        if (saved) s.add(eventId);
+        else s.delete(eventId);
+        set({ savedEventIds: [...s] });
+      },
+      setSavedEventIds: (ids) => set({ savedEventIds: [...new Set(ids)] }),
       removeSavedEventIds: (ids) => {
         if (ids.length === 0) return;
         const remove = new Set(ids);

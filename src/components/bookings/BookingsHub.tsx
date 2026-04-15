@@ -16,6 +16,7 @@ import {
 import { CircleApiError } from "@/lib/circle/client";
 import { isCircleApiConfigured } from "@/lib/circle/config";
 import { TicketModal } from "@/components/bookings/TicketModal";
+import { getBookingSummary } from "@/lib/circle/bookingSummaryApi";
 import { downloadApplicationInvoice } from "@/lib/circle/invoicesApi";
 import type { CircleMyApplication, CirclePaymentDetails } from "@/lib/circle/types";
 import {
@@ -25,6 +26,7 @@ import {
 import {
   buildMeetPaymentDescription,
   canOpenRazorpayCheckout,
+  normalizeRazorpayOrderPayload,
   openRazorpayFromPayload,
 } from "@/lib/razorpay/loadCheckout";
 import { CalendarDays, ImageOff, Mic2 } from "lucide-react";
@@ -380,9 +382,68 @@ function CircleGuestApplicationCard({
     }
   };
 
+  const showBookingSummaryHint = async () => {
+    try {
+      const s = await getBookingSummary(accessToken, app.id);
+      const bits: string[] = [];
+      if (s.total != null)
+        bits.push(
+          `Total ${s.total} ${s.currency ?? "INR"}${s.taxAmount != null ? ` (incl. tax ${s.taxAmount})` : ""}`,
+        );
+      if (s.refundPolicyText) bits.push(s.refundPolicyText);
+      if (bits.length) toast.message(bits.join(" · "));
+    } catch {
+      /* optional */
+    }
+  };
+
+  const runCompletePendingPayment = async () => {
+    try {
+      await showBookingSummaryHint();
+      const pay = normalizeRazorpayOrderPayload(
+        app.payment as Record<string, unknown> | undefined,
+      );
+      if (!canOpenRazorpayCheckout(pay)) {
+        toast.error("Payment details missing — refresh or contact support.");
+        return;
+      }
+      const priceLabel =
+        ev && ev.priceCents > 0
+          ? `₹${(ev.priceCents / 100).toFixed(0)}`
+          : "Free";
+      await openRazorpayFromPayload({
+        payload: pay,
+        title: "Grow Circle",
+        description: ev
+          ? buildMeetPaymentDescription({
+              eventTitle: title,
+              startsAtIso: ev.startsAt,
+              venue: ev.venueName,
+              priceLabel,
+            })
+          : title,
+        prefill: user
+          ? { name: user.name, email: user.email }
+          : undefined,
+        onPaid: () =>
+          toast.success("Payment submitted — refreshing your applications."),
+      });
+      onRefresh();
+    } catch (e) {
+      toast.error(
+        e instanceof CircleApiError
+          ? e.message
+          : e instanceof Error
+            ? e.message
+            : "Could not open checkout",
+      );
+    }
+  };
+
   const runAcceptOffer = async () => {
     try {
       const data = await acceptWaitlistOffer(accessToken, app.id);
+      await showBookingSummaryHint();
       const pay = data.payment;
       if (canOpenRazorpayCheckout(pay)) {
         const priceLabel =
@@ -600,6 +661,15 @@ function CircleGuestApplicationCard({
                 Waitlist position
               </button>
             )}
+            {app.status === "pending_payment" && (
+              <button
+                type="button"
+                className="rounded-full border border-violet-600 bg-violet-600 px-4 py-2 text-xs font-semibold text-white hover:bg-violet-700"
+                onClick={() => void runCompletePendingPayment()}
+              >
+                Complete payment
+              </button>
+            )}
             {app.status === "offer_pending" && (
               <button
                 type="button"
@@ -784,6 +854,34 @@ export function BookingsHub() {
           ))}
         </div>
       )}
+
+      {isCircleApiConfigured() && accessToken ? (
+        <div className="mt-10 rounded-2xl border border-neutral-200 bg-neutral-50/90 p-5">
+          <p className="text-xs font-bold uppercase tracking-wider text-neutral-600">
+            Circle account
+          </p>
+          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold text-neutral-900">
+            <Link
+              href="/payments"
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              Payment history
+            </Link>
+            <Link
+              href="/support"
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              Support & disputes
+            </Link>
+            <Link
+              href="/host-profile"
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              Host profile
+            </Link>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

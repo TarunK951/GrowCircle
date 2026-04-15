@@ -3,7 +3,11 @@
 import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { selectUser } from "@/lib/store/authSlice";
+import { listSavedEvents, toggleSavedEvent } from "@/lib/circle/savedEventsApi";
+import { isCircleApiConfigured } from "@/lib/circle/config";
+import type { CircleEvent } from "@/lib/circle/types";
+import { circleEventToMeetEvent } from "@/lib/circle/mappers";
+import { selectAccessToken, selectUser } from "@/lib/store/authSlice";
 import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
 import { isMeetInactive, mergeEventCatalog } from "@/lib/eventsCatalog";
@@ -13,12 +17,67 @@ import citiesData from "@/data/cities.json";
 import type { City } from "@/lib/types";
 
 export default function SavedPage() {
+  const accessToken = useAppSelector(selectAccessToken);
   const savedIds = useSessionStore((s) => s.savedEventIds);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
   const removeSavedEventIds = useSessionStore((s) => s.removeSavedEventIds);
   const toggleSaved = useSessionStore((s) => s.toggleSaved);
+  const setEventSaved = useSessionStore((s) => s.setEventSaved);
+  const setSavedEventIds = useSessionStore((s) => s.setSavedEventIds);
+  const upsertCircleCatalogEvent = useSessionStore(
+    (s) => s.upsertCircleCatalogEvent,
+  );
   const sessionUser = useAppSelector(selectUser);
+
+  useEffect(() => {
+    if (!isCircleApiConfigured() || !accessToken) return;
+    let cancelled = false;
+    void listSavedEvents(accessToken, { page: 1, limit: 100 })
+      .then(({ data }) => {
+        if (cancelled || !Array.isArray(data)) return;
+        const ids = data
+          .map((row) => {
+            const r = row as CircleEvent;
+            return typeof r.id === "string" ? r.id : "";
+          })
+          .filter(Boolean);
+        const prev = useSessionStore.getState().savedEventIds;
+        setSavedEventIds([...new Set([...prev, ...ids])]);
+        for (const row of data) {
+          const ev = row as CircleEvent;
+          if (ev.id && ev.title) {
+            upsertCircleCatalogEvent(circleEventToMeetEvent(ev));
+          }
+        }
+      })
+      .catch(() => {
+        /* offline / older backend */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, setSavedEventIds, upsertCircleCatalogEvent]);
+
+  const unsave = (id: string) => {
+    const run = async () => {
+      if (isCircleApiConfigured() && accessToken) {
+        try {
+          const res = await toggleSavedEvent(accessToken, id);
+          setEventSaved(id, Boolean(res.saved));
+          toast.success(res.saved ? "Saved for later" : "Removed from saved");
+        } catch {
+          toggleSaved(id);
+          toast.success("Removed from saved");
+          toast.message("Updated locally — server sync unavailable.");
+        }
+        return;
+      }
+      toggleSaved(id);
+      toast.success("Removed from saved");
+    };
+    void run();
+  };
 
   const cities = citiesData as City[];
   const cityById = Object.fromEntries(cities.map((c) => [c.id, c.name]));
@@ -54,8 +113,9 @@ export default function SavedPage() {
           Saved
         </h1>
         <p className="mt-2 text-sm font-medium leading-relaxed text-neutral-900">
-          Upcoming meets you bookmarked while signed in. Past meets are removed
-          from this list automatically.
+          Upcoming meets you bookmarked while signed in
+          {isCircleApiConfigured() ? " (synced when the Circle API is available)" : ""}.
+          Past meets are removed from this list automatically.
         </p>
       </div>
 
@@ -93,10 +153,7 @@ export default function SavedPage() {
                 >
                   <button
                     type="button"
-                    onClick={() => {
-                      toggleSaved(id);
-                      toast.success("Removed from saved");
-                    }}
+                    onClick={() => unsave(id)}
                     className="absolute right-2 top-2 z-10 rounded-full border border-white/80 bg-black/45 px-2.5 py-1 text-xs font-semibold text-white shadow-sm backdrop-blur-sm transition hover:bg-black/55"
                   >
                     Remove
@@ -122,10 +179,7 @@ export default function SavedPage() {
                 priority={index < 3}
                 inactive={false}
                 monochromeListing
-                onUnsave={() => {
-                  toggleSaved(e.id);
-                  toast.success("Removed from saved");
-                }}
+                onUnsave={() => unsave(e.id)}
               />
             );
           })}

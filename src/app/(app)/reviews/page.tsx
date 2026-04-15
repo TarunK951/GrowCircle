@@ -4,8 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { CalendarX2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { formatInrDateTime } from "@/lib/formatCurrency";
+import { getMyApplications } from "@/lib/circle/applicationsApi";
+import { submitHostRating } from "@/lib/circle/ratingsApi";
+import { CircleApiError } from "@/lib/circle/client";
+import { isCircleApiConfigured } from "@/lib/circle/config";
+import type { CircleMyApplication } from "@/lib/circle/types";
 import { getEventFromCatalog } from "@/lib/eventsCatalog";
-import { selectUser } from "@/lib/store/authSlice";
+import { selectAccessToken, selectUser } from "@/lib/store/authSlice";
 import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
 import { cn } from "@/lib/utils";
@@ -141,8 +146,16 @@ const tabs: { id: TabId; label: string }[] = [
   { id: "posted", label: "Your reviews" },
 ];
 
+const RATEABLE_CIRCLE = new Set([
+  "attended",
+  "checked_in",
+  "selected",
+  "confirmed",
+]);
+
 export default function ReviewsPage() {
   const user = useAppSelector(selectUser);
+  const accessToken = useAppSelector(selectAccessToken);
   const bookings = useSessionStore((s) => s.bookings);
   const hostedEvents = useSessionStore((s) => s.hostedEvents);
   const circleCatalogEvents = useSessionStore((s) => s.circleCatalogEvents);
@@ -154,6 +167,51 @@ export default function ReviewsPage() {
   const [meetBookingId, setMeetBookingId] = useState("");
   const [meetRating, setMeetRating] = useState(0);
   const [meetComment, setMeetComment] = useState("");
+
+  const [circleApps, setCircleApps] = useState<CircleMyApplication[]>([]);
+  const [circleAppId, setCircleAppId] = useState("");
+  const [circleRating, setCircleRating] = useState(0);
+  const [circleComment, setCircleComment] = useState("");
+  const [circleSubmitting, setCircleSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!isCircleApiConfigured() || !accessToken) {
+      setCircleApps([]);
+      return;
+    }
+    let cancelled = false;
+    void getMyApplications(accessToken)
+      .then((rows) => {
+        if (!cancelled) setCircleApps(Array.isArray(rows) ? rows : []);
+      })
+      .catch(() => {
+        if (!cancelled) setCircleApps([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
+
+  const circleRateable = useMemo(
+    () =>
+      circleApps.filter(
+        (a) =>
+          Boolean(a.event?.id) && RATEABLE_CIRCLE.has(a.status),
+      ),
+    [circleApps],
+  );
+
+  useEffect(() => {
+    if (!circleAppId && circleRateable.length > 0) {
+      setCircleAppId(circleRateable[0].id);
+    }
+    if (
+      circleAppId &&
+      !circleRateable.some((a) => a.id === circleAppId)
+    ) {
+      setCircleAppId(circleRateable[0]?.id ?? "");
+    }
+  }, [circleRateable, circleAppId]);
 
   const reviewableAttended = useMemo(() => {
     if (!user) return [];
@@ -240,6 +298,37 @@ export default function ReviewsPage() {
     setMeetRating(0);
     setMeetComment("");
     setTab("posted");
+  };
+
+  const onSubmitCircleRating = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!accessToken) return;
+    const app = circleRateable.find((a) => a.id === circleAppId);
+    const evId = app?.event?.id;
+    const c = circleComment.trim();
+    if (!app || !evId || circleRating < 1 || !c) {
+      toast.error("Select an event, rating, and comment.");
+      return;
+    }
+    setCircleSubmitting(true);
+    void submitHostRating(accessToken, {
+      event_id: evId,
+      rating: circleRating,
+      comment: c,
+    })
+      .then(() => {
+        toast.success("Rating submitted to Circle");
+        setCircleRating(0);
+        setCircleComment("");
+      })
+      .catch((err) => {
+        toast.error(
+          err instanceof CircleApiError
+            ? err.message
+            : "Could not submit rating",
+        );
+      })
+      .finally(() => setCircleSubmitting(false));
   };
 
   const hasAttendedUnreviewed = reviewableAttended.length > 0;
@@ -353,6 +442,58 @@ export default function ReviewsPage() {
               You must <span className="font-semibold">choose the meet you attended</span>{" "}
               from the list below. There is no other way to submit a guest review.
             </p>
+
+            {isCircleApiConfigured() && accessToken && circleRateable.length > 0 ? (
+              <form
+                onSubmit={onSubmitCircleRating}
+                className="mt-6 space-y-4 rounded-2xl border border-violet-200 bg-violet-50/40 p-6 shadow-sm"
+              >
+                <p className="text-xs font-bold uppercase tracking-wider text-violet-900">
+                  Rate host (Circle API)
+                </p>
+                <label className="block text-sm font-semibold text-neutral-900">
+                  Application / event
+                  <select
+                    value={circleAppId}
+                    onChange={(e) => setCircleAppId(e.target.value)}
+                    className="mt-2 w-full rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm"
+                    required
+                  >
+                    {circleRateable.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.event?.title ?? a.id} · {a.status}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <div>
+                  <p className="text-sm font-semibold text-neutral-900">Rating</p>
+                  <div className="mt-2">
+                    <StarInput value={circleRating} onChange={setCircleRating} />
+                  </div>
+                </div>
+                <label className="block text-sm font-semibold text-neutral-900">
+                  Comment
+                  <textarea
+                    value={circleComment}
+                    onChange={(e) => setCircleComment(e.target.value)}
+                    className="mt-2 min-h-[100px] w-full rounded-xl border border-violet-200 bg-white px-4 py-3 text-sm"
+                    required
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={circleSubmitting}
+                  className="rounded-full bg-violet-900 px-6 py-2.5 text-sm font-semibold text-white hover:bg-violet-800 disabled:opacity-60"
+                >
+                  {circleSubmitting ? "Submitting…" : "Submit to Circle"}
+                </button>
+              </form>
+            ) : isCircleApiConfigured() && accessToken ? (
+              <p className="mt-4 rounded-xl border border-dashed border-violet-200 bg-violet-50/30 px-4 py-3 text-sm text-neutral-700">
+                No Circle applications in a rateable state yet (attended / checked in / confirmed).
+              </p>
+            ) : null}
 
             {!user ? (
               <p className="mt-6 text-sm text-neutral-600">Sign in to continue.</p>

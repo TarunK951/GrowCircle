@@ -48,12 +48,16 @@ export async function getMediaUploadUrl(
   return normalizeUploadUrlData(raw);
 }
 
-/** §14.2 */
+/** §14.2 — body uses `key` (PDF) and/or `fileKey` (API_REFERENCE); wire sends both when possible. */
 export function deleteMedia(accessToken: string, body: CircleMediaDeleteBody) {
+  const k = body.key?.trim() || body.fileKey?.trim();
+  if (!k) {
+    throw new CircleApiError("Missing key or fileKey for media delete", 400, body);
+  }
   return circleRequest<unknown>("/media", {
     method: "DELETE",
     accessToken,
-    body,
+    body: { key: k, fileKey: k },
   });
 }
 

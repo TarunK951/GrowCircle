@@ -8,6 +8,7 @@ import { PrimaryButton, SecondaryButton } from "@/components/ui/MarketingButton"
 import { applyToEvent, getEventQuestions } from "@/lib/circle/api";
 import { CircleApiError } from "@/lib/circle/client";
 import { isCircleApiConfigured } from "@/lib/circle/config";
+import { toggleSavedEvent } from "@/lib/circle/savedEventsApi";
 import type { CircleEventQuestion } from "@/lib/circle/types";
 import { getEventFromCatalog } from "@/lib/eventsCatalog";
 import {
@@ -27,19 +28,42 @@ import { useSessionStore } from "@/stores/session-store";
 export function SaveEventButton({ eventId }: { eventId: string }) {
   const router = useRouter();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const accessToken = useAppSelector(selectAccessToken);
   const saved = useSessionStore((s) => s.savedEventIds.includes(eventId));
   const toggleSaved = useSessionStore((s) => s.toggleSaved);
+  const setEventSaved = useSessionStore((s) => s.setEventSaved);
+  const [busy, setBusy] = useState(false);
 
   return (
     <SecondaryButton
-      label={saved ? "Saved" : "Save meet"}
+      label={busy ? "…" : saved ? "Saved" : "Save meet"}
       onClick={() => {
         if (!isAuthenticated) {
           router.push(`/login?returnUrl=/event/${eventId}`);
           return;
         }
-        toggleSaved(eventId);
-        toast.success(saved ? "Removed from saved" : "Saved for later");
+        const run = async () => {
+          if (isCircleApiConfigured() && accessToken) {
+            setBusy(true);
+            try {
+              const res = await toggleSavedEvent(accessToken, eventId);
+              setEventSaved(eventId, Boolean(res.saved));
+              toast.success(res.saved ? "Saved for later" : "Removed from saved");
+            } catch (e) {
+              toggleSaved(eventId);
+              toast.success(!saved ? "Saved for later" : "Removed from saved");
+              if (e instanceof CircleApiError) {
+                toast.message("Saved locally — server sync unavailable.");
+              }
+            } finally {
+              setBusy(false);
+            }
+            return;
+          }
+          toggleSaved(eventId);
+          toast.success(saved ? "Removed from saved" : "Saved for later");
+        };
+        void run();
       }}
       className="!min-w-[160px]"
     />

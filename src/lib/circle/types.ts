@@ -406,8 +406,10 @@ export type CircleMediaUploadUrlData = {
   key?: string;
 };
 
+/** Send at least one of `key` or `fileKey`; `deleteMedia` duplicates to both for backend compatibility. */
 export type CircleMediaDeleteBody = {
-  key: string;
+  key?: string;
+  fileKey?: string;
 };
 
 /** §15 — settlements */
@@ -477,6 +479,152 @@ export type CircleAuditLogRow = {
 export type CircleAdminAuditLogsData = {
   logs: CircleAuditLogRow[];
   meta: CircleListMeta;
+};
+
+/** Saved events list row — backend may return full event or id-only */
+export type CircleSavedEventRow = CircleEvent | { id: string };
+
+export type CircleToggleSavedData = {
+  saved: boolean;
+};
+
+export type CircleNotificationPreferenceRow = {
+  notification_type: string;
+  email_enabled?: boolean;
+  push_enabled?: boolean;
+  in_app_enabled?: boolean;
+};
+
+export type CirclePaymentHistoryRow = {
+  id: string;
+  amount?: string | number;
+  status?: string;
+  created_at?: string;
+  event_id?: string;
+  application_id?: string;
+  [key: string]: unknown;
+};
+
+export type CircleBookingSummaryData = {
+  event?: {
+    id?: string;
+    title?: string;
+    event_date?: string;
+    location?: string;
+    host?: { id?: string; username?: string | null; avatar_url?: string | null };
+  };
+  ticketPrice?: number;
+  taxAmount?: number;
+  subtotal?: number;
+  total?: number;
+  refundPolicyText?: string;
+  currency?: string;
+};
+
+export type CircleHostProfile = {
+  display_name?: string | null;
+  bio?: string | null;
+  category?: string | null;
+  city?: string | null;
+  social_instagram?: string | null;
+  social_twitter?: string | null;
+  social_youtube?: string | null;
+  social_linkedin?: string | null;
+  social_website?: string | null;
+};
+
+export type CircleHostOnboardingData = {
+  currentStep?: number;
+  completionPercentage?: number;
+  missing?: string[];
+  isComplete?: boolean;
+};
+
+export type CircleHostDashboardData = {
+  totalEvents?: number;
+  upcomingEvents?: number;
+  completedEvents?: number;
+  cancelledEvents?: number;
+  totalRevenue?: number;
+  totalRefunds?: number;
+  netIncome?: number;
+  pendingPayouts?: number;
+  settledPayouts?: number;
+  averageRating?: number;
+  totalRatings?: number;
+  unreadNotifications?: number;
+};
+
+export type CircleHostRevenuePoint = { date: string; revenue: number };
+
+export type CircleRatingSubmitBody = {
+  event_id: string;
+  rating: number;
+  comment?: string;
+};
+
+/** GET /ratings/host/:hostId/summary (public) */
+export type CircleRatingHostSummary = {
+  averageRating?: number;
+  totalRatings?: number;
+  distribution?: Record<string, number>;
+};
+
+export type CircleSupportTicket = {
+  id: string;
+  category?: string;
+  subject?: string;
+  description?: string;
+  status?: string;
+  priority?: string;
+  created_at?: string;
+  event_id?: string | null;
+};
+
+export type CircleSupportTicketCreateBody = {
+  category: string;
+  subject: string;
+  description: string;
+  event_id?: string;
+  priority?: string;
+};
+
+export type CircleDisputeRow = {
+  id: string;
+  type?: string;
+  status?: string;
+  description?: string;
+  respondent_id?: string;
+  event_id?: string | null;
+  created_at?: string;
+};
+
+export type CircleDisputeCreateBody = {
+  respondent_id: string;
+  type: string;
+  description: string;
+  event_id?: string;
+  evidence_urls?: string[];
+};
+
+export type CirclePayoutAccount = {
+  id: string;
+  account_type?: string;
+  bank_name?: string;
+  account_number?: string;
+  ifsc_code?: string;
+  account_holder_name?: string;
+  upi_id?: string;
+  is_primary?: boolean;
+};
+
+export type CirclePayoutAccountCreateBody = {
+  account_type: "bank" | "upi" | "razorpay";
+  bank_name?: string;
+  account_number?: string;
+  ifsc_code?: string;
+  account_holder_name?: string;
+  upi_id?: string;
 };
 
 /** Health (root `/health`, not under `/api`) */
