@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -44,6 +45,22 @@ import {
   type HostDraft,
 } from "@/stores/session-store";
 import { HostMeetSelect } from "@/components/host/HostMeetSelect";
+
+const HostLocationMapPicker = dynamic(
+  () =>
+    import("@/components/host/HostLocationMapPicker").then(
+      (m) => m.HostLocationMapPicker,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="min-h-[min(320px,55vh)] rounded-xl border border-neutral-200 bg-neutral-100/80"
+        aria-hidden
+      />
+    ),
+  },
+);
 import {
   defaultScheduleParts,
   joinDateTimeLocal,
@@ -1238,55 +1255,14 @@ export function HostWizard() {
               placeholder="Street, suite, access notes"
             />
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="text-sm font-semibold text-neutral-900">
-                Latitude (optional)
-              </label>
-              <p className="mt-1 text-xs text-neutral-600">
-                Map pin — use with longitude, or leave both blank.
-              </p>
-              <input
-                type="number"
-                step="any"
-                className={inputClass}
-                value={draft.latitude ?? ""}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setDraft((d) => ({
-                    ...d,
-                    latitude:
-                      v === "" || v === "-" ? null : Number.parseFloat(v),
-                  }));
-                }}
-                placeholder="e.g. 12.9716"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-semibold text-neutral-900">
-                Longitude (optional)
-              </label>
-              <p className="mt-1 text-xs text-neutral-600">
-                Sent as <span className="font-mono text-[11px]">latitude</span> /{" "}
-                <span className="font-mono text-[11px]">longitude</span> on the API.
-              </p>
-              <input
-                type="number"
-                step="any"
-                className={inputClass}
-                value={draft.longitude ?? ""}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setDraft((d) => ({
-                    ...d,
-                    longitude:
-                      v === "" || v === "-" ? null : Number.parseFloat(v),
-                  }));
-                }}
-                placeholder="e.g. 77.5946"
-              />
-            </div>
-          </div>
+          <HostLocationMapPicker
+            cityId={draft.cityId}
+            latitude={draft.latitude}
+            longitude={draft.longitude}
+            onCoordinatesChange={(latitude, longitude) =>
+              setDraft((d) => ({ ...d, latitude, longitude }))
+            }
+          />
         </div>
       )}
 
