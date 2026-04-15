@@ -16,6 +16,29 @@ import { centroidForCityId } from "@/lib/geo/cityCentroids";
 
 import "leaflet/dist/leaflet.css";
 
+async function fetchIpLatLng(): Promise<{
+  latitude: number;
+  longitude: number;
+} | null> {
+  try {
+    const res = await fetch("/api/geo/ip", { cache: "no-store" });
+    const data = (await res.json()) as {
+      latitude?: number;
+      longitude?: number;
+    };
+    if (
+      !res.ok ||
+      typeof data.latitude !== "number" ||
+      typeof data.longitude !== "number"
+    ) {
+      return null;
+    }
+    return { latitude: data.latitude, longitude: data.longitude };
+  } catch {
+    return null;
+  }
+}
+
 function fixLeafletDefaultIcons() {
   const icon = L.icon({
     iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -108,46 +131,50 @@ export function HostLocationMapPicker({
 
   const locateWithDevice = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
-      toast.error("Location is not available in this browser.");
+      void (async () => {
+        const c = await fetchIpLatLng();
+        if (c) {
+          setPin(c.latitude, c.longitude);
+          toast.message("Using approximate network location.");
+        } else {
+          toast.error("Location is not available. Use the map or “Approximate from IP”.");
+        }
+      })();
       return;
     }
+    /**
+     * `enableHighAccuracy: false` avoids Chrome’s Google network-location path that
+     * often logs `googleapis.com` 403 when Wi-Fi positioning is blocked or
+     * unauthenticated. If the browser still fails, we fall back to `/api/geo/ip`.
+     */
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setPin(pos.coords.latitude, pos.coords.longitude);
         toast.success("Using your device location.");
       },
-      (err) => {
-        toast.error(err.message || "Could not read your location.");
+      async () => {
+        const c = await fetchIpLatLng();
+        if (c) {
+          setPin(c.latitude, c.longitude);
+          toast.message(
+            "Using approximate location — drag the pin on the map to fine-tune.",
+          );
+        } else {
+          toast.error("Could not get location. Tap the map or use “Approximate from IP”.");
+        }
       },
-      { enableHighAccuracy: true, timeout: 20000, maximumAge: 60_000 },
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 300_000 },
     );
   }, [setPin]);
 
   const loadApproximateLocationFromIp = useCallback(async () => {
-    try {
-      const res = await fetch("/api/geo/ip", { cache: "no-store" });
-      const data = (await res.json()) as {
-        latitude?: number;
-        longitude?: number;
-        error?: string;
-        message?: string;
-      };
-      if (!res.ok) {
-        toast.error(data.message ?? data.error ?? "Could not look up location.");
-        return;
-      }
-      if (
-        typeof data.latitude !== "number" ||
-        typeof data.longitude !== "number"
-      ) {
-        toast.error("Could not look up location.");
-        return;
-      }
-      setPin(data.latitude, data.longitude);
-      toast.message("Approximate location from IP — drag the pin to refine.");
-    } catch {
-      toast.error("Network error while looking up location.");
+    const c = await fetchIpLatLng();
+    if (!c) {
+      toast.error("Could not look up location.");
+      return;
     }
+    setPin(c.latitude, c.longitude);
+    toast.message("Approximate location from IP — drag the pin to refine.");
   }, [setPin]);
 
   const useCityCenter = useCallback(() => {
@@ -165,15 +192,7 @@ export function HostLocationMapPicker({
 
   return (
     <div className={cn("space-y-3", className)}>
-      <div>
-        <p className="text-sm font-semibold text-neutral-900">Map pin</p>
-        <p className="mt-1 text-xs text-neutral-600">
-          Tap the map to place a pin, or use your location / IP / city center.
-          Coordinates are saved with your meet (
-          <span className="font-mono text-[11px]">latitude</span>,{" "}
-          <span className="font-mono text-[11px]">longitude</span>).
-        </p>
-      </div>
+      <p className="text-sm font-semibold text-neutral-900">Map pin</p>
 
       <div className="flex flex-wrap gap-2">
         <button

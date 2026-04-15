@@ -92,22 +92,14 @@ const CURRENCY_OPTIONS: { value: string; label: string }[] = [
 function WizardStepIntro({
   stepIndex,
   title,
-  purpose,
 }: {
   stepIndex: number;
   title: string;
-  /** Omit to show only the step title line. */
-  purpose?: string;
 }) {
   return (
-    <div className="space-y-1">
-      <p className="text-sm font-semibold text-neutral-900">
-        Step {stepIndex + 1} — {title}
-      </p>
-      {purpose ? (
-        <p className="text-xs text-neutral-600">{purpose}</p>
-      ) : null}
-    </div>
+    <p className="text-sm font-semibold text-neutral-900">
+      Step {stepIndex + 1} — {title}
+    </p>
   );
 }
 
@@ -252,10 +244,10 @@ function ReviewBlock({
 }
 
 function slotHasVisual(s: HostCoverSlot): boolean {
-  return Boolean(
-    (s.dataUrl && s.dataUrl.length > 0) ||
-      (s.url.trim() && isProbablyUrl(s.url)),
-  );
+  const urlTrim = s.url.trim();
+  if (s.dataUrl && s.dataUrl.length > 0) return true;
+  if (urlTrim.startsWith("data:") && urlTrim.length > 0) return true;
+  return Boolean(urlTrim && isProbablyUrl(urlTrim));
 }
 
 export function HostWizard() {
@@ -275,6 +267,10 @@ export function HostWizard() {
   const coverFileInputRef = useRef<HTMLInputElement>(null);
   const [fileTargetSlot, setFileTargetSlot] = useState(0);
   const [coverDragSlot, setCoverDragSlot] = useState<number | null>(null);
+  /** Slot index while presigned upload is in flight (Circle + signed-in). */
+  const [uploadingCoverSlot, setUploadingCoverSlot] = useState<number | null>(
+    null,
+  );
 
   useEffect(() => {
     const applyHydrated = () => {
@@ -317,33 +313,93 @@ export function HostWizard() {
       toast.error("Please choose an image file (PNG, JPG, WebP, …).");
       return;
     }
-    const circleUpload =
-      isCircleApiConfigured() && store.getState().auth.accessToken;
-    const maxBytes = circleUpload ? MAX_IMAGE_BYTES_CIRCLE : MAX_IMAGE_BYTES;
+    const auth = store.getState().auth;
+    const canPresignUpload =
+      isCircleApiConfigured() &&
+      (!!auth.accessToken || !!auth.refreshToken);
+    const maxBytes = canPresignUpload
+      ? MAX_IMAGE_BYTES_CIRCLE
+      : MAX_IMAGE_BYTES;
     if (file.size > maxBytes) {
       toast.error(
-        circleUpload
+        canPresignUpload
           ? "Image must be under 5MB for upload."
           : "Image must be under 750KB for local demo storage.",
       );
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
+
+    const applyDataUrlToSlot = (dataUrl: string) => {
       setDraft((d) => {
         const next = [...d.coverSlots];
         if (!next[slotIndex]) return d;
         next[slotIndex] = {
-          dataUrl: reader.result as string,
+          dataUrl,
           url: "",
         };
         return { ...d, coverSlots: next };
       });
     };
-    reader.readAsDataURL(file);
+
+    const readFileAsDataUrlFallback = () => {
+      if (file.size > MAX_IMAGE_BYTES) {
+        toast.error("Image must be under 750KB for local demo storage.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => applyDataUrlToSlot(reader.result as string);
+      reader.readAsDataURL(file);
+    };
+
+    if (!isCircleApiConfigured()) {
+      readFileAsDataUrlFallback();
+      return;
+    }
+
+    void (async () => {
+      setUploadingCoverSlot(slotIndex);
+      try {
+        const token = await ensureCircleAccessToken();
+        if (!token) {
+          readFileAsDataUrlFallback();
+          return;
+        }
+        const mime = file.type || "image/jpeg";
+        const ext = mime.includes("png")
+          ? "png"
+          : mime.includes("webp")
+            ? "webp"
+            : "jpg";
+        const { uploadUrl, publicUrl } = await getMediaUploadUrl(token, {
+          fileName: `event-cover-${Date.now()}-${slotIndex}.${ext}`,
+          fileType: mime,
+          folder: "events",
+        });
+        await uploadToPresignedUrl(uploadUrl, file, mime);
+        setDraft((d) => {
+          const next = [...d.coverSlots];
+          if (!next[slotIndex]) return d;
+          next[slotIndex] = {
+            dataUrl: null,
+            url: publicUrl.trim(),
+          };
+          return { ...d, coverSlots: next };
+        });
+      } catch (e) {
+        toast.error(formatCircleError(e));
+      } finally {
+        setUploadingCoverSlot(null);
+      }
+    })();
   };
 
-  const next = () => setStep((s) => Math.min(s + 1, STEPS - 1));
+  const next = () => {
+    if (uploadingCoverSlot !== null) {
+      toast.message("Wait for your image upload to finish.");
+      return;
+    }
+    setStep((s) => Math.min(s + 1, STEPS - 1));
+  };
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
   const scheduleParts = useMemo(
@@ -679,8 +735,8 @@ export function HostWizard() {
         );
         setDraft(initialHostDraft());
         setStep(0);
-        toast.success("Meet published — manage it under Bookings.");
-        router.push("/bookings");
+        toast.success("Meet published — explore events to discover more.");
+        router.push("/explore");
       } catch (e) {
         toast.error(formatCircleError(e));
       } finally {
@@ -780,11 +836,7 @@ export function HostWizard() {
 
       {step === 0 && (
         <div className="mt-4 space-y-4">
-          <WizardStepIntro
-            stepIndex={0}
-            title="Basics"
-            purpose="Title, short description, categories (up to three), and optional comma-separated tags."
-          />
+          <WizardStepIntro stepIndex={0} title="Basics" />
           <div>
             <label className="text-sm font-semibold text-neutral-900">Title</label>
             <input
@@ -806,11 +858,9 @@ export function HostWizard() {
             />
           </div>
           <div>
-            <p className="text-sm text-neutral-900">
-              Categories (up to 3). The first is stored as the primary{" "}
-              <span className="font-medium">category</span> on the server; extras
-              go to <span className="font-medium">tags</span>.
-            </p>
+            <label className="text-sm font-semibold text-neutral-900">
+              Categories
+            </label>
             <div className="mt-2 flex flex-wrap gap-2">
               {EVENT_CATEGORY_PRESETS.map((c) => {
                 const on = draft.categories.includes(c);
@@ -830,18 +880,11 @@ export function HostWizard() {
                 );
               })}
             </div>
-            <p className="mt-2 text-xs text-neutral-700">
-              Selected:{" "}
-              {draft.categories.length ? draft.categories.join(" · ") : "—"}
-            </p>
           </div>
           <div>
             <label className="text-sm font-semibold text-neutral-900">
               Extra tags (optional)
             </label>
-            <p className="mt-1 text-xs text-neutral-600">
-              Comma-separated — merged with any categories after the first.
-            </p>
             <input
               className={inputClass}
               value={draft.tagsComma}
@@ -861,9 +904,6 @@ export function HostWizard() {
             <label className="text-sm font-semibold text-neutral-900">
               More about the event
             </label>
-            <p className="mt-1 text-xs text-neutral-600">
-              Longer story beyond the short description above (optional).
-            </p>
             <textarea
               className={`${inputClass} mt-2 min-h-[88px] resize-y`}
               value={draft.moreAbout}
@@ -877,9 +917,6 @@ export function HostWizard() {
             <label className="text-sm font-semibold text-neutral-900">
               What&apos;s included / available
             </label>
-            <p className="mt-1 text-xs text-neutral-600">
-              One item per line — e.g. snacks, materials, equipment.
-            </p>
             <div className="mt-2 space-y-2">
               {draft.whatsIncluded.map((line, idx) => (
                 <div key={`wi-${idx}`} className="flex gap-2">
@@ -931,9 +968,6 @@ export function HostWizard() {
             <label className="text-sm font-semibold text-neutral-900">
               Suggestions for guests
             </label>
-            <p className="mt-1 text-xs text-neutral-600">
-              Shown as tips — API field <span className="font-mono text-[11px]">guest_suggestions</span>.
-            </p>
             <div className="mt-2 space-y-2">
               {draft.guestSuggestions.map((line, idx) => (
                 <div key={`gs-${idx}`} className="flex gap-2">
@@ -998,10 +1032,6 @@ export function HostWizard() {
             <label className="text-sm font-semibold text-neutral-900">
               Do&apos;s &amp; don&apos;ts (bullets)
             </label>
-            <p className="mt-1 text-xs text-neutral-600">
-              Short lines — API <span className="font-mono text-[11px]">house_rules.dos</span> /{" "}
-              <span className="font-mono text-[11px]">house_rules.donts</span>.
-            </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -1108,11 +1138,6 @@ export function HostWizard() {
             <label className="text-sm font-semibold text-neutral-900">
               Written rules (optional)
             </label>
-            <p className="mt-1 text-xs text-neutral-600">
-              Overall rules in one place — API field{" "}
-              <span className="font-mono text-[11px]">event_rules</span> (separate from the
-              bullets above).
-            </p>
             <textarea
               className={`${inputClass} mt-2 min-h-[88px] resize-y`}
               value={draft.eventRules}
@@ -1125,10 +1150,6 @@ export function HostWizard() {
 
           <div className="border-t border-neutral-200 pt-6 space-y-4">
             <p className="text-sm font-semibold text-neutral-900">Refunds</p>
-            <p className="text-xs text-neutral-600">
-              Shown on the event page. Required for paid meets. Numeric windows map
-              to <span className="font-mono text-[11px]">refund_*</span> on the API.
-            </p>
             <div>
               <label className="text-sm font-semibold text-neutral-900">
                 Refund policy
@@ -1211,11 +1232,7 @@ export function HostWizard() {
 
       {step === 2 && (
         <div className="mt-4 space-y-4">
-          <WizardStepIntro
-            stepIndex={2}
-            title="Location"
-            purpose="City, venue, address, and location type for the listing."
-          />
+          <WizardStepIntro stepIndex={2} title="Location" />
           <HostMeetSelect
             label="City"
             value={draft.cityId}
@@ -1231,9 +1248,6 @@ export function HostWizard() {
             }))}
             onChange={(locationType) => setDraft((d) => ({ ...d, locationType }))}
           />
-          <p className="text-xs text-neutral-600">
-            Sent as <span className="font-mono">location_type</span> on the event (slug).
-          </p>
           <div>
             <label className="text-sm font-semibold text-neutral-900">Venue name</label>
             <input
@@ -1268,17 +1282,9 @@ export function HostWizard() {
 
       {step === 3 && (
         <div className="mt-4 space-y-4">
-          <WizardStepIntro
-            stepIndex={3}
-            title="Schedule & policies"
-            purpose="Start and optional end time, timezone, capacity, price, tax, currency, age and verification tier, terms, and registration window."
-          />
+          <WizardStepIntro stepIndex={3} title="Schedule & policies" />
           <div>
             <p className="text-sm font-semibold text-neutral-900">Starts at</p>
-            <p className="mt-1 text-xs text-neutral-600">
-              Pick a date (past days are disabled) and a start time. If you choose
-              today, only times after now are allowed.
-            </p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <div>
                 <label
@@ -1330,10 +1336,6 @@ export function HostWizard() {
           />
           <div>
             <p className="text-sm font-semibold text-neutral-900">Ends at (optional)</p>
-            <p className="mt-1 text-xs text-neutral-600">
-              Leave blank for a single start time only. Sent as{" "}
-              <span className="font-mono text-[11px]">end_time</span> on the API.
-            </p>
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <div>
                 <label
@@ -1454,10 +1456,6 @@ export function HostWizard() {
               <label className="text-sm font-semibold text-neutral-900">
                 Tax % (optional)
               </label>
-              <p className="mt-1 text-xs text-neutral-600">
-                GST/VAT — API field{" "}
-                <span className="font-mono text-[11px]">tax_percentage</span>.
-              </p>
               <input
                 type="number"
                 min={0}
@@ -1521,11 +1519,6 @@ export function HostWizard() {
               />
               <span className="text-sm text-neutral-900">
                 <span className="font-semibold">Require terms acceptance</span>
-                <span className="block text-xs text-neutral-600">
-                  Guests must accept terms before joining (
-                  <span className="font-mono text-[11px]">terms_required</span>
-                  ).
-                </span>
               </span>
             </label>
           </div>
@@ -1533,10 +1526,6 @@ export function HostWizard() {
           <div className="border-t border-neutral-200 pt-6 space-y-3">
             <p className="text-sm font-semibold text-neutral-900">
               Registration window (optional)
-            </p>
-            <p className="text-xs text-neutral-600">
-              Leave blank for no restriction. Times use your device clock; event
-              timezone is <span className="font-medium">{draft.timezone}</span>.
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
@@ -1586,19 +1575,10 @@ export function HostWizard() {
 
       {step === 4 && (
         <div className="mt-4 space-y-5">
-          <WizardStepIntro
-            stepIndex={4}
-            title="Contact & media"
-            purpose="Guest-facing contact, waitlist and listing visibility, and up to three images (first is the cover)."
-          />
+          <WizardStepIntro stepIndex={4} title="Contact & media" />
           <div className="space-y-4 rounded-xl border border-neutral-200 bg-neutral-50/40 p-4">
             <p className="text-sm font-semibold text-neutral-900">
               Event contact (optional)
-            </p>
-            <p className="text-xs text-neutral-600">
-              Shown to guests who need to reach you about this meet. Maps to{" "}
-              <span className="font-mono text-[11px]">contact_email</span> /{" "}
-              <span className="font-mono text-[11px]">contact_phone</span>.
             </p>
             <div>
               <label className="text-sm font-semibold text-neutral-900">Email</label>
@@ -1676,24 +1656,17 @@ export function HostWizard() {
             }}
           />
 
-          <div>
-            <p className="text-sm font-semibold text-neutral-900">
-              Cover and gallery images
-            </p>
-            <p className="mt-1 text-xs text-neutral-900">
-              Cover is used as the listing hero; gallery is optional. Paste a URL
-              or upload — max{" "}
-              {isCircleApiConfigured() && store.getState().auth.accessToken
-                ? "5MB"
-                : "750KB"}{" "}
-              per file.
-            </p>
-          </div>
+          <p className="text-sm font-semibold text-neutral-900">
+            Cover and gallery images
+          </p>
 
           {draft.coverSlots.map((slot, slotIndex) => {
             const hasVisual = slotHasVisual(slot);
+            const isUploading = uploadingCoverSlot === slotIndex;
             const maxLabel =
-              isCircleApiConfigured() && store.getState().auth.accessToken
+              isCircleApiConfigured() &&
+              (store.getState().auth.accessToken ||
+                store.getState().auth.refreshToken)
                 ? "5MB"
                 : "750KB";
             const slotTitle =
@@ -1715,25 +1688,32 @@ export function HostWizard() {
                     <div className="relative h-16 w-28 shrink-0 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={slot.dataUrl ?? slot.url.trim()}
+                        src={slot.dataUrl?.trim() || slot.url.trim()}
                         alt=""
                         className="h-full w-full object-cover"
                       />
+                      {isUploading ? (
+                        <div className="absolute inset-0 flex items-center justify-center bg-neutral-900/40 text-[10px] font-semibold text-white">
+                          …
+                        </div>
+                      ) : null}
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
+                          disabled={isUploading}
                           onClick={() => {
                             setFileTargetSlot(slotIndex);
                             coverFileInputRef.current?.click();
                           }}
-                          className="rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-900 shadow-sm hover:bg-neutral-50"
+                          className="rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-900 shadow-sm hover:bg-neutral-50 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Replace
                         </button>
                         <button
                           type="button"
+                          disabled={isUploading}
                           onClick={() =>
                             setDraft((d) => {
                               if (slotIndex === 0) {
@@ -1749,7 +1729,7 @@ export function HostWizard() {
                               };
                             })
                           }
-                          className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 shadow-sm hover:bg-red-50"
+                          className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-700 shadow-sm hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {slotIndex === 0 ? "Clear" : "Remove"}
                         </button>
@@ -1778,8 +1758,9 @@ export function HostWizard() {
                   <>
                     <div
                       role="button"
-                      tabIndex={0}
+                      tabIndex={isUploading ? -1 : 0}
                       onDragEnter={(e) => {
+                        if (isUploading) return;
                         e.preventDefault();
                         e.stopPropagation();
                         setCoverDragSlot(slotIndex);
@@ -1794,6 +1775,7 @@ export function HostWizard() {
                         e.stopPropagation();
                       }}
                       onDrop={(e) => {
+                        if (isUploading) return;
                         e.preventDefault();
                         e.stopPropagation();
                         setCoverDragSlot(null);
@@ -1801,10 +1783,12 @@ export function HostWizard() {
                         if (file) applyCoverFile(slotIndex, file);
                       }}
                       onClick={() => {
+                        if (isUploading) return;
                         setFileTargetSlot(slotIndex);
                         coverFileInputRef.current?.click();
                       }}
                       onKeyDown={(e) => {
+                        if (isUploading) return;
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
                           setFileTargetSlot(slotIndex);
@@ -1813,9 +1797,11 @@ export function HostWizard() {
                       }}
                       className={cn(
                         "mt-2 flex min-h-[72px] w-full cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed px-3 py-2.5 transition outline-none focus-visible:ring-2 focus-visible:ring-neutral-900/20",
-                        coverDragSlot === slotIndex
-                          ? "border-neutral-900 bg-neutral-100"
-                          : "border-neutral-300 bg-white hover:border-neutral-500 hover:bg-neutral-50",
+                        isUploading
+                          ? "cursor-wait border-neutral-200 bg-neutral-100"
+                          : coverDragSlot === slotIndex
+                            ? "border-neutral-900 bg-neutral-100"
+                            : "border-neutral-300 bg-white hover:border-neutral-500 hover:bg-neutral-50",
                       )}
                     >
                       <Upload
@@ -1825,9 +1811,11 @@ export function HostWizard() {
                       />
                       <div className="min-w-0 flex-1 text-left">
                         <p className="text-sm font-semibold text-neutral-900">
-                          {coverDragSlot === slotIndex
-                            ? "Drop image here"
-                            : "Upload or click"}
+                          {isUploading
+                            ? "Uploading…"
+                            : coverDragSlot === slotIndex
+                              ? "Drop image here"
+                              : "Upload or click"}
                         </p>
                         <p className="text-xs text-neutral-900">
                           PNG, JPG, WebP · max {maxLabel}
@@ -1885,14 +1873,7 @@ export function HostWizard() {
 
       {step === 5 && (
         <div className="mt-4 space-y-4">
-          <WizardStepIntro
-            stepIndex={5}
-            title="FAQs & pre-join"
-            purpose="Optional FAQ pairs for the event page and up to five multiple-choice questions before guests join."
-          />
-          <p className="text-sm text-neutral-900">
-            Add question and answer pairs for the FAQ accordion on the event page.
-          </p>
+          <WizardStepIntro stepIndex={5} title="FAQs & pre-join" />
           {draft.faqs.map((row, i) => (
             <div
               key={i}
@@ -1945,10 +1926,6 @@ export function HostWizard() {
 
           <div className="mt-8 space-y-4 border-t border-neutral-200 pt-8">
           <p className="text-sm font-semibold text-neutral-900">Pre-join questions</p>
-          <p className="text-sm text-neutral-900">
-            Optional: up to 5 multiple-choice questions guests must answer before
-            joining. Each needs a prompt and at least two options.
-          </p>
           {draft.preJoinQuestions.map((pq, qi) => (
             <div
               key={qi}
@@ -2039,11 +2016,7 @@ export function HostWizard() {
 
       {step === 6 && (
         <div className="mt-4 space-y-4">
-          <WizardStepIntro
-            stepIndex={6}
-            title="Review & publish"
-            purpose="Confirm title, schedule, location, pricing, media, and policies before publishing."
-          />
+          <WizardStepIntro stepIndex={6} title="Review & publish" />
           <div className="grid gap-4 lg:grid-cols-2">
             <ReviewBlock title="Basics" editStep={0} onEdit={setStep}>
               <p>
@@ -2189,6 +2162,32 @@ export function HostWizard() {
                 }{" "}
                 attached (cover + gallery)
               </p>
+              {draft.coverSlots.some((s) => slotHasVisual(s)) ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {draft.coverSlots.map((slot, i) =>
+                    slotHasVisual(slot) ? (
+                      <div
+                        key={`review-cover-${i}`}
+                        className="flex flex-col gap-1"
+                      >
+                        <div className="relative h-14 w-24 overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={
+                              (slot.dataUrl?.trim() || slot.url.trim()) || ""
+                            }
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <span className="text-xs text-neutral-500">
+                          {i === 0 ? "Cover" : `Gallery ${i}`}
+                        </span>
+                      </div>
+                    ) : null,
+                  )}
+                </div>
+              ) : null}
             </ReviewBlock>
             <ReviewBlock title="FAQs & pre-join" editStep={5} onEdit={setStep}>
               <p>
@@ -2221,7 +2220,8 @@ export function HostWizard() {
           <button
             type="button"
             onClick={next}
-            className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow-md shadow-primary/20 transition hover:bg-primary/92"
+            disabled={uploadingCoverSlot !== null}
+            className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white shadow-md shadow-primary/20 transition hover:bg-primary/92 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {step === STEPS - 2 ? "Continue to review" : "Continue"}
           </button>

@@ -409,14 +409,26 @@ export function normalizeHostDraft(raw: unknown): HostDraft {
   return next;
 }
 
+/**
+ * Max length of a single `data:` URL kept in localStorage. Larger blobs are omitted so
+ * persist stays under typical quota; use presigned `url` for big files (host wizard).
+ * ~200k chars ≈ ~150KB binary before base64 overhead.
+ */
+const MAX_PERSIST_COVER_DATA_URL_CHARS = 200_000;
+
 function stripDraftForPersist(d: HostDraft | null): HostDraft | null {
   if (!d) return null;
   return {
     ...d,
-    coverSlots: d.coverSlots.map((s) => ({
-      dataUrl: null,
-      url: s.url,
-    })),
+    coverSlots: d.coverSlots.map((s) => {
+      const raw = (s.dataUrl ?? "").trim();
+      const keepData =
+        raw.startsWith("data:") && raw.length <= MAX_PERSIST_COVER_DATA_URL_CHARS;
+      return {
+        dataUrl: keepData ? raw : null,
+        url: typeof s.url === "string" ? s.url : "",
+      };
+    }),
   };
 }
 

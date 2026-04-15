@@ -75,6 +75,17 @@ const nextConfig: NextConfig = {
         hostname: "**.digitaloceanspaces.com",
         pathname: "/**",
       },
+      /** Local dev: MinIO or backend-served files (http://localhost:PORT/...) */
+      {
+        protocol: "http",
+        hostname: "localhost",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "127.0.0.1",
+        pathname: "/**",
+      },
     ],
   },
 };

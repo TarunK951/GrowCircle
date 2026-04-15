@@ -2,6 +2,7 @@
  * Public Circle HTTP API root (includes `/api` path segment).
  * Source: API documentation **Base URL** — `https://…/api` (events, auth, profile, etc.).
  * Override with `NEXT_PUBLIC_CIRCLE_API_BASE` in `.env.local` for another deployment.
+ * Local backend example: `http://localhost:3001` (resolves to `http://localhost:3001/api`).
  */
 export const CIRCLE_API_BASE_DEFAULT =
   "https://circle-backend-production-e6c9.up.railway.app/api";
