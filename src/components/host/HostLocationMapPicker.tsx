@@ -9,7 +9,7 @@ import {
   useMap,
   useMapEvents,
 } from "react-leaflet";
-import { Crosshair, Globe, MapPin, Navigation, Trash2 } from "lucide-react";
+import { Crosshair, MapPin, Navigation, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { centroidForCityId } from "@/lib/geo/cityCentroids";
@@ -137,7 +137,7 @@ export function HostLocationMapPicker({
           setPin(c.latitude, c.longitude);
           toast.message("Using approximate network location.");
         } else {
-          toast.error("Location is not available. Use the map or “Approximate from IP”.");
+          toast.error("Location is not available. Tap the map to set a pin.");
         }
       })();
       return;
@@ -160,21 +160,11 @@ export function HostLocationMapPicker({
             "Using approximate location — drag the pin on the map to fine-tune.",
           );
         } else {
-          toast.error("Could not get location. Tap the map or use “Approximate from IP”.");
+          toast.error("Could not get location. Tap the map to set a pin.");
         }
       },
       { enableHighAccuracy: false, timeout: 15000, maximumAge: 300_000 },
     );
-  }, [setPin]);
-
-  const loadApproximateLocationFromIp = useCallback(async () => {
-    const c = await fetchIpLatLng();
-    if (!c) {
-      toast.error("Could not look up location.");
-      return;
-    }
-    setPin(c.latitude, c.longitude);
-    toast.message("Approximate location from IP — drag the pin to refine.");
   }, [setPin]);
 
   const useCityCenter = useCallback(() => {
@@ -202,14 +192,6 @@ export function HostLocationMapPicker({
         >
           <Navigation className="h-3.5 w-3.5" aria-hidden />
           Use my location
-        </button>
-        <button
-          type="button"
-          onClick={() => void loadApproximateLocationFromIp()}
-          className="inline-flex items-center gap-1.5 rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-xs font-semibold text-neutral-900 shadow-sm hover:bg-neutral-50"
-        >
-          <Globe className="h-3.5 w-3.5" aria-hidden />
-          Approximate from IP
         </button>
         <button
           type="button"

@@ -412,21 +412,43 @@ export function normalizeHostDraft(raw: unknown): HostDraft {
 /**
  * Max length of a single `data:` URL kept in localStorage. Larger blobs are omitted so
  * persist stays under typical quota; use presigned `url` for big files (host wizard).
- * ~200k chars ≈ ~150KB binary before base64 overhead.
+ * ~500k chars ≈ ~375KB binary before base64 overhead.
  */
-const MAX_PERSIST_COVER_DATA_URL_CHARS = 200_000;
+const MAX_PERSIST_COVER_DATA_URL_CHARS = 500_000;
 
 function stripDraftForPersist(d: HostDraft | null): HostDraft | null {
   if (!d) return null;
+
   return {
     ...d,
-    coverSlots: d.coverSlots.map((s) => {
-      const raw = (s.dataUrl ?? "").trim();
-      const keepData =
-        raw.startsWith("data:") && raw.length <= MAX_PERSIST_COVER_DATA_URL_CHARS;
+    coverSlots: d.coverSlots.map((slot) => {
+      const rawDataUrl = (slot.dataUrl ?? "").trim();
+      const rawUrl = (slot.url ?? "").trim();
+
+      const hasRemoteUrl =
+        rawUrl.startsWith("https://") || rawUrl.startsWith("http://");
+
+      const isValidDataUrl = rawDataUrl.startsWith("data:");
+      const isWithinLimit =
+        rawDataUrl.length <= MAX_PERSIST_COVER_DATA_URL_CHARS;
+
+      if (!hasRemoteUrl && isValidDataUrl) {
+        return {
+          dataUrl: isWithinLimit ? rawDataUrl : null,
+          url: "",
+        };
+      }
+
+      if (hasRemoteUrl) {
+        return {
+          dataUrl: null,
+          url: rawUrl,
+        };
+      }
+
       return {
-        dataUrl: keepData ? raw : null,
-        url: typeof s.url === "string" ? s.url : "",
+        dataUrl: null,
+        url: "",
       };
     }),
   };

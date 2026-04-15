@@ -20,7 +20,7 @@ import { mergeEventCatalog } from "@/lib/eventsCatalog";
 import { resolveEventDetail } from "@/lib/eventDetail";
 import { formatInrFromCents } from "@/lib/formatCurrency";
 import { hostLabelForEvent } from "@/lib/hostName";
-import { getMediaUploadUrl, uploadToPresignedUrl } from "@/lib/circle/mediaApi";
+import { uploadBlobToCircleStorageViaApp } from "@/lib/circle/mediaApi";
 import { selectAccessToken, selectUser } from "@/lib/store/authSlice";
 import { useAppSelector } from "@/lib/store/hooks";
 import { useSessionStore } from "@/stores/session-store";
@@ -297,12 +297,11 @@ export default function HostManagePage() {
             ? file.name.split(".").pop()?.trim() || "jpg"
             : "jpg";
           const mime = file.type || "image/jpeg";
-          const { uploadUrl, publicUrl } = await getMediaUploadUrl(accessToken, {
+          const { publicUrl } = await uploadBlobToCircleStorageViaApp(accessToken, file, {
             fileName: `event-manage-${Date.now()}-${nextUrls.length}.${ext}`,
             fileType: mime,
             folder: "events",
           });
-          await uploadToPresignedUrl(uploadUrl, file, mime);
           nextUrls.push(publicUrl);
         } else {
           const dataUrl = await fileToDataUrl(file);

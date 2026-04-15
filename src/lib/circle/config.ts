@@ -8,19 +8,35 @@ export const CIRCLE_API_BASE_DEFAULT =
   "https://circle-backend-production-e6c9.up.railway.app/api";
 
 /**
- * Resolves the Circle HTTP API root (`…/api`). Uses `NEXT_PUBLIC_CIRCLE_API_BASE` when set;
- * otherwise the documented production default (same as API docs) so OTP and Google work
- * without extra env. If the env value is a bare origin, `/api` is appended.
+ * Resolves the Circle HTTP API root (`…/api`).
+ *
+ * - **Browser:** uses `NEXT_PUBLIC_CIRCLE_API_BASE` when set, else the production default.
+ * - **Server (Route Handlers, SSR):** prefers `CIRCLE_API_BASE` when set (not exposed to the
+ *   client bundle) so uploads and API calls use the real backend even if
+ *   `NEXT_PUBLIC_CIRCLE_API_BASE` was pointed at `http://localhost:…` for local experiments.
+ *   If unset, falls through to the same `NEXT_PUBLIC_*` + default logic.
  */
 export function getCircleApiBase(): string {
   const fallback = CIRCLE_API_BASE_DEFAULT.replace(/\/+$/, "");
+
+  const normalize = (raw: string): string => {
+    let base = raw.replace(/\/+$/, "");
+    if (!/\/api$/i.test(base)) {
+      base = `${base}/api`;
+    }
+    return base;
+  };
+
+  if (typeof window === "undefined") {
+    const serverOnly = process.env.CIRCLE_API_BASE?.trim();
+    if (serverOnly) {
+      return normalize(serverOnly);
+    }
+  }
+
   const raw = process.env.NEXT_PUBLIC_CIRCLE_API_BASE?.trim();
   if (!raw) return fallback;
-  let base = raw.replace(/\/+$/, "");
-  if (!/\/api$/i.test(base)) {
-    base = `${base}/api`;
-  }
-  return base;
+  return normalize(raw);
 }
 
 /**
@@ -45,6 +61,20 @@ export function getPublicAppBaseUrl(): string | null {
   const raw = process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (!raw) return null;
   return raw.replace(/\/+$/, "");
+}
+
+/**
+ * Same-origin path for {@link uploadBlobToCircleStorageViaApp}. Always use a **relative** `/api/…`
+ * URL in the browser so no host is hardcoded (avoids embedding `localhost` in the fetch target;
+ * the browser resolves it to the current origin — LAN, tunnel, or production).
+ */
+export function getCirclePresignedUploadProxyUrl(): string {
+  if (typeof window !== "undefined") {
+    return "/api/circle-presigned-upload";
+  }
+  const app = getPublicAppBaseUrl();
+  if (app) return `${app}/api/circle-presigned-upload`;
+  return "/api/circle-presigned-upload";
 }
 
 /**

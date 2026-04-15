@@ -24,7 +24,7 @@ import {
   ensureCircleAccessToken,
   refreshCircleAccessToken,
 } from "@/lib/circle/sessionBridge";
-import { getMediaUploadUrl, uploadToPresignedUrl } from "@/lib/circle/mediaApi";
+import { uploadBlobToCircleStorageViaApp } from "@/lib/circle/mediaApi";
 import { circleEventToMeetEvent } from "@/lib/circle/mappers";
 import { circleApi } from "@/lib/store/circleApi";
 import { generateShareToken } from "@/lib/eventsCatalog";
@@ -370,12 +370,11 @@ export function HostWizard() {
           : mime.includes("webp")
             ? "webp"
             : "jpg";
-        const { uploadUrl, publicUrl } = await getMediaUploadUrl(token, {
+        const { publicUrl } = await uploadBlobToCircleStorageViaApp(token, file, {
           fileName: `event-cover-${Date.now()}-${slotIndex}.${ext}`,
           fileType: mime,
           folder: "events",
         });
-        await uploadToPresignedUrl(uploadUrl, file, mime);
         setDraft((d) => {
           const next = [...d.coverSlots];
           if (!next[slotIndex]) return d;
@@ -562,19 +561,11 @@ export function HostWizard() {
               : mime.includes("webp")
                 ? "webp"
                 : "jpg";
-            const { uploadUrl, publicUrl } = await getMediaUploadUrl(
-              token,
-              {
-                fileName: `event-cover-${Date.now()}-${resolvedUrls.length}.${ext}`,
-                fileType: mime || "image/jpeg",
-                folder: "events",
-              },
-            );
-            await uploadToPresignedUrl(
-              uploadUrl,
-              blob,
-              mime || "image/jpeg",
-            );
+            const { publicUrl } = await uploadBlobToCircleStorageViaApp(token, blob, {
+              fileName: `event-cover-${Date.now()}-${resolvedUrls.length}.${ext}`,
+              fileType: mime || "image/jpeg",
+              folder: "events",
+            });
             resolvedUrls.push(publicUrl);
           } else if (urlRaw && isProbablyUrl(urlRaw)) {
             resolvedUrls.push(urlRaw);
