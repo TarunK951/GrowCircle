@@ -122,6 +122,28 @@ export default function DashboardPage() {
         for applications, tickets, and host tools.
       </p>
 
+      {backendConnected && accessToken ? (
+        <div className="mt-6 rounded-2xl border border-violet-200 bg-violet-50/50 p-5 shadow-sm">
+          <p className="text-xs font-bold uppercase tracking-wider text-violet-900">
+            Circle account
+          </p>
+          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold">
+            <Link className="text-primary underline-offset-4 hover:underline" href="/payments">
+              Payment history
+            </Link>
+            <Link className="text-primary underline-offset-4 hover:underline" href="/support">
+              Support
+            </Link>
+            <Link className="text-primary underline-offset-4 hover:underline" href="/host-profile">
+              Host profile & payouts
+            </Link>
+            <Link className="text-primary underline-offset-4 hover:underline" href="/saved">
+              Saved meets
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
       <div className="mt-8">
         <div
           className="grid grid-cols-2 gap-1 rounded-xl border border-neutral-200 bg-neutral-100/80 p-1"

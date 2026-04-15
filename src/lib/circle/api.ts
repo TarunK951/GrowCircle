@@ -477,7 +477,7 @@ export function broadcastToAttendees(
 ) {
   return circleRequest<unknown>(
     `/events/${encodeURIComponent(id)}/broadcast`,
-    { accessToken, body },
+    { method: "POST", accessToken, body },
   );
 }
 
