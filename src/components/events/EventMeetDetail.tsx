@@ -25,6 +25,7 @@ import { formatCategoryEyebrow } from "@/lib/eventCategories";
 import { cn } from "@/lib/utils";
 import { JoinMeetButton, SaveEventButton } from "@/components/events/EventMeetActions";
 import { meetEventGalleryUrls } from "@/lib/events/coverDisplay";
+import { shouldRenderNativeImg } from "@/lib/events/remoteImageUrl";
 import { labelForLocationType } from "@/lib/hostLocationTypes";
 
 function SectionTitle({
@@ -162,8 +163,8 @@ export function EventMeetDetail({
 
   const galleryUrls = meetEventGalleryUrls(event);
   const cover = galleryUrls[0] ?? null;
-  const coverIsDataUrl = cover?.startsWith("data:") ?? false;
-  /** Next/Image requires allowed hosts; S3 and most CDNs use unoptimized (same pattern as EventCard). */
+  const coverUseNative = Boolean(cover && shouldRenderNativeImg(cover));
+  /** Next/Image: Unsplash can use default optimizer; other known CDNs use unoptimized. */
   const coverIsUnsplash = cover?.includes("images.unsplash.com") ?? false;
 
   return (
@@ -189,8 +190,8 @@ export function EventMeetDetail({
                   <div className="flex h-full w-full items-center justify-center bg-neutral-100 text-neutral-500">
                     <ImageOff className="h-8 w-8" aria-hidden />
                   </div>
-                ) : coverIsDataUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- data URLs from host upload
+                ) : coverUseNative ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- data/http/unknown CDN hosts
                   <img
                     src={cover}
                     alt=""
@@ -212,14 +213,14 @@ export function EventMeetDetail({
             {galleryUrls.length > 1 ? (
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {galleryUrls.slice(1).map((url, i) => {
-                  const extraIsData = url.startsWith("data:");
                   const extraUnsplash = url.includes("images.unsplash.com");
+                  const extraNative = shouldRenderNativeImg(url);
                   return (
                     <div
                       key={`${i}-${url.slice(0, 32)}`}
                       className="relative h-16 w-28 shrink-0 overflow-hidden rounded-xl border border-neutral-200/80 bg-neutral-100 shadow-sm"
                     >
-                      {extraIsData ? (
+                      {extraNative ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={url}
@@ -233,11 +234,7 @@ export function EventMeetDetail({
                           fill
                           className="object-cover"
                           sizes="112px"
-                          unoptimized={
-                            !extraUnsplash ||
-                            url.includes("localhost") ||
-                            url.startsWith("http://")
-                          }
+                          unoptimized={!extraUnsplash}
                         />
                       )}
                     </div>
@@ -403,9 +400,9 @@ export function EventMeetDetail({
             What&apos;s included
           </SectionTitle>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-            {detail.whatsIncluded.map((line) => (
+            {detail.whatsIncluded.map((line, i) => (
               <li
-                key={line}
+                key={`included-${i}`}
                 className="flex gap-3 rounded-xl border border-primary/10 bg-white/60 px-4 py-3 text-sm text-foreground shadow-sm"
               >
                 <Check
@@ -428,9 +425,9 @@ export function EventMeetDetail({
             Suggestions
           </SectionTitle>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-            {event.guestSuggestions.map((line) => (
+            {event.guestSuggestions.map((line, i) => (
               <li
-                key={line}
+                key={`suggestion-${i}`}
                 className="flex gap-3 rounded-xl border border-primary/10 bg-white/60 px-4 py-3 text-sm text-foreground shadow-sm"
               >
                 <Lightbulb
@@ -488,8 +485,8 @@ export function EventMeetDetail({
                   Do
                 </h3>
                 <ul className="mt-4 space-y-3 text-sm leading-relaxed text-foreground">
-                  {detail.houseRules.dos.map((line) => (
-                    <li key={line} className="flex gap-2">
+                  {detail.houseRules.dos.map((line, i) => (
+                    <li key={`house-do-${i}`} className="flex gap-2">
                       <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
                       <span>{line}</span>
                     </li>
@@ -506,8 +503,8 @@ export function EventMeetDetail({
                   Don&apos;t
                 </h3>
                 <ul className="mt-4 space-y-3 text-sm leading-relaxed text-foreground">
-                  {detail.houseRules.donts.map((line) => (
-                    <li key={line} className="flex gap-2">
+                  {detail.houseRules.donts.map((line, i) => (
+                    <li key={`house-dont-${i}`} className="flex gap-2">
                       <X className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
                       <span>{line}</span>
                     </li>

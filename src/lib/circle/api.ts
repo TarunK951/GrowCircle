@@ -278,26 +278,49 @@ export type ListAdvancedEventsParams = {
   limit?: number;
 };
 
-/** §3.1 — envelope includes top-level `meta` (not inside `data`) */
-export async function listPublicEvents(params: ListPublicEventsParams = {}) {
-  const base = getCircleApiBase();
-  const sp = new URLSearchParams();
-  if (params.page != null) sp.set("page", String(params.page));
-  if (params.limit != null) sp.set("limit", String(params.limit));
-  if (params.status) sp.set("status", params.status);
-  if (params.search) sp.set("search", params.search);
-  const q = sp.toString();
-  const res = await fetch(`${base}/events${q ? `?${q}` : ""}`);
-  const json = (await res.json()) as {
+/** Status values we never show on Explore when the list API omits `status` filter (fallback after 5xx). */
+const EXCLUDED_PUBLIC_LIST_STATUSES = new Set([
+  "draft",
+  "cancelled",
+  "canceled",
+  "pending",
+  "archived",
+]);
+
+function filterCircleEventsForPublicList(rows: CircleEvent[]): CircleEvent[] {
+  return rows.filter((row) => {
+    const s = (row.status ?? "").toLowerCase().trim();
+    if (!s) return true;
+    return !EXCLUDED_PUBLIC_LIST_STATUSES.has(s);
+  });
+}
+
+async function fetchEventsList(url: string, params: ListPublicEventsParams) {
+  const res = await fetch(url);
+  const ct = res.headers.get("content-type") ?? "";
+  let json: {
     success?: boolean;
     message?: string;
     data?: CircleEvent[];
     meta?: CircleListMeta;
   };
+  try {
+    json =
+      ct.includes("application/json") && res.status !== 204
+        ? ((await res.json()) as typeof json)
+        : {};
+  } catch {
+    throw new CircleApiError(
+      res.statusText || "Invalid JSON from events list",
+      res.status,
+      undefined,
+    );
+  }
   if (!res.ok || json.success === false) {
     throw new CircleApiError(json.message ?? res.statusText, res.status, json);
   }
-  const data = Array.isArray(json.data) ? json.data : [];
+  const raw = Array.isArray(json.data) ? json.data : [];
+  const data = filterCircleEventsForPublicList(raw);
   const meta = json.meta ?? {
     total: data.length,
     page: params.page ?? 1,
@@ -305,6 +328,44 @@ export async function listPublicEvents(params: ListPublicEventsParams = {}) {
     totalPages: 1,
   };
   return { data, meta };
+}
+
+function buildEventsListUrl(
+  base: string,
+  params: ListPublicEventsParams,
+  includeStatus: boolean,
+): string {
+  const sp = new URLSearchParams();
+  if (params.page != null) sp.set("page", String(params.page));
+  if (params.limit != null) sp.set("limit", String(params.limit));
+  if (includeStatus && params.status) sp.set("status", params.status);
+  if (params.search) sp.set("search", params.search);
+  const q = sp.toString();
+  return `${base}/events${q ? `?${q}` : ""}`;
+}
+
+/**
+ * §3.1 — envelope includes top-level `meta` (not inside `data`).
+ * Some backends 500 when `status=published` is passed; we retry without `status` and filter client-side.
+ */
+export async function listPublicEvents(params: ListPublicEventsParams = {}) {
+  const base = getCircleApiBase();
+  const wantsStatus = Boolean(params.status?.trim());
+
+  const urlWithStatus = buildEventsListUrl(base, params, true);
+  try {
+    return await fetchEventsList(urlWithStatus, params);
+  } catch (e) {
+    if (
+      e instanceof CircleApiError &&
+      e.status >= 500 &&
+      wantsStatus
+    ) {
+      const urlNoStatus = buildEventsListUrl(base, params, false);
+      return await fetchEventsList(urlNoStatus, params);
+    }
+    throw e;
+  }
 }
 
 /** §3.x — advanced public search endpoint (`/events/search/advanced`). */
@@ -333,7 +394,8 @@ export async function listAdvancedEvents(params: ListAdvancedEventsParams = {}) 
   if (!res.ok || json.success === false) {
     throw new CircleApiError(json.message ?? res.statusText, res.status, json);
   }
-  const data = Array.isArray(json.data) ? json.data : [];
+  const raw = Array.isArray(json.data) ? json.data : [];
+  const data = filterCircleEventsForPublicList(raw);
   const meta = json.meta ?? {
     total: data.length,
     page: params.page ?? 1,

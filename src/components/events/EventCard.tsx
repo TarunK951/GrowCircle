@@ -6,6 +6,7 @@ import type { MeetEvent } from "@/lib/types";
 import { formatInrFromCents } from "@/lib/formatCurrency";
 import { cn } from "@/lib/utils";
 import { primaryMeetImage } from "@/lib/events/coverDisplay";
+import { shouldRenderNativeImg } from "@/lib/events/remoteImageUrl";
 
 export function EventCard({
   event,
@@ -34,7 +35,7 @@ export function EventCard({
 
   const subtitle = hostName?.trim() || cityName;
   const cover = primaryMeetImage(event);
-  const coverIsDataUrl = cover?.startsWith("data:") ?? false;
+  const coverUseNative = Boolean(cover && shouldRenderNativeImg(cover));
   const coverIsUnsplash = cover?.includes("images.unsplash.com") ?? false;
 
   const linkClass = cn(
@@ -55,8 +56,8 @@ export function EventCard({
           <div className="flex h-full w-full items-center justify-center bg-neutral-100 text-neutral-500">
             <ImageOff className="h-7 w-7" aria-hidden />
           </div>
-        ) : coverIsDataUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
+        ) : coverUseNative ? (
+          // eslint-disable-next-line @next/next/no-img-element -- data URLs, http, or hosts outside next.config
           <img
             src={cover}
             alt=""

@@ -1,6 +1,7 @@
 import { createApi, fakeBaseQuery } from "@reduxjs/toolkit/query/react";
 import {
   getMyHostedEvents,
+  listAdvancedEvents,
   listPublicEvents,
 } from "@/lib/circle/api";
 import { getMyApplications } from "@/lib/circle/applicationsApi";
@@ -60,7 +61,14 @@ export const circleApi = createApi({
           });
           return { data: data.map((row) => circleEventToMeetEvent(row)) };
         } catch (e) {
-          return err(e);
+          try {
+            const { data } = await listAdvancedEvents({ page, limit });
+            return {
+              data: data.map((row) => circleEventToMeetEvent(row)),
+            };
+          } catch {
+            return err(e);
+          }
         }
       },
       providesTags: [{ type: "PublicEvents", id: "LIST" }],
