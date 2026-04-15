@@ -84,6 +84,7 @@ export function EventMeetDetail({
   hostName,
   priceLabel,
   whenLabel,
+  includeStockPlaceholders = false,
 }: {
   event: MeetEvent;
   detail: ResolvedEventDetail;
@@ -91,6 +92,8 @@ export function EventMeetDetail({
   hostName: string;
   priceLabel: string;
   whenLabel: string;
+  /** Host manage preview: show cover + gallery URLs even when they use default placeholders. */
+  includeStockPlaceholders?: boolean;
 }) {
   const left = Math.max(0, event.capacity - detail.spotsTaken);
   const pct =
@@ -161,7 +164,9 @@ export function EventMeetDetail({
     }
   }
 
-  const galleryUrls = meetEventGalleryUrls(event);
+  const galleryUrls = meetEventGalleryUrls(event, {
+    includeStockPlaceholders,
+  });
   const cover = galleryUrls[0] ?? null;
   const coverUseNative = Boolean(cover && shouldRenderNativeImg(cover));
   /** Next/Image: Unsplash can use default optimizer; other known CDNs use unoptimized. */

@@ -215,7 +215,9 @@ export default function HostManagePage() {
 
   useEffect(() => {
     if (!event) return;
-    setGalleryDraft(meetEventGalleryUrls(event));
+    setGalleryDraft(
+      meetEventGalleryUrls(event, { includeStockPlaceholders: true }),
+    );
     setDetailDraft(detailsFromEvent(event));
   }, [event]);
 
@@ -500,6 +502,7 @@ export default function HostManagePage() {
                 hostName={hostName}
                 priceLabel={priceLabel}
                 whenLabel={whenLabel}
+                includeStockPlaceholders
               />
             </div>
           </div>
