@@ -52,6 +52,14 @@ function hostLabel(event: MeetEvent) {
   return "Host";
 }
 
+/** Single visible character for avatar fallback (handles long URLs / emoji). */
+function threadAvatarInitial(title: string) {
+  const t = title.trim();
+  if (!t) return "?";
+  const ch = [...t][0];
+  return ch && ch.length > 0 ? ch.toUpperCase() : "?";
+}
+
 const LG_MQ = "(min-width: 1024px)";
 
 export function MessagesPanel() {
@@ -360,23 +368,23 @@ export function MessagesPanel() {
   };
 
   return (
-    <div className="relative flex min-h-[min(72vh,680px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm lg:h-[min(72vh,680px)] lg:min-h-0 lg:flex-row">
-      <div
-        className={cn(
-          "flex min-h-0 flex-col overflow-hidden border-b border-neutral-200",
-          "h-[min(42vh,400px)] w-full lg:h-full lg:min-h-0 lg:w-[min(100%,340px)] lg:shrink-0 lg:border-b-0 lg:border-r",
-        )}
-      >
-        <div className="shrink-0 border-b border-neutral-100 px-4 py-3">
+    <div
+      className={cn(
+        "isolate grid h-[min(72vh,680px)] w-full max-w-5xl grid-cols-1 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm",
+        "lg:min-h-0 lg:grid-cols-[minmax(260px,340px)_minmax(0,1fr)]",
+      )}
+    >
+      <aside className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden border-b border-neutral-200 bg-white lg:border-b-0 lg:border-r">
+        <div className="shrink-0 border-b border-neutral-100 bg-neutral-50/60 px-4 py-3">
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-500">
             People & meets
           </p>
-          <p className="mt-1 text-sm text-neutral-600">
+          <p className="mt-1 text-sm leading-snug text-neutral-600">
             Threads tied to your bookings and hosted meets (stored on this
             device).
           </p>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
           {activeThreads.length === 0 ? (
             <div className="px-4 py-8 text-center">
               <MessageCircle
@@ -416,29 +424,46 @@ export function MessagesPanel() {
                       type="button"
                       onClick={() => setSelectedId(t.id)}
                       className={cn(
-                        "flex w-full gap-3 px-4 py-3 text-left transition",
+                        "flex w-full gap-3 px-4 py-3.5 text-left transition",
                         isActive
-                          ? "bg-neutral-100"
-                          : "hover:bg-neutral-50",
+                          ? "bg-linear-to-r from-neutral-100 to-neutral-50/80"
+                          : "hover:bg-neutral-50/90",
                       )}
                     >
-                      <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-neutral-200 bg-neutral-100">
+                      <div
+                        className={cn(
+                          "relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl shadow-sm ring-1 ring-neutral-200/90",
+                          !t.image &&
+                            "bg-linear-to-br from-violet-50 via-white to-neutral-100",
+                        )}
+                      >
                         {t.image ? (
                           <Image
                             src={t.image}
                             alt=""
                             fill
                             className="object-cover"
-                            sizes="44px"
+                            sizes="48px"
                           />
                         ) : (
-                          <div className="flex h-full w-full items-center justify-center text-xs font-bold text-neutral-500">
-                            {t.role === "host" ? (
-                              <Users className="h-4 w-4" aria-hidden />
-                            ) : (
-                              <Calendar className="h-4 w-4" aria-hidden />
-                            )}
-                          </div>
+                          <>
+                            <span
+                              className="text-[15px] font-semibold tabular-nums text-neutral-800"
+                              aria-hidden
+                            >
+                              {threadAvatarInitial(t.title)}
+                            </span>
+                            <span
+                              className="absolute bottom-0.5 right-0.5 flex h-5 w-5 items-center justify-center rounded-md bg-white/95 shadow-sm ring-1 ring-neutral-200/90"
+                              aria-hidden
+                            >
+                              {t.role === "host" ? (
+                                <Users className="h-2.5 w-2.5 text-violet-700" />
+                              ) : (
+                                <Calendar className="h-2.5 w-2.5 text-emerald-700" />
+                              )}
+                            </span>
+                          </>
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
@@ -492,13 +517,15 @@ export function MessagesPanel() {
             </div>
           ) : null}
         </div>
-      </div>
+      </aside>
 
-      <div className="hidden min-h-0 min-w-0 flex-1 flex-col lg:flex lg:h-full lg:min-h-0">
+      <section className="hidden min-h-0 min-w-0 flex-col bg-neutral-50/30 lg:flex lg:h-full">
         {selected ? (
-          <div className="flex min-h-0 flex-1 flex-col">{renderChatPane()}</div>
+          <div className="flex min-h-0 flex-1 flex-col bg-white">
+            {renderChatPane()}
+          </div>
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-16 text-center">
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center bg-white px-6 py-16 text-center">
             <MessageCircle
               className="h-12 w-12 text-neutral-200"
               aria-hidden
@@ -518,7 +545,7 @@ export function MessagesPanel() {
             </Link>
           </div>
         )}
-      </div>
+      </section>
 
       {selected && !isLg ? (
         <div
