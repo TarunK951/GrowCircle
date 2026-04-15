@@ -76,10 +76,16 @@ export const circleApi = createApi({
 
     hostedEvents: builder.query<MeetEvent[], void>({
       async queryFn(_arg, { getState }) {
+        if (!isCircleApiConfigured()) {
+          return { data: [] };
+        }
+        const { ensureCircleAccessToken } = await import(
+          "@/lib/circle/sessionBridge"
+        );
+        const token = await ensureCircleAccessToken();
         const state = getState() as AuthSliceRoot;
-        const token = state.auth.accessToken;
         const defaultHostUserId = state.auth.user?.id;
-        if (!token || !isCircleApiConfigured()) {
+        if (!token) {
           return { data: [] };
         }
         try {
@@ -97,9 +103,15 @@ export const circleApi = createApi({
     }),
 
     myApplications: builder.query<CircleMyApplication[], void>({
-      async queryFn(_arg, { getState }) {
-        const token = (getState() as AuthSliceRoot).auth.accessToken;
-        if (!token || !isCircleApiConfigured()) {
+      async queryFn(_arg) {
+        if (!isCircleApiConfigured()) {
+          return { data: [] };
+        }
+        const { ensureCircleAccessToken } = await import(
+          "@/lib/circle/sessionBridge"
+        );
+        const token = await ensureCircleAccessToken();
+        if (!token) {
           return { data: [] };
         }
         try {
@@ -116,9 +128,25 @@ export const circleApi = createApi({
       { data: CircleApiNotification[]; meta: CircleListMeta },
       { page: number; limit: number }
     >({
-      async queryFn(arg, { getState }) {
-        const token = (getState() as AuthSliceRoot).auth.accessToken;
-        if (!token || !isCircleApiConfigured()) {
+      async queryFn(arg) {
+        if (!isCircleApiConfigured()) {
+          return {
+            data: {
+              data: [],
+              meta: {
+                total: 0,
+                page: arg.page,
+                limit: arg.limit,
+                totalPages: 0,
+              },
+            },
+          };
+        }
+        const { ensureCircleAccessToken } = await import(
+          "@/lib/circle/sessionBridge"
+        );
+        const token = await ensureCircleAccessToken();
+        if (!token) {
           return {
             data: {
               data: [],
@@ -154,9 +182,15 @@ export const circleApi = createApi({
     }),
 
     unreadNotificationCount: builder.query<number, void>({
-      async queryFn(_arg, { getState }) {
-        const token = (getState() as AuthSliceRoot).auth.accessToken;
-        if (!token || !isCircleApiConfigured()) {
+      async queryFn(_arg) {
+        if (!isCircleApiConfigured()) {
+          return { data: 0 };
+        }
+        const { ensureCircleAccessToken } = await import(
+          "@/lib/circle/sessionBridge"
+        );
+        const token = await ensureCircleAccessToken();
+        if (!token) {
           return { data: 0 };
         }
         try {

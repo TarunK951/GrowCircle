@@ -133,7 +133,62 @@ export type CircleEvent = {
   /** ISO 4217 (e.g. INR) when API returns it */
   currency?: string | null;
   commission_override?: number | string | null;
+  /** Present on list/detail rows from production API */
+  host_id?: string | null;
+  is_featured?: boolean;
+  created_at?: string;
+  updated_at?: string | null;
+  deleted_at?: string | null;
 };
+
+/**
+ * Wire payload for POST /events — snake_case keys as sent to Circle API.
+ * Aligns with host wizard and backend contract.
+ */
+export type CircleEventCreateBody = {
+  title: string;
+  description: string;
+  max_capacity: number;
+  /** Major currency units (e.g. 499 for ₹499) */
+  price: number;
+  event_date: string;
+  location: string;
+  timezone?: string;
+  start_time?: string | null;
+  end_time?: string | null;
+  category?: string;
+  tags?: string[];
+  cover_image_url?: string | null;
+  image_urls?: string[];
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  visibility?: string;
+  waitlist_enabled?: boolean;
+  min_age?: number;
+  min_verification_tier?: number;
+  terms_required?: boolean;
+  refund_policy?: string;
+  refund_full_before_hours?: number;
+  refund_partial_before_hours?: number;
+  refund_partial_percentage?: number;
+  registration_opens_at?: string | null;
+  registration_closes_at?: string | null;
+  faqs?: { q: string; a: string }[];
+  more_about?: string;
+  whats_included?: string[];
+  guest_suggestions?: string[];
+  allowed_and_notes?: string;
+  house_rules?: { dos: string[]; donts: string[] };
+  event_rules?: string;
+  location_type?: string;
+  currency?: string;
+  tax_percentage?: number;
+  latitude?: number;
+  longitude?: number;
+};
+
+/** Wire payload for PUT /events/:id — partial update */
+export type CircleEventUpdateBody = Partial<CircleEventCreateBody>;
 
 export type CircleListMeta = {
   total: number;

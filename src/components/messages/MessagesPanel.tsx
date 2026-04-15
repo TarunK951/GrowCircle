@@ -360,11 +360,11 @@ export function MessagesPanel() {
   };
 
   return (
-    <div className="relative flex min-h-[min(72vh,680px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm lg:flex-row">
+    <div className="relative flex min-h-[min(72vh,680px)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm lg:h-[min(72vh,680px)] lg:min-h-0 lg:flex-row">
       <div
         className={cn(
           "flex min-h-0 flex-col overflow-hidden border-b border-neutral-200",
-          "h-[min(42vh,400px)] w-full lg:h-auto lg:min-h-0 lg:w-[min(100%,340px)] lg:max-h-none lg:shrink-0 lg:border-b-0 lg:border-r",
+          "h-[min(42vh,400px)] w-full lg:h-full lg:min-h-0 lg:w-[min(100%,340px)] lg:shrink-0 lg:border-b-0 lg:border-r",
         )}
       >
         <div className="shrink-0 border-b border-neutral-100 px-4 py-3">
@@ -494,11 +494,11 @@ export function MessagesPanel() {
         </div>
       </div>
 
-      <div className="hidden min-h-0 min-w-0 flex-1 flex-col lg:flex">
+      <div className="hidden min-h-0 min-w-0 flex-1 flex-col lg:flex lg:h-full lg:min-h-0">
         {selected ? (
           <div className="flex min-h-0 flex-1 flex-col">{renderChatPane()}</div>
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-16 text-center">
             <MessageCircle
               className="h-12 w-12 text-neutral-200"
               aria-hidden

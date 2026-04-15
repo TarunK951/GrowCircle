@@ -8,8 +8,10 @@ import type {
   CircleAuthUser,
   CircleBroadcastBody,
   CircleEvent,
+  CircleEventCreateBody,
   CircleEventQuestion,
   CircleEventQuestionInput,
+  CircleEventUpdateBody,
   CircleListMeta,
   CircleProfile,
   VerifyOtpData,
@@ -420,10 +422,7 @@ export function getEventById(id: string, accessToken?: string | null) {
 }
 
 /** §3.4 */
-export function createEvent(
-  accessToken: string,
-  body: Record<string, unknown>,
-) {
+export function createEvent(accessToken: string, body: CircleEventCreateBody) {
   return circleRequest<CircleEvent>("/events", { accessToken, body });
 }
 
@@ -431,7 +430,7 @@ export function createEvent(
 export function updateEvent(
   accessToken: string,
   id: string,
-  body: Record<string, unknown>,
+  body: CircleEventUpdateBody,
 ) {
   return circleRequest<CircleEvent>(`/events/${encodeURIComponent(id)}`, {
     method: "PUT",

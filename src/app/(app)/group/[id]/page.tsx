@@ -1,12 +1,11 @@
-import { use } from "react";
 import { GroupPageView } from "../GroupPageView";
 
 type GroupPageProps = Readonly<{
   params: Promise<{ id: string }>;
 }>;
 
-/** See `events/[id]/page.tsx` — `use(params)` is required; DevTools may still warn when inspecting. */
-export default function GroupPage({ params }: GroupPageProps) {
-  const { id } = use(params);
+/** `await params` — same contract as `events/[id]/page.tsx`. */
+export default async function GroupPage({ params }: GroupPageProps) {
+  const { id } = await params;
   return <GroupPageView id={id} />;
 }

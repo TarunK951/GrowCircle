@@ -12,6 +12,7 @@ import {
 import { reduxPersistStorage } from "@/lib/reduxPersistStorage";
 import { REDUX_PERSIST_AUTH_KEY } from "@/lib/persistKeys";
 import { authSlice } from "./authSlice";
+import { circleAuthListenerMiddleware } from "./circleAuthListener";
 import { circleApi } from "./circleApi";
 
 const authPersistConfig = {
@@ -32,7 +33,9 @@ export const store = configureStore({
       serializableCheck: {
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
-    }).concat(circleApi.middleware),
+    })
+      .prepend(circleAuthListenerMiddleware.middleware)
+      .concat(circleApi.middleware),
 });
 
 export const persistor = persistStore(store);
