@@ -1,16 +1,29 @@
 "use client";
 
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 
 gsap.registerPlugin(ScrollTrigger);
 
+/**
+ * Lenis + ScrollTrigger’s document scroller proxy can leave wheel/touch scrolling
+ * intermittently stuck until a full reload (especially on long form-like pages).
+ * The host wizard uses native document scrolling only.
+ */
+function isHostWizardPath(pathname: string): boolean {
+  return pathname === "/host" || pathname === "/host-a-meet";
+}
+
 export function MotionProviders({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const skipLenis = isHostWizardPath(pathname);
+
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (mq.matches) return;
+    if (mq.matches || skipLenis) return;
 
     const lenis = new Lenis({
       duration: 1.05,
@@ -53,9 +66,9 @@ export function MotionProviders({ children }: { children: React.ReactNode }) {
       gsap.ticker.remove(tick);
       lenis.destroy();
       ScrollTrigger.scrollerProxy(document.documentElement, {});
-      ScrollTrigger.getAll().forEach((t) => t.kill());
+      ScrollTrigger.refresh();
     };
-  }, []);
+  }, [skipLenis]);
 
   return <>{children}</>;
 }
